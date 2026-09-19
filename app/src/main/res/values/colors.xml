@@ -1,0 +1,19 @@
+<resources>
+    <!-- StudyOS Light tokens -->
+    <color name="studyos_light_background">#F7F7F4</color>
+    <color name="studyos_light_surface">#FFFFFF</color>
+    <color name="studyos_light_primary_text">#191918</color>
+    <color name="studyos_light_secondary_text">#686862</color>
+    <color name="studyos_light_muted_text">#999991</color>
+    <color name="studyos_light_border">#DEDED7</color>
+    <color name="studyos_light_accent">#B7791F</color>
+
+    <!-- StudyOS Dark tokens -->
+    <color name="studyos_dark_background">#181817</color>
+    <color name="studyos_dark_surface">#222220</color>
+    <color name="studyos_dark_primary_text">#F1F1EC</color>
+    <color name="studyos_dark_secondary_text">#B5B5AD</color>
+    <color name="studyos_dark_muted_text">#85857E</color>
+    <color name="studyos_dark_border">#393934</color>
+    <color name="studyos_dark_accent">#D39A3A</color>
+</resources>
