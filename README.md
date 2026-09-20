@@ -24,7 +24,10 @@ Download the latest production-ready Android APK directly:
 - **Target OS:** Android 8.0 (API 26) through Android 14+
 - **SHA-256:** `eee8c139f73f1311d98280170d91eef4f8d26caea30e2fe5dc51c8b064ba3353`
 
-> 🌐 **Interactive Landing Page**: Open [`docs/index.html`](docs/index.html) in any browser to preview the live landing page, architecture highlights, and mobile mockups.
+> 🌐 **Live Landing Page**:
+> - **[https://studyos-workspace.vercel.app](https://studyos-workspace.vercel.app)** *(Global Vercel Edge)*
+> - **[https://studyos-android.vercel.app](https://studyos-android.vercel.app)** *(Alternative Mirror)*
+> - **[https://contactaurawealth-lab.github.io/StudyOS/](https://contactaurawealth-lab.github.io/StudyOS/)** *(GitHub Pages)*
 
 ---
 
