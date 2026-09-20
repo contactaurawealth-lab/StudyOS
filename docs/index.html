@@ -1,63 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudyOS — Personal Study Operating System for Android</title>
-  <meta name="description" content="StudyOS is a minimal, distraction-free Android study workspace built with Kotlin and Jetpack Compose. Features glassmorphic UI, spaced-repetition revision, context-aware AI learning, and an integrated practice hub.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>StudyOS — Your Personal Study Operating System</title>
+  <meta name="description" content="StudyOS brings subjects, chapters, progress, revision, and planning together into one calm workspace built for students. Minimal, offline-first, and distraction-free.">
+  
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="StudyOS — Your Personal Study Operating System">
+  <meta property="og:description" content="Organize your subjects. Track your progress. Keep moving. A personal study workspace for Android.">
+  <meta property="og:image" content="https://docs-ten-sage.vercel.app/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0A0B0E" id="themeMetaColor">
+
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F59E0B'><path d='M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z'/></svg>">
+  
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --bg: #090A0D;
-      --bg-gradient: radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.12), transparent 50%),
-                           radial-gradient(circle at 85% 30%, rgba(245, 158, 11, 0.08), transparent 40%),
-                           #090A0D;
-      --surface: rgba(22, 24, 29, 0.65);
-      --surface-hover: rgba(30, 33, 40, 0.85);
-      --surface-solid: #13151A;
+      /* Dark Theme (Default) */
+      --bg: #0A0B0E;
+      --bg-gradient: radial-gradient(circle at 50% -10%, rgba(245, 158, 11, 0.08), transparent 45%), #0A0B0E;
+      --surface-glass: rgba(22, 25, 32, 0.7);
+      --surface-glass-hover: rgba(28, 32, 42, 0.85);
+      --surface-card: #13151B;
+      --surface-elevated: #1A1D25;
       --border: rgba(255, 255, 255, 0.08);
-      --border-accent: rgba(245, 158, 11, 0.3);
-      --accent: #F59E0B;
-      --accent-hover: #D97706;
-      --accent-glow: rgba(245, 158, 11, 0.25);
+      --border-subtle: rgba(255, 255, 255, 0.04);
+      --border-accent: rgba(245, 158, 11, 0.35);
       --text-primary: #F3F4F6;
       --text-secondary: #9CA3AF;
       --text-muted: #6B7280;
+      --accent: #F59E0B;
+      --accent-hover: #D97706;
+      --accent-glow: rgba(245, 158, 11, 0.2);
+      --success: #10B981;
+      
       --radius-sm: 12px;
       --radius-md: 16px;
       --radius-lg: 22px;
       --radius-modal: 28px;
+      --radius-pill: 9999px;
+      
+      --shadow-glass: 0 12px 36px 0 rgba(0, 0, 0, 0.35);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
       --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
-      --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
     }
 
     [data-theme="light"] {
       --bg: #F8F9FA;
-      --bg-gradient: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.1), transparent 50%),
-                           #F8F9FA;
-      --surface: rgba(255, 255, 255, 0.8);
-      --surface-hover: rgba(255, 255, 255, 0.95);
-      --surface-solid: #FFFFFF;
+      --bg-gradient: radial-gradient(circle at 50% -10%, rgba(245, 158, 11, 0.06), transparent 45%), #F8F9FA;
+      --surface-glass: rgba(255, 255, 255, 0.78);
+      --surface-glass-hover: rgba(255, 255, 255, 0.94);
+      --surface-card: #FFFFFF;
+      --surface-elevated: #F1F3F5;
       --border: rgba(0, 0, 0, 0.08);
-      --border-accent: rgba(217, 119, 6, 0.4);
-      --accent: #D97706;
-      --accent-hover: #B45309;
-      --accent-glow: rgba(217, 119, 6, 0.2);
+      --border-subtle: rgba(0, 0, 0, 0.04);
+      --border-accent: rgba(217, 119, 6, 0.35);
       --text-primary: #111827;
       --text-secondary: #4B5563;
       --text-muted: #9CA3AF;
-      --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+      --accent: #D97706;
+      --accent-hover: #B45309;
+      --accent-glow: rgba(217, 119, 6, 0.15);
+      --success: #059669;
+      --shadow-glass: 0 12px 36px 0 rgba(0, 0, 0, 0.06);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
-    * {
+    /* Reset & Base */
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      transition: background-color 0.25s ease, border-color 0.25s ease;
+      transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -65,88 +92,97 @@
       background: var(--bg-gradient);
       color: var(--text-primary);
       min-height: 100vh;
-      overflow-x: hidden;
       line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient background orbs */
-    .ambient-glow {
-      position: fixed;
-      top: -200px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 700px;
-      height: 700px;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-      filter: blur(80px);
+    /* Typography Hierarchy */
+    h1, h2, h3, h4 {
+      color: var(--text-primary);
+      letter-spacing: -0.025em;
+      font-weight: 700;
+      line-height: 1.18;
     }
 
-    /* Navigation */
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      padding: 16px 24px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      background: rgba(9, 10, 13, 0.7);
-      border-bottom: 1px solid var(--border);
-    }
-    [data-theme="light"] header {
-      background: rgba(248, 249, 250, 0.75);
+    p {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      line-height: 1.65;
     }
 
-    .nav-container {
+    .container {
       max-width: 1200px;
       margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Floating Glass Navbar */
+    .nav-wrapper {
+      position: sticky;
+      top: 16px;
+      z-index: 1000;
+      padding: 0 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .navbar {
+      width: 100%;
+      max-width: 1040px;
+      background: var(--surface-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      padding: 10px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      box-shadow: var(--shadow-glass);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       text-decoration: none;
       color: var(--text-primary);
       font-weight: 700;
-      font-size: 1.25rem;
-      letter-spacing: -0.02em;
+      font-size: 1.15rem;
     }
 
     .brand-icon {
-      width: 38px;
-      height: 38px;
+      width: 32px;
+      height: 32px;
       background: linear-gradient(135deg, var(--accent), #B45309);
-      border-radius: var(--radius-sm);
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      box-shadow: 0 4px 14px var(--accent-glow);
+      color: #FFF;
+      box-shadow: 0 2px 10px var(--accent-glow);
     }
 
     .brand-icon svg {
-      width: 22px;
-      height: 22px;
+      width: 18px;
+      height: 18px;
       fill: currentColor;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 28px;
+      gap: 32px;
     }
 
     .nav-links a {
       color: var(--text-secondary);
       text-decoration: none;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 500;
-      transition: color 0.15s;
+      transition: color 0.15s ease;
     }
 
     .nav-links a:hover {
@@ -156,475 +192,802 @@
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      padding: 10px 20px;
-      border-radius: var(--radius-lg);
+      padding: 9px 18px;
+      border-radius: var(--radius-pill);
+      font-size: 0.92rem;
       font-weight: 600;
-      font-size: 0.95rem;
       text-decoration: none;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
     }
 
     .btn-primary {
       background: var(--accent);
       color: #000;
-      box-shadow: 0 4px 20px var(--accent-glow);
+      box-shadow: 0 4px 16px var(--accent-glow);
     }
+
     .btn-primary:hover {
       background: var(--accent-hover);
-      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--accent-glow);
     }
 
     .btn-glass {
-      background: var(--surface);
+      background: var(--surface-glass);
       color: var(--text-primary);
       border-color: var(--border);
-      backdrop-filter: blur(12px);
-    }
-    .btn-glass:hover {
-      background: var(--surface-hover);
-      border-color: var(--border-accent);
-      transform: translateY(-1px);
     }
 
-    .theme-toggle {
-      width: 40px;
-      height: 40px;
+    .btn-glass:hover {
+      background: var(--surface-glass-hover);
+      border-color: var(--border-accent);
+    }
+
+    .theme-btn {
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background: var(--surface);
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .theme-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-accent);
+    }
+
+    .menu-btn {
+      display: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: transparent;
       border: 1px solid var(--border);
       color: var(--text-primary);
-      display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
     }
 
-    /* Container */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-      position: relative;
-      z-index: 1;
+    /* Mobile Menu Drawer */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 76px;
+      left: 16px;
+      right: 16px;
+      background: var(--surface-glass);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      z-index: 999;
+      box-shadow: var(--shadow-glass);
+      flex-direction: column;
+      gap: 16px;
     }
 
-    /* Hero */
+    .mobile-menu.open {
+      display: flex;
+    }
+
+    .mobile-menu a {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 1.05rem;
+      font-weight: 600;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* Hero Section */
     .hero {
-      padding: 80px 0 60px;
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 64px;
+      padding: 90px 0 50px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
       align-items: center;
     }
 
-    .badge {
+    .badge-pill {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
-      background: var(--surface);
+      padding: 5px 14px;
+      background: var(--surface-glass);
       border: 1px solid var(--border-accent);
-      border-radius: 100px;
-      font-size: 0.85rem;
+      border-radius: var(--radius-pill);
+      font-size: 0.82rem;
       font-weight: 600;
       color: var(--accent);
-      margin-bottom: 20px;
-      backdrop-filter: blur(8px);
+      margin-bottom: 24px;
     }
 
     .badge-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+      box-shadow: 0 0 6px var(--accent);
     }
 
     .hero-title {
-      font-size: 3.4rem;
+      font-size: 4.2rem;
       font-weight: 800;
-      line-height: 1.12;
-      letter-spacing: -0.03em;
-      margin-bottom: 20px;
-    }
-
-    .hero-title span {
-      background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      margin-bottom: 22px;
+      max-width: 820px;
     }
 
     .hero-subtitle {
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 36px;
       line-height: 1.6;
-      margin-bottom: 36px;
-      max-width: 580px;
     }
 
     .hero-actions {
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
       align-items: center;
-      margin-bottom: 36px;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 18px;
     }
 
-    .btn-download-hero {
-      padding: 15px 30px;
-      font-size: 1.05rem;
-      border-radius: var(--radius-lg);
-    }
-
-    .hero-specs {
-      display: flex;
-      gap: 24px;
+    .hero-subtext {
       font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 60px;
+    }
+
+    /* Product Preview Mockup (Hero) */
+    .mockup-container {
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto 80px;
+      perspective: 1000px;
+    }
+
+    .app-preview-card {
+      background: var(--surface-glass);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-modal);
+      padding: 24px;
+      box-shadow: var(--shadow-glass);
+      position: relative;
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .preview-user {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-user .greeting {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .preview-user .date {
+      font-size: 0.82rem;
       color: var(--text-muted);
     }
 
-    .hero-specs span {
+    /* Focus Card */
+    .focus-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .tag-accent {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .focus-subject {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .focus-chapter {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: var(--surface-elevated);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: var(--radius-pill);
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .focus-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .focus-continue-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Progress Info Section */
+    .preview-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .preview-mini-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .preview-mini-card .title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .recent-item {
+      font-size: 0.82rem;
+      padding: 4px 0;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    /* Phone Mockup */
-    .mockup-wrapper {
+    .recent-item::before {
+      content: "•";
+      color: var(--accent);
+    }
+
+    /* Trust Strip */
+    .trust-strip {
+      padding: 30px 0;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 90px;
+      text-align: center;
+    }
+
+    .trust-statement {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+    }
+
+    .trust-tags {
       display: flex;
       justify-content: center;
-      position: relative;
+      flex-wrap: wrap;
+      gap: 24px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-weight: 500;
     }
 
-    .phone-frame {
-      width: 330px;
-      height: 670px;
-      background: #0E1015;
-      border-radius: 46px;
-      border: 11px solid #1F232B;
-      box-shadow: var(--shadow-glass), 0 0 60px rgba(0, 0, 0, 0.6);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .phone-notch {
-      width: 110px;
-      height: 22px;
-      background: #1F232B;
-      border-radius: 0 0 14px 14px;
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-    }
-
-    .phone-content {
-      padding: 34px 16px 16px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      background: #0A0C0F;
-      color: #EDEFEF;
-      font-size: 0.85rem;
-      overflow-y: hidden;
-    }
-
-    .app-topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 18px;
-    }
-    .app-greeting {
-      font-size: 0.95rem;
-      font-weight: 700;
-    }
-    .app-date {
-      font-size: 0.72rem;
-      color: #9CA3AF;
-    }
-
-    .glass-card-mock {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      margin-bottom: 12px;
-      backdrop-filter: blur(10px);
-    }
-
-    .alert-pill {
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 4px;
-    }
-
-    .progress-bar-bg {
-      width: 100%;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 8px 0;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 10px;
-    }
-
-    .bottom-bar-mock {
-      margin-top: auto;
-      background: rgba(22, 24, 29, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 6px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      backdrop-filter: blur(12px);
-    }
-    .bottom-tab {
+    .trust-tags span {
       display: flex;
       align-items: center;
-      gap: 5px;
-      font-size: 0.75rem;
-      padding: 6px 10px;
-      border-radius: 12px;
-      color: #9CA3AF;
-    }
-    .bottom-tab.active {
-      background: rgba(255, 255, 255, 0.09);
-      color: #FFF;
-      font-weight: 600;
-    }
-    .bottom-tab.active svg {
-      fill: var(--accent);
+      gap: 6px;
     }
 
-    /* Learning Loop Flow */
-    .loop-section {
-      padding: 80px 0;
+    /* Problem Section */
+    .section-problem {
+      padding: 50px 0 90px;
       text-align: center;
     }
 
     .section-tag {
       color: var(--accent);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 12px;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
     }
 
-    .section-heading {
-      font-size: 2.3rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+    .section-title {
+      font-size: 2.6rem;
       margin-bottom: 16px;
     }
 
-    .section-desc {
-      color: var(--text-secondary);
-      font-size: 1.1rem;
-      max-width: 650px;
-      margin: 0 auto 48px;
+    .transformation-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 32px;
+      align-items: center;
+      max-width: 960px;
+      margin: 48px auto 0;
     }
 
-    .loop-grid {
+    .box-state {
+      background: var(--surface-glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      text-align: left;
+    }
+
+    .box-state.before {
+      opacity: 0.85;
+    }
+
+    .box-state.after {
+      border-color: var(--border-accent);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .box-state h3 {
+      font-size: 1.1rem;
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 40px;
+      gap: 8px;
     }
 
-    .loop-step {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 16px 20px;
+    .state-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+    }
+
+    .state-list li {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 600;
-      font-size: 0.95rem;
-      box-shadow: var(--shadow-glass);
     }
 
-    .loop-step span.icon {
-      font-size: 1.25rem;
-    }
-
-    .loop-arrow {
+    .transform-arrow {
+      font-size: 1.8rem;
       color: var(--accent);
-      font-weight: 700;
-      font-size: 1.1rem;
     }
 
-    /* Pillars / Features */
-    .features-section {
+    /* Core Features */
+    .section-features {
       padding: 60px 0 100px;
     }
 
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 48px;
     }
 
     .feature-card {
-      background: var(--surface);
+      background: var(--surface-glass);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 32px;
-      backdrop-filter: blur(16px);
-      box-shadow: var(--shadow-glass);
+      padding: 26px;
       display: flex;
       flex-direction: column;
-      position: relative;
-      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
     }
 
     .feature-card:hover {
-      background: var(--surface-hover);
+      transform: translateY(-2px);
       border-color: var(--border-accent);
-      transform: translateY(-3px);
     }
 
-    .feature-icon-wrapper {
-      width: 48px;
-      height: 48px;
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.25);
-      border-radius: var(--radius-sm);
+    .feature-card-header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      color: var(--accent);
-      margin-bottom: 22px;
-    }
-
-    .feature-card h3 {
-      font-size: 1.3rem;
-      font-weight: 700;
+      gap: 12px;
       margin-bottom: 12px;
     }
 
-    .feature-card p {
-      color: var(--text-secondary);
-      font-size: 0.98rem;
-      line-height: 1.6;
-    }
-
-    /* Download Box */
-    .download-section {
-      padding: 80px 0 100px;
-    }
-
-    .download-card {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(22, 24, 29, 0.95));
-      border: 1px solid var(--border-accent);
-      border-radius: var(--radius-modal);
-      padding: 56px 48px;
-      backdrop-filter: blur(24px);
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 48px;
-      align-items: center;
-    }
-
-    .download-card h2 {
-      font-size: 2.6rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 14px;
-    }
-
-    .download-card p {
-      color: var(--text-secondary);
-      font-size: 1.1rem;
-      margin-bottom: 28px;
-    }
-
-    .download-cta-box {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .btn-download-large {
-      padding: 18px 36px;
-      font-size: 1.15rem;
-      justify-content: center;
-      border-radius: var(--radius-lg);
-    }
-
-    .integrity-box {
-      background: var(--surface-solid);
+    .feature-icon {
+      width: 38px;
+      height: 38px;
+      background: var(--surface-elevated);
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    .feature-card h3 {
+      font-size: 1.15rem;
+    }
+
+    .feature-card p {
+      font-size: 0.92rem;
+      margin-bottom: 18px;
+      flex-grow: 1;
+    }
+
+    .feature-mini-ui {
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* Showcase Sections */
+    .showcase-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+      margin: 90px 0;
+    }
+
+    .showcase-row.reverse {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .showcase-text h2 {
+      font-size: 2.2rem;
+      margin-bottom: 16px;
+    }
+
+    .showcase-text p {
+      margin-bottom: 24px;
+    }
+
+    .chapter-preview-box {
+      background: var(--surface-glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-glass);
+    }
+
+    .chapter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.9rem;
+    }
+
+    .chapter-row:last-child {
+      border-bottom: none;
+    }
+
+    .chapter-num {
       font-family: var(--font-mono);
       font-size: 0.8rem;
       color: var(--text-muted);
-    }
-    .integrity-box .label {
-      color: var(--accent);
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .integrity-box .hash {
-      word-break: break-all;
-      color: var(--text-secondary);
+      margin-right: 10px;
     }
 
-    /* Terminal Instructions */
-    .terminal-box {
-      background: #0B0D11;
+    .badge-status {
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+    }
+
+    .badge-status.complete {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+    }
+
+    .badge-status.in-progress {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--accent);
+    }
+
+    /* How It Works */
+    .section-how {
+      padding: 80px 0 100px;
+      text-align: center;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .step-card {
+      background: var(--surface-glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 24px;
+      text-align: left;
+    }
+
+    .step-number {
+      font-family: var(--font-mono);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .step-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+
+    /* Progress Section */
+    .section-progress {
+      padding: 60px 0 90px;
+      text-align: center;
+    }
+
+    .progress-showcase-box {
+      max-width: 760px;
+      margin: 48px auto 0;
+      background: var(--surface-glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-glass);
+    }
+
+    .overall-metric {
+      font-size: 4.6rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .overall-label {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .subject-stat-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .subject-name {
+      width: 120px;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+
+    .subject-bar-wrap {
+      flex-grow: 1;
+    }
+
+    .subject-pct {
+      width: 50px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Mobile First Section */
+    .section-mobile {
+      padding: 80px 0 100px;
+    }
+
+    .mobile-mock-card {
+      width: 320px;
+      height: 560px;
+      margin: 0 auto;
+      background: #0E1015;
+      border: 10px solid #1F232B;
+      border-radius: 40px;
+      padding: 24px 16px;
+      box-shadow: var(--shadow-glass);
+      display: flex;
+      flex-direction: column;
+      color: #FFF;
+      text-align: left;
+    }
+
+    /* Mode Demo Toggle */
+    .mode-demo-box {
+      background: var(--surface-glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      max-width: 600px;
+      margin: 36px auto 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .segmented-control {
+      display: flex;
+      background: var(--surface-elevated);
+      padding: 4px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      margin-top: 18px;
+    }
+
+    .segment-btn {
+      padding: 8px 24px;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .segment-btn.active {
+      background: var(--surface-card);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* FAQ Accordion */
+    .section-faq {
+      padding: 80px 0 100px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .faq-list {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-item {
+      background: var(--surface-glass);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      padding: 16px 20px;
-      font-family: var(--font-mono);
-      font-size: 0.84rem;
-      color: #A7F3D0;
-      margin-top: 14px;
-      position: relative;
+      overflow: hidden;
     }
-    .terminal-title {
-      font-size: 0.74rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-bottom: 6px;
+
+    .faq-question {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      padding: 18px 22px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .faq-icon {
+      color: var(--accent);
+      font-size: 1.2rem;
+      transition: transform 0.25s ease;
+    }
+
+    .faq-answer {
+      display: none;
+      padding: 0 22px 20px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .faq-item.active .faq-answer {
+      display: block;
+    }
+
+    .faq-item.active .faq-icon {
+      transform: rotate(45deg);
+    }
+
+    /* Final CTA */
+    .section-cta {
+      padding: 70px 0 100px;
+      text-align: center;
+    }
+
+    .cta-card {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-modal);
+      padding: 64px 32px;
+      box-shadow: var(--shadow-glass);
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .cta-card h2 {
+      font-size: 2.8rem;
+      margin-bottom: 14px;
+    }
+
+    .cta-card p {
+      max-width: 520px;
+      margin: 0 auto 32px;
     }
 
     /* Footer */
     footer {
       border-top: 1px solid var(--border);
       padding: 48px 0;
-      color: var(--text-muted);
+      background: var(--surface-card);
       font-size: 0.9rem;
-      background: rgba(9, 10, 13, 0.9);
     }
 
-    .footer-content {
+    .footer-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -636,50 +999,76 @@
       display: flex;
       gap: 24px;
     }
+
     .footer-links a {
       color: var(--text-secondary);
       text-decoration: none;
     }
+
     .footer-links a:hover {
       color: var(--accent);
     }
 
-    /* Responsive */
-    @media (max-width: 900px) {
-      .hero {
-        grid-template-columns: 1fr;
-        text-align: center;
-        gap: 40px;
-      }
+    /* Responsive Queries */
+    @media (max-width: 920px) {
       .hero-title {
-        font-size: 2.6rem;
+        font-size: 3.2rem;
       }
-      .hero-subtitle {
-        margin: 0 auto 30px;
+      .features-grid {
+        grid-template-columns: 1fr 1fr;
       }
-      .hero-actions {
-        justify-content: center;
-      }
-      .hero-specs {
-        justify-content: center;
-      }
-      .download-card {
+      .showcase-row {
         grid-template-columns: 1fr;
-        padding: 36px 24px;
+        gap: 36px;
       }
+      .showcase-row.reverse {
+        grid-template-columns: 1fr;
+      }
+      .transformation-grid {
+        grid-template-columns: 1fr;
+      }
+      .transform-arrow {
+        transform: rotate(90deg);
+      }
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
       .nav-links {
         display: none;
+      }
+      .menu-btn {
+        display: flex;
+      }
+      .hero-title {
+        font-size: 2.5rem;
+      }
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .preview-grid-2 {
+        grid-template-columns: 1fr;
+      }
+      .cta-card {
+        padding: 40px 20px;
+      }
+      .cta-card h2 {
+        font-size: 2rem;
+      }
+      .footer-row {
+        flex-direction: column;
+        align-items: flex-start;
       }
     }
   </style>
 </head>
 <body>
 
-  <div class="ambient-glow"></div>
-
-  <!-- Header -->
-  <header>
-    <div class="nav-container">
+  <!-- Floating Sticky Glass Navbar -->
+  <div class="nav-wrapper">
+    <header class="navbar">
       <a href="#" class="brand">
         <div class="brand-icon">
           <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
@@ -689,286 +1078,589 @@
 
       <nav class="nav-links">
         <a href="#features">Features</a>
-        <a href="#loop">Practice Loop</a>
-        <a href="#ai">AI Engine</a>
-        <a href="#specs">Specs</a>
-        <a href="https://github.com/StudyOS/StudyOS" target="_blank">GitHub</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#progress">Progress</a>
+        <a href="#faq">FAQ</a>
       </nav>
 
       <div class="nav-actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+        <button class="theme-btn" id="themeToggleBtn" aria-label="Toggle light/dark mode">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         </button>
-        <a href="./downloads/StudyOS.apk" download class="btn btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-          Download APK
-        </a>
+        <button class="menu-btn" id="mobileMenuBtn" aria-label="Open mobile menu">☰</button>
+        <a href="./downloads/StudyOS.apk" download class="btn btn-primary">Get Started</a>
       </div>
-    </div>
-  </header>
+    </header>
+  </div>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#features" onclick="closeMenu()">Features</a>
+    <a href="#how-it-works" onclick="closeMenu()">How it works</a>
+    <a href="#progress" onclick="closeMenu()">Progress</a>
+    <a href="#faq" onclick="closeMenu()">FAQ</a>
+    <a href="./downloads/StudyOS.apk" download class="btn btn-primary" style="margin-top: 10px; justify-content:center;">Get Started (Download APK)</a>
+  </div>
 
   <!-- Hero Section -->
-  <section class="container hero">
-    <div class="hero-text">
-      <div class="badge">
-        <span class="badge-dot"></span>
-        Phase 12 Glassmorphism Release • v1.0.0
-      </div>
-      <h1 class="hero-title">
-        The Personal <span>Study Operating System</span> for Android
-      </h1>
-      <p class="hero-subtitle">
-        A distraction-free, glassmorphic workspace engineered for deep focus, spaced-repetition active recall, context-aware AI learning, and mastery.
-      </p>
-
-      <div class="hero-actions">
-        <a href="./downloads/StudyOS.apk" download class="btn btn-primary btn-download-hero">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-          Download APK (19 MB)
-        </a>
-        <a href="https://github.com/StudyOS/StudyOS" target="_blank" class="btn btn-glass">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-          View GitHub Repository
-        </a>
-      </div>
-
-      <div class="hero-specs">
-        <span>✓ Android 8.0+ (API 26+)</span>
-        <span>✓ 100% Offline-First</span>
-        <span>✓ Zero Trackers</span>
-        <span>✓ Open Source</span>
-      </div>
+  <main class="container hero">
+    <div class="badge-pill">
+      <span class="badge-dot"></span>
+      Personal Study Workspace
     </div>
 
-    <!-- Phone Preview Mockup -->
-    <div class="mockup-wrapper">
-      <div class="phone-frame">
-        <div class="phone-notch"></div>
-        <div class="phone-content">
-          <div class="app-topbar">
-            <div>
-              <div class="app-greeting">Good morning, Stotra</div>
-              <div class="app-date">Sunday, September 20</div>
+    <h1 class="hero-title">
+      Your entire study life.<br>One system.
+    </h1>
+
+    <p class="hero-subtitle">
+      StudyOS brings subjects, chapters, progress, revision, and planning together into one calm workspace built for students.
+    </p>
+
+    <div class="hero-actions">
+      <a href="./downloads/StudyOS.apk" download class="btn btn-primary" style="padding: 13px 28px; font-size:1rem;">
+        Get Started
+      </a>
+      <a href="#how-it-works" class="btn btn-glass" style="padding: 13px 24px; font-size:1rem;">
+        See how it works
+      </a>
+    </div>
+
+    <div class="hero-subtext">No complicated setup. Just start studying.</div>
+
+    <!-- Product Preview Mockup -->
+    <div class="mockup-container">
+      <div class="app-preview-card">
+        <div class="preview-header">
+          <div class="preview-user">
+            <span class="greeting">StudyOS</span>
+            <span class="date">Good morning</span>
+          </div>
+          <span style="font-size:0.85rem; color:var(--text-muted);">Today's Overview</span>
+        </div>
+
+        <div class="focus-card">
+          <div class="tag-accent">Today's focus</div>
+          <div class="focus-subject">Mathematics</div>
+          <div class="focus-chapter">Algebra</div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 72%;"></div>
+          </div>
+          <div class="focus-footer">
+            <span style="color:var(--text-muted);">72% completed</span>
+            <a href="./downloads/StudyOS.apk" download class="focus-continue-link">Continue studying →</a>
+          </div>
+        </div>
+
+        <div class="preview-grid-2">
+          <div class="preview-mini-card">
+            <div class="title">Today's progress</div>
+            <div style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--text-primary); margin-bottom:6px;">80%</div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: 80%;"></div>
             </div>
-            <div style="font-size:1.1rem; color:#F59E0B">⋮</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">48 of 60 min goal</div>
           </div>
 
-          <!-- Alert -->
-          <div class="glass-card-mock" style="border-color: rgba(245, 158, 11, 0.3);">
-            <div class="alert-pill">Revision Due</div>
-            <div style="font-weight:600; font-size:0.88rem;">3 Flashcards ready for review</div>
-            <div style="font-size:0.75rem; color:#9CA3AF;">Spaced-repetition Leitner schedule</div>
-          </div>
-
-          <!-- Today's Focus -->
-          <div class="glass-card-mock">
-            <div class="alert-pill" style="color:#A7F3D0;">Recommended Focus</div>
-            <div style="font-weight:700; font-size:1rem; margin-top:2px;">Mathematics</div>
-            <div style="color:#9CA3AF; font-size:0.8rem;">Calculus & Limits</div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" style="width: 72%;"></div>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#9CA3AF;">
-              <span>72% completed</span>
-              <span style="color:#F59E0B; font-weight:600;">Start Session →</span>
-            </div>
-          </div>
-
-          <!-- AI Assistant Tile -->
-          <div class="glass-card-mock">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:1.1rem;">🧠</span>
-              <span style="font-weight:600;">AI Study Engine</span>
-            </div>
-            <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">
-              Doubt solving, "Teach Me" mode, and custom practice quizzes.
-            </div>
-          </div>
-
-          <!-- Floating Glass Bottom Bar Mock -->
-          <div class="bottom-bar-mock">
-            <div class="bottom-tab active">
-              <svg width="14" height="14" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-              Today
-            </div>
-            <div class="bottom-tab">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
-              Subjects
-            </div>
-            <div class="bottom-tab">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
-              Progress
-            </div>
-            <div class="bottom-tab">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
-              Calendar
-            </div>
+          <div class="preview-mini-card">
+            <div class="title">Recent chapters</div>
+            <div class="recent-item">Mathematics • Polynomials</div>
+            <div class="recent-item">Science • Motion</div>
+            <div class="recent-item">English • The Last Leaf</div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </main>
 
-  <!-- Connected Learning Loop -->
-  <section class="container loop-section" id="loop">
-    <div class="section-tag">Continuous Mastery Engine</div>
-    <h2 class="section-heading">One Unified Learning Loop</h2>
-    <p class="section-desc">
-      Features in StudyOS are not disconnected islands. Every note, flashcard, quiz, mistake, and recall session feeds back into your chapter mastery.
-    </p>
-
-    <div class="loop-grid">
-      <div class="loop-step"><span class="icon">📖</span> Learn Chapter</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-step"><span class="icon">✍️</span> Make Notes</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-step"><span class="icon">📇</span> Flashcards</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-step"><span class="icon">📝</span> Practice Quiz</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-step"><span class="icon">🎯</span> Mistake Bank</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-step"><span class="icon">🔁</span> Active Recall</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-step" style="border-color:var(--border-accent); color:var(--accent);"><span class="icon">🏆</span> Mastery</div>
+  <!-- Trust Strip -->
+  <section class="container trust-strip">
+    <div class="trust-statement">Built for students who want more control over their study.</div>
+    <div class="trust-tags">
+      <span>✓ Subjects</span>
+      <span>✓ Chapters</span>
+      <span>✓ Progress</span>
+      <span>✓ Revision</span>
+      <span>✓ Planning</span>
     </div>
   </section>
 
-  <!-- Core Pillars / Features -->
-  <section class="container features-section" id="features">
-    <div style="text-align: center; margin-bottom: 50px;">
-      <div class="section-tag">Architecture & Design</div>
-      <h2 class="section-heading">Engineered for Deep Academic Work</h2>
-      <p class="section-desc">Every element is crafted to protect focus, minimize cognitive overhead, and accelerate retention.</p>
+  <!-- Problem Section -->
+  <section class="container section-problem">
+    <div class="section-tag">The Challenge</div>
+    <h2 class="section-title">Studying gets complicated fast.</h2>
+    <p style="max-width: 620px; margin: 0 auto;">
+      Notes in one place. Subjects somewhere else. Progress tracked mentally. Revision forgotten. Deadlines scattered across calendars.
+    </p>
+
+    <div class="transformation-grid">
+      <div class="box-state before">
+        <h3>Before StudyOS</h3>
+        <ul class="state-list">
+          <li>❌ Fragmented notes</li>
+          <li>❌ Random schedules</li>
+          <li>❌ Unclear chapter progress</li>
+          <li>❌ Forgotten revision</li>
+        </ul>
+      </div>
+
+      <div class="transform-arrow">→</div>
+
+      <div class="box-state after">
+        <h3 style="color:var(--accent);">StudyOS</h3>
+        <ul class="state-list">
+          <li>✓ Organized subjects</li>
+          <li>✓ Granular chapter progress</li>
+          <li>✓ Clear study system</li>
+          <li>✓ Connected recall drills</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features -->
+  <section class="container section-features" id="features">
+    <div style="text-align:center;">
+      <div class="section-tag">Capabilities</div>
+      <h2 class="section-title">Everything your study system needs.</h2>
+      <p style="max-width: 580px; margin: 0 auto;">Zero bloat. Only the tools required to keep your momentum going.</p>
     </div>
 
     <div class="features-grid">
-      <!-- 1 -->
+      <!-- 1 Subjects -->
       <div class="feature-card">
-        <div class="feature-icon-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        <div class="feature-card-header">
+          <div class="feature-icon">📚</div>
+          <h3>Subjects</h3>
         </div>
-        <h3>Glassmorphism UI System</h3>
-        <p>Translucent surfaces, subtle 1dp borders, soft elevations, and ergonomic touch targets (≥44dp). Visual calm with zero dashboard clutter.</p>
+        <p>Keep every subject organized in clean visual workspaces.</p>
+        <div class="feature-mini-ui">
+          Mathematics • Science • English • History
+        </div>
       </div>
 
-      <!-- 2 -->
-      <div class="feature-card" id="ai">
-        <div class="feature-icon-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 21l3.52-.93C9.37 20.65 10.65 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-1.32 0-2.55-.41-3.56-1.11l-.25-.18-2.22.59.59-2.17-.18-.28C5.54 13.79 5 12.45 5 11c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7z"/></svg>
+      <!-- 2 Chapters -->
+      <div class="feature-card">
+        <div class="feature-card-header">
+          <div class="feature-icon">📑</div>
+          <h3>Chapters</h3>
         </div>
-        <h3>Context-Aware AI Assistant</h3>
-        <p>Ask doubts with complete context of your current chapter, weak topics, and previous mistakes. Supports "Teach Me" mode, concept simplification, and adaptive quizzes.</p>
+        <p>Break subjects into manageable chapters and track them individually.</p>
+        <div class="feature-mini-ui">
+          01 Real Numbers • 02 Polynomials
+        </div>
       </div>
 
-      <!-- 3 -->
+      <!-- 3 Progress -->
       <div class="feature-card">
-        <div class="feature-icon-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        <div class="feature-card-header">
+          <div class="feature-icon">📊</div>
+          <h3>Progress</h3>
         </div>
-        <h3>Spaced Repetition & Recall</h3>
-        <p>Intelligent Leitner-based scheduling. Blitz 5, 10, or 15-minute active recall drills designed to beat the forgetting curve before exams arrive.</p>
+        <p>Know exactly how much you've completed with real-time percentages.</p>
+        <div class="feature-mini-ui">
+          72% Subject progress • 8/12 done
+        </div>
       </div>
 
-      <!-- 4 -->
+      <!-- 4 Revision -->
       <div class="feature-card">
-        <div class="feature-icon-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <div class="feature-card-header">
+          <div class="feature-icon">🔁</div>
+          <h3>Revision</h3>
         </div>
-        <h3>Chapter Practice Hub</h3>
-        <p>Each chapter gets its dedicated hub: markdown notes, flashcards with rating feedback, timed multiple-choice quizzes, and instant mistake conversion.</p>
+        <p>Keep active recall connected to your actual study progress.</p>
+        <div class="feature-mini-ui">
+          Leitner spaced intervals • Recall drills
+        </div>
       </div>
 
-      <!-- 5 -->
+      <!-- 5 Calendar -->
       <div class="feature-card">
-        <div class="feature-icon-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+        <div class="feature-card-header">
+          <div class="feature-icon">📅</div>
+          <h3>Calendar</h3>
         </div>
-        <h3>Fluid Progress Animations</h3>
-        <p>Animated numerical counters and 450ms smooth progress transitions. View real-time subject breakdowns and milestone completions.</p>
+        <p>Connect studying with dates, scheduled sessions, and exams.</p>
+        <div class="feature-mini-ui">
+          Week plan • Upcoming milestones
+        </div>
       </div>
 
-      <!-- 6 -->
+      <!-- 6 Statistics -->
       <div class="feature-card">
-        <div class="feature-icon-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        <div class="feature-card-header">
+          <div class="feature-icon">📈</div>
+          <h3>Statistics</h3>
         </div>
-        <h3>100% Offline-First & Private</h3>
-        <p>All data stored locally on your device via Room SQLite Database v7. No account required, no remote trackers, zero latency.</p>
+        <p>Understand your overall study activity without misleading metrics.</p>
+        <div class="feature-mini-ui">
+          Completed minutes • Goal tracking
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Download & Installation Section -->
-  <section class="container download-section" id="specs">
-    <div class="download-card">
-      <div>
-        <h2>Download StudyOS</h2>
-        <p>Get the latest production debug build directly. No app store bloat or forced telemetry.</p>
+  <!-- Alternating Feature Showcases -->
+  <section class="container">
+    <!-- Showcase A -->
+    <div class="showcase-row">
+      <div class="showcase-text">
+        <div class="section-tag">Clarity</div>
+        <h2>Know where you stand.</h2>
+        <p>No more guessing whether a subject is nearly done or just getting started. Track chapters completed, remaining topics, and overall mastery in real time.</p>
+        <a href="./downloads/StudyOS.apk" download class="btn btn-primary">Start tracking</a>
+      </div>
+      <div class="chapter-preview-box">
+        <div style="font-weight:700; font-size:1.2rem; margin-bottom:4px;">Mathematics</div>
+        <div style="color:var(--text-secondary); font-size:0.88rem; margin-bottom:12px;">Completed 8 / 12 chapters</div>
+        <div class="progress-track" style="height:8px; margin-bottom:8px;">
+          <div class="progress-fill" style="width: 72%;"></div>
+        </div>
+        <div style="font-size:0.85rem; font-weight:700; color:var(--accent);">72% overall progress</div>
+      </div>
+    </div>
 
-        <div class="download-cta-box">
-          <a href="./downloads/StudyOS.apk" download class="btn btn-primary btn-download-large">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-            Download StudyOS.apk (19.4 MB)
-          </a>
+    <!-- Showcase B -->
+    <div class="showcase-row reverse">
+      <div class="chapter-preview-box">
+        <div style="font-weight:700; font-size:1.1rem; margin-bottom:14px;">Mathematics Chapters</div>
+        <div class="chapter-row">
+          <div><span class="chapter-num">01</span> Real Numbers</div>
+          <span class="badge-status complete">Complete ✓</span>
+        </div>
+        <div class="chapter-row">
+          <div><span class="chapter-num">02</span> Polynomials</div>
+          <span class="badge-status in-progress">72%</span>
+        </div>
+        <div class="chapter-row">
+          <div><span class="chapter-num">03</span> Linear Equations</div>
+          <span style="color:var(--text-muted); font-size:0.8rem;">Not started</span>
+        </div>
+        <div class="chapter-row">
+          <div><span class="chapter-num">04</span> Quadratic Equations</div>
+          <span style="color:var(--text-muted); font-size:0.8rem;">Not started</span>
+        </div>
+      </div>
+      <div class="showcase-text">
+        <div class="section-tag">Structure</div>
+        <h2>Turn subjects into a system.</h2>
+        <p>Large textbooks feel overwhelming. Breaking them down into individual chapters with explicit state indicators makes studying sequential, satisfying, and easy to resume.</p>
+      </div>
+    </div>
 
-          <div class="terminal-box">
-            <div class="terminal-title">Install directly in Termux</div>
-            <code>termux-open /root/StudyOS/docs/downloads/StudyOS.apk</code>
-          </div>
+    <!-- Showcase C -->
+    <div class="showcase-row">
+      <div class="showcase-text">
+        <div class="section-tag">Focus</div>
+        <h2>Keep your next step obvious.</h2>
+        <p>When you open StudyOS, the answer to "What should I work on today?" is immediately visible. One tap to continue where you left off.</p>
+      </div>
+      <div class="chapter-preview-box">
+        <div class="tag-accent">Today's focus</div>
+        <div style="font-weight:700; font-size:1.3rem; margin:6px 0;">Mathematics</div>
+        <div style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:16px;">Polynomials</div>
+        <a href="./downloads/StudyOS.apk" download class="btn btn-primary" style="width: 100%;">Continue →</a>
+      </div>
+    </div>
+  </section>
 
-          <div class="terminal-box">
-            <div class="terminal-title">Install via ADB</div>
-            <code>adb install app-debug.apk</code>
-          </div>
+  <!-- How It Works -->
+  <section class="container section-how" id="how-it-works">
+    <div class="section-tag">Simplicity</div>
+    <h2 class="section-title">Start in minutes.</h2>
+    <p style="max-width: 560px; margin: 0 auto;">No complicated onboarding. No mandatory cloud signups.</p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <h3>Add your subjects.</h3>
+        <p>Set up the subjects you are studying this term.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <h3>Break into chapters.</h3>
+        <p>List out topics to create bite-sized goals.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <h3>Track and study.</h3>
+        <p>Update progress, revise flashcards, and finish exams.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Progress Section -->
+  <section class="container section-progress" id="progress">
+    <div class="section-tag">Accountability</div>
+    <h2 class="section-title">Stop guessing how much you've done.</h2>
+    <p style="max-width: 580px; margin: 0 auto;">Clear, honest completion data based on real chapters finished.</p>
+
+    <div class="progress-showcase-box">
+      <div class="overall-metric">72%</div>
+      <div class="overall-label">Overall Completion</div>
+
+      <div class="subject-stat-row">
+        <div class="subject-name">Mathematics</div>
+        <div class="subject-bar-wrap">
+          <div class="progress-track"><div class="progress-fill" style="width: 72%;"></div></div>
+        </div>
+        <div class="subject-pct">72%</div>
+      </div>
+
+      <div class="subject-stat-row">
+        <div class="subject-name">Science</div>
+        <div class="subject-bar-wrap">
+          <div class="progress-track"><div class="progress-fill" style="width: 60%;"></div></div>
+        </div>
+        <div class="subject-pct">60%</div>
+      </div>
+
+      <div class="subject-stat-row">
+        <div class="subject-name">English</div>
+        <div class="subject-bar-wrap">
+          <div class="progress-track"><div class="progress-fill" style="width: 80%;"></div></div>
+        </div>
+        <div class="subject-pct">80%</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Calm Productivity -->
+  <section class="container" style="padding: 70px 0; text-align: center;">
+    <div class="section-tag">Philosophy</div>
+    <h2 class="section-title">Less managing. More studying.</h2>
+    <p style="max-width: 600px; margin: 0 auto 36px;">
+      StudyOS is intentionally designed to reduce organizational friction so you can focus entirely on learning.
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; font-weight: 600;">
+      <div>✓ Know what to study.</div>
+      <div>✓ Know where you are.</div>
+      <div>✓ Know what's next.</div>
+    </div>
+  </section>
+
+  <!-- Mobile First Showcase -->
+  <section class="container section-mobile">
+    <div style="text-align: center; margin-bottom: 40px;">
+      <div class="section-tag">Mobile Experience</div>
+      <h2 class="section-title">Your study system goes with you.</h2>
+      <p>Android-first, mobile-first. Fast interactions, native gesture feel, and complete offline capability.</p>
+    </div>
+
+    <div class="mobile-mock-card">
+      <div style="display:flex; justify-content:space-between; font-weight:700; font-size:0.95rem; margin-bottom:18px;">
+        <span>StudyOS</span>
+        <span style="color:var(--accent);">⋮</span>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); border-radius:14px; padding:12px; margin-bottom:12px;">
+        <div style="font-size:0.7rem; color:var(--accent); font-weight:700;">TODAY'S FOCUS</div>
+        <div style="font-weight:700; font-size:0.95rem; margin-top:2px;">Mathematics</div>
+        <div class="progress-track" style="margin:8px 0 4px;"><div class="progress-fill" style="width:72%;"></div></div>
+        <div style="font-size:0.75rem; color:#9CA3AF;">72% completed</div>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); border-radius:14px; padding:12px; margin-bottom:12px;">
+        <div style="font-size:0.7rem; color:#A7F3D0; font-weight:700;">UPCOMING</div>
+        <div style="font-weight:600; font-size:0.88rem; margin-top:2px;">Science — Motion</div>
+        <div style="font-size:0.75rem; color:#9CA3AF;">Tomorrow at 4:00 PM</div>
+      </div>
+
+      <div style="margin-top:auto; background:rgba(22,25,32,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:6px 12px; display:flex; justify-content:space-around; font-size:0.7rem;">
+        <span style="color:var(--accent); font-weight:700;">Today</span>
+        <span style="color:#9CA3AF;">Subjects</span>
+        <span style="color:#9CA3AF;">Progress</span>
+        <span style="color:#9CA3AF;">Calendar</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dark / Light Mode Interactive Section -->
+  <section class="container" style="padding: 50px 0; text-align: center;">
+    <div class="section-tag">Appearance</div>
+    <h2 class="section-title">Study your way.</h2>
+    <p>Calm paper-toned Light mode for daytime focus. High-contrast, near-black Dark mode for late-night sessions.</p>
+
+    <div class="mode-demo-box">
+      <span style="font-weight: 600;">Theme Selection</span>
+      <div class="segmented-control">
+        <button class="segment-btn" id="segmentLight" onclick="setTheme('light')">Light</button>
+        <button class="segment-btn active" id="segmentDark" onclick="setTheme('dark')">Dark</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Accordion -->
+  <section class="container section-faq" id="faq">
+    <div style="text-align: center;">
+      <div class="section-tag">Answers</div>
+      <h2 class="section-title">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question">
+          <span>What is StudyOS?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          StudyOS is a personal study operating system for Android that unifies subjects, chapters, progress tracking, spaced repetition revision, and study schedules into one calm, minimal workspace.
         </div>
       </div>
 
-      <div class="integrity-box">
-        <div class="label">RELEASE INFORMATION</div>
-        <div style="margin-bottom: 8px; color:var(--text-primary);">StudyOS v1.0.0 (Phase 12 Complete)</div>
-        <div class="label">COMPATIBILITY</div>
-        <div style="margin-bottom: 8px; color:var(--text-primary);">Android 8.0+ (Oreo, API 26+)</div>
-        <div class="label">TARGET ARCHITECTURE</div>
-        <div style="margin-bottom: 8px; color:var(--text-primary);">arm64-v8a, armeabi-v7a, x86, x86_64</div>
-        <div class="label">SHA-256 CHECKSUM</div>
-        <div class="hash">eee8c139f73f1311d98280170d91eef4f8d26caea30e2fe5dc51c8b064ba3353</div>
+      <div class="faq-item">
+        <button class="faq-question">
+          <span>Who is StudyOS for?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          It is built for high school, university, and self-directed students who want structured control over what to study, where they currently stand, and what to revise next.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          <span>What can I track?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          You can track individual subjects, chapter completion states, daily study time, flashcards due for revision, practice quiz attempts, and upcoming exam deadlines.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          <span>Does StudyOS replace my notes app?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          StudyOS includes a dedicated markdown note editor for each chapter connected directly to your flashcards and quizzes. You can use it as your primary revision notes hub or alongside your existing tools.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          <span>Can I use StudyOS for multiple subjects?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          Yes. You can add as many subjects and chapters as you need. Each subject tracks its own progress percentage and chapter hierarchy independently.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          <span>Does StudyOS work offline?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          Yes, 100%. StudyOS uses an offline-first SQLite database (Room v7) directly on your device. Your data stays on your phone, and no internet connection is required.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="container section-cta">
+    <div class="cta-card">
+      <h2>Build a study system that works for you.</h2>
+      <p>Organize your subjects. Track your progress. Keep moving.</p>
+      <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+        <a href="./downloads/StudyOS.apk" download class="btn btn-primary" style="padding:14px 32px; font-size:1.05rem;">
+          Get Started
+        </a>
+        <a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" class="btn btn-glass" style="padding:14px 26px; font-size:1.05rem;">
+          Explore on GitHub
+        </a>
       </div>
     </div>
   </section>
 
   <!-- Footer -->
   <footer>
-    <div class="container footer-content">
+    <div class="container footer-row">
       <div>
-        <strong>StudyOS</strong> • Personal Study Operating System for Android
+        <strong style="color:var(--text-primary);">StudyOS</strong>
+        <div style="color:var(--text-muted); font-size:0.84rem; margin-top:2px;">Your personal Study Operating System.</div>
       </div>
       <div class="footer-links">
-        <a href="https://github.com/StudyOS/StudyOS" target="_blank">GitHub</a>
-        <a href="./downloads/StudyOS.apk" download>Direct APK</a>
-        <a href="#features">Architecture</a>
-        <a href="https://github.com/StudyOS/StudyOS/blob/master/LICENSE" target="_blank">MIT License</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank">GitHub</a>
+        <a href="./downloads/StudyOS.apk" download>Download APK</a>
+      </div>
+      <div style="color:var(--text-muted); font-size:0.82rem;">
+        © 2026 StudyOS
       </div>
     </div>
   </footer>
 
   <script>
-    // Dark / Light Theme Toggle
-    const themeToggle = document.getElementById('themeToggle');
+    // Theme Management
     const root = document.documentElement;
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const segmentLight = document.getElementById('segmentLight');
+    const segmentDark = document.getElementById('segmentDark');
+    const themeMetaColor = document.getElementById('themeMetaColor');
 
-    themeToggle.addEventListener('click', () => {
-      const currentTheme = root.getAttribute('data-theme');
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-      root.setAttribute('data-theme', newTheme);
-      localStorage.setItem('studyos-theme', newTheme);
-    });
-
-    // Check preferred theme
-    const savedTheme = localStorage.getItem('studyos-theme');
-    if (savedTheme) {
-      root.setAttribute('data-theme', savedTheme);
+    function setTheme(theme) {
+      root.setAttribute('data-theme', theme);
+      localStorage.setItem('studyos-theme', theme);
+      if (themeMetaColor) {
+        themeMetaColor.setAttribute('content', theme === 'light' ? '#F8F9FA' : '#0A0B0E');
+      }
+      if (segmentLight && segmentDark) {
+        if (theme === 'light') {
+          segmentLight.classList.add('active');
+          segmentDark.classList.remove('active');
+        } else {
+          segmentDark.classList.add('active');
+          segmentLight.classList.remove('active');
+        }
+      }
     }
+
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', () => {
+        const current = root.getAttribute('data-theme');
+        setTheme(current === 'light' ? 'dark' : 'light');
+      });
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('studyos-theme');
+    if (saved) {
+      setTheme(saved);
+    }
+
+    // Mobile Menu
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+
+    if (mobileMenuBtn && mobileMenu) {
+      mobileMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('open');
+      });
+    }
+
+    function closeMenu() {
+      if (mobileMenu) mobileMenu.classList.remove('open');
+    }
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parent = btn.parentElement;
+        const isActive = parent.classList.contains('active');
+        document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('active'));
+        if (!isActive) {
+          parent.classList.add('active');
+        }
+      });
+    });
   </script>
 </body>
 </html>
