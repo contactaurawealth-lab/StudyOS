@@ -6,7 +6,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.studyos.app.core.database.entity.ChapterEntity
 import com.studyos.app.core.database.entity.ExamEntity
 import com.studyos.app.core.database.entity.FlashcardEntity
 import com.studyos.app.core.database.entity.NoteEntity
@@ -18,18 +17,6 @@ import com.studyos.app.core.database.entity.TaskEntity
 import com.studyos.app.core.database.entity.TestAttemptEntity
 import com.studyos.app.core.database.entity.TestEntity
 import kotlinx.coroutines.flow.Flow
-
-@Dao
-interface ChapterDao {
-    @Query("SELECT * FROM chapters WHERE subjectId = :subjectId ORDER BY orderIndex ASC")
-    fun getChaptersForSubject(subjectId: String): Flow<List<ChapterEntity>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(chapter: ChapterEntity)
-
-    @Delete
-    suspend fun delete(chapter: ChapterEntity)
-}
 
 @Dao
 interface TaskDao {

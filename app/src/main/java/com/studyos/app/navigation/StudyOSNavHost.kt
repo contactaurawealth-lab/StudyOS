@@ -54,6 +54,7 @@ import com.studyos.app.features.onboarding.ui.OnboardingScreen
 import com.studyos.app.features.onboarding.viewmodel.OnboardingViewModel
 import com.studyos.app.features.planner.ui.PlannerScreen
 import com.studyos.app.features.progress.ui.ProgressScreen
+import com.studyos.app.features.progress.viewmodel.ProgressViewModel
 import com.studyos.app.features.search.ui.SearchScreen
 import com.studyos.app.features.search.viewmodel.SearchViewModel
 import com.studyos.app.features.settings.ui.EditPreferencesScreen
@@ -62,7 +63,11 @@ import com.studyos.app.features.settings.ui.ManageSubjectsScreen
 import com.studyos.app.features.settings.ui.MoreScreen
 import com.studyos.app.features.settings.ui.SettingsScreen
 import com.studyos.app.features.settings.viewmodel.SettingsViewModel
+import com.studyos.app.features.subjects.ui.ChapterDetailScreen
+import com.studyos.app.features.subjects.ui.SubjectDetailScreen
 import com.studyos.app.features.subjects.ui.SubjectsScreen
+import com.studyos.app.features.subjects.viewmodel.ChapterViewModel
+import com.studyos.app.features.subjects.viewmodel.SubjectDetailViewModel
 import com.studyos.app.features.subjects.viewmodel.SubjectsViewModel
 import com.studyos.app.features.today.ui.TodayScreen
 import com.studyos.app.features.today.viewmodel.TodayViewModel
@@ -92,6 +97,9 @@ fun StudyOSApp(
     val isOnboardingRoute = currentRoute?.startsWith("onboarding") == true
     val isSearchRoute = currentRoute == Screen.Search.route
     val isSubSettingsRoute = currentRoute?.startsWith("settings/") == true
+    val isSubjectDetailRoute = currentRoute?.startsWith("subject/") == true
+    val isChapterDetailRoute = currentRoute?.startsWith("chapter/") == true
+    val isSubRoute = isSubSettingsRoute || isSubjectDetailRoute || isChapterDetailRoute
 
     val showShell = !isOnboardingRoute && !isSearchRoute
 
@@ -193,7 +201,7 @@ fun StudyOSApp(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = colors.background,
                 topBar = {
-                    if (showShell && !isSubSettingsRoute) {
+                    if (showShell && !isSubRoute) {
                         TopAppBar(
                             title = {
                                 Text(
@@ -223,7 +231,7 @@ fun StudyOSApp(
                     }
                 },
                 bottomBar = {
-                    if (showShell && !isSubSettingsRoute) {
+                    if (showShell && !isSubRoute) {
                         Column {
                             StudyOSDivider()
                             NavigationBar(
@@ -329,7 +337,33 @@ private fun StudyOSNavGraph(
 
         composable(Screen.Subjects.route) {
             val subjectsViewModel = rememberSubjectsViewModel(container)
-            SubjectsScreen(viewModel = subjectsViewModel)
+            SubjectsScreen(
+                viewModel = subjectsViewModel,
+                onSubjectClick = { subjectId ->
+                    navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                }
+            )
+        }
+
+        composable(Screen.SubjectDetail.route) { backStackEntry ->
+            val subjectId = backStackEntry.arguments?.getString("subjectId") ?: ""
+            val subjectDetailViewModel = rememberSubjectDetailViewModel(container, subjectId)
+            SubjectDetailScreen(
+                viewModel = subjectDetailViewModel,
+                onChapterClick = { chapterId ->
+                    navController.navigate(Screen.ChapterDetail.createRoute(chapterId))
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.ChapterDetail.route) { backStackEntry ->
+            val chapterId = backStackEntry.arguments?.getString("chapterId") ?: ""
+            val chapterViewModel = rememberChapterViewModel(container, chapterId)
+            ChapterDetailScreen(
+                viewModel = chapterViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Planner.route) {
@@ -341,7 +375,13 @@ private fun StudyOSNavGraph(
         }
 
         composable(Screen.Progress.route) {
-            ProgressScreen()
+            val progressViewModel = rememberProgressViewModel(container)
+            ProgressScreen(
+                viewModel = progressViewModel,
+                onSubjectClick = { subjectId ->
+                    navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                }
+            )
         }
 
         composable(Screen.More.route) {
@@ -357,7 +397,13 @@ private fun StudyOSNavGraph(
             val searchViewModel = rememberSearchViewModel(container)
             SearchScreen(
                 viewModel = searchViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onSubjectClick = { subjectId ->
+                    navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                },
+                onChapterClick = { chapterId ->
+                    navController.navigate(Screen.ChapterDetail.createRoute(chapterId))
+                }
             )
         }
 
@@ -427,10 +473,55 @@ private fun rememberTodayViewModel(container: StudyOSAppContainer): TodayViewMod
 private fun rememberSubjectsViewModel(container: StudyOSAppContainer): SubjectsViewModel {
     return androidx.lifecycle.viewmodel.compose.viewModel {
         SubjectsViewModel(
-            getSubjectsUseCase = container.getSubjectsUseCase,
+            getSubjectsWithProgressUseCase = container.getSubjectsWithProgressUseCase,
             addSubjectUseCase = container.addSubjectUseCase,
             renameSubjectUseCase = container.renameSubjectUseCase,
+            deleteSubjectUseCase = container.deleteSubjectUseCase,
+            loadSampleDataUseCase = container.loadSampleDataUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberSubjectDetailViewModel(container: StudyOSAppContainer, subjectId: String): SubjectDetailViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel(
+        key = "SubjectDetailViewModel_$subjectId"
+    ) {
+        SubjectDetailViewModel(
+            subjectId = subjectId,
+            getSubjectByIdUseCase = container.getSubjectByIdUseCase,
+            getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase,
+            addChapterUseCase = container.addChapterUseCase,
+            deleteChapterUseCase = container.deleteChapterUseCase,
+            moveChapterUseCase = container.moveChapterUseCase,
+            renameSubjectUseCase = container.renameSubjectUseCase,
             deleteSubjectUseCase = container.deleteSubjectUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberChapterViewModel(container: StudyOSAppContainer, chapterId: String): ChapterViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel(
+        key = "ChapterViewModel_$chapterId"
+    ) {
+        ChapterViewModel(
+            chapterId = chapterId,
+            getChapterUseCase = container.getChapterUseCase,
+            getSubjectByIdUseCase = container.getSubjectByIdUseCase,
+            updateChapterUseCase = container.updateChapterUseCase,
+            updateChapterProgressUseCase = container.updateChapterProgressUseCase,
+            updateChapterStatusUseCase = container.updateChapterStatusUseCase,
+            deleteChapterUseCase = container.deleteChapterUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberProgressViewModel(container: StudyOSAppContainer): ProgressViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        ProgressViewModel(
+            getAcademicProgressUseCase = container.getAcademicProgressUseCase
         )
     }
 }
@@ -439,7 +530,8 @@ private fun rememberSubjectsViewModel(container: StudyOSAppContainer): SubjectsV
 private fun rememberSearchViewModel(container: StudyOSAppContainer): SearchViewModel {
     return androidx.lifecycle.viewmodel.compose.viewModel {
         SearchViewModel(
-            getSubjectsUseCase = container.getSubjectsUseCase
+            getSubjectsUseCase = container.getSubjectsUseCase,
+            chapterRepository = container.chapterRepository
         )
     }
 }

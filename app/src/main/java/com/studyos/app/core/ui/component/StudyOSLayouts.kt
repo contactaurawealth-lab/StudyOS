@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,11 +19,47 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.studyos.app.theme.StudyOSTheme
+
+@Composable
+fun StudyOSProgressBar(
+    progress: Int,
+    modifier: Modifier = Modifier,
+    height: Dp = 4.dp,
+    trackColor: Color = StudyOSTheme.colors.border,
+    progressColor: Color = StudyOSTheme.colors.accent
+) {
+    val clampedProgress = (progress.coerceIn(0, 100)) / 100f
+    val shapes = StudyOSTheme.shapes
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(shapes.pill)
+            .background(trackColor)
+            .semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(clampedProgress, 0f..1f)
+            }
+    ) {
+        if (clampedProgress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(clampedProgress)
+                    .clip(shapes.pill)
+                    .background(progressColor)
+            )
+        }
+    }
+}
 
 @Composable
 fun StudyOSListItem(

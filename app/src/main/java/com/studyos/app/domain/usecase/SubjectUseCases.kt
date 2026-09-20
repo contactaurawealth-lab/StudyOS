@@ -11,6 +11,20 @@ class GetSubjectsUseCase(
     suspend fun getOnce(): List<Subject> = subjectRepository.getAllSubjectsOnce()
 }
 
+class GetSubjectsWithProgressUseCase(
+    private val subjectRepository: SubjectRepository
+) {
+    operator fun invoke(): Flow<List<com.studyos.app.domain.model.SubjectWithProgress>> =
+        subjectRepository.observeSubjectsWithProgress()
+}
+
+class GetSubjectByIdUseCase(
+    private val subjectRepository: SubjectRepository
+) {
+    operator fun invoke(id: String): Flow<Subject?> = subjectRepository.getSubjectById(id)
+    suspend fun getOnce(id: String): Subject? = subjectRepository.getSubjectByIdOnce(id)
+}
+
 class SaveSubjectsUseCase(
     private val subjectRepository: SubjectRepository
 ) {

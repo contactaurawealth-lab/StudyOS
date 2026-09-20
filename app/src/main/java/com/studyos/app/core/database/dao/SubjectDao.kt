@@ -18,8 +18,14 @@ interface SubjectDao {
     @Query("SELECT * FROM subjects ORDER BY createdAt ASC")
     suspend fun getAllSubjectsOnce(): List<SubjectEntity>
 
+    @Query("SELECT * FROM subjects ORDER BY createdAt ASC")
+    fun observeSubjects(): Flow<List<SubjectEntity>>
+
     @Query("SELECT * FROM subjects WHERE id = :id LIMIT 1")
     fun getSubjectById(id: String): Flow<SubjectEntity?>
+
+    @Query("SELECT * FROM subjects WHERE id = :id LIMIT 1")
+    suspend fun getSubject(id: String): SubjectEntity?
 
     @Query("SELECT * FROM subjects WHERE LOWER(name) = LOWER(:name) LIMIT 1")
     suspend fun findByName(name: String): SubjectEntity?
@@ -28,13 +34,22 @@ interface SubjectDao {
     suspend fun insert(subject: SubjectEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSubject(subject: SubjectEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(subjects: List<SubjectEntity>)
 
     @Update
     suspend fun update(subject: SubjectEntity)
 
+    @Update
+    suspend fun updateSubject(subject: SubjectEntity)
+
     @Delete
     suspend fun delete(subject: SubjectEntity)
+
+    @Delete
+    suspend fun deleteSubject(subject: SubjectEntity)
 
     @Query("DELETE FROM subjects WHERE id = :id")
     suspend fun deleteById(id: String)

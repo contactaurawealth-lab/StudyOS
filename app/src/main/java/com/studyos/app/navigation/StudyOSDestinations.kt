@@ -21,6 +21,14 @@ sealed class Screen(val route: String) {
     // Mobile "More" screen
     object More : Screen("more")
 
+    // Academic hierarchy sub-routes
+    object SubjectDetail : Screen("subject/{subjectId}") {
+        fun createRoute(subjectId: String) = "subject/$subjectId"
+    }
+    object ChapterDetail : Screen("chapter/{chapterId}") {
+        fun createRoute(chapterId: String) = "chapter/$chapterId"
+    }
+
     // Global Search
     object Search : Screen("search")
 

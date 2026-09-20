@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.studyos.app.core.database.dao.ChapterDao
 import com.studyos.app.core.database.dao.ExamDao
 import com.studyos.app.core.database.dao.FlashcardDao
@@ -50,7 +52,7 @@ import com.studyos.app.core.database.entity.TestEntity
         StudyPlanEntity::class,
         NotificationEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class StudyOSDatabase : RoomDatabase() {
@@ -74,6 +76,40 @@ abstract class StudyOSDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: StudyOSDatabase? = null
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `chapters_new` (
+                        `id` TEXT NOT NULL,
+                        `subjectId` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `description` TEXT,
+                        `orderIndex` INTEGER NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `progress` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`subjectId`) REFERENCES `subjects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+
+                // Copy over from old chapters table if exists
+                db.execSQL("""
+                    INSERT INTO `chapters_new` (`id`, `subjectId`, `name`, `description`, `orderIndex`, `status`, `progress`, `createdAt`, `updatedAt`)
+                    SELECT `id`, `subjectId`, `title`, NULL, `orderIndex`,
+                           CASE WHEN `isCompleted` = 1 THEN 'COMPLETED' ELSE 'NOT_STARTED' END,
+                           CASE WHEN `isCompleted` = 1 THEN 100 ELSE 0 END,
+                           `createdAt`, `updatedAt`
+                    FROM `chapters`
+                """.trimIndent())
+
+                db.execSQL("DROP TABLE `chapters`")
+                db.execSQL("ALTER TABLE `chapters_new` RENAME TO `chapters`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_chapters_subjectId` ON `chapters` (`subjectId`)")
+            }
+        }
+
         fun getDatabase(context: Context): StudyOSDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -81,6 +117,7 @@ abstract class StudyOSDatabase : RoomDatabase() {
                     StudyOSDatabase::class.java,
                     "studyos_database.db"
                 )
+                    .addMigrations(MIGRATION_1_2)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

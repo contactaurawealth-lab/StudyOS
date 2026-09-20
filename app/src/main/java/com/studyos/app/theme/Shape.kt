@@ -13,7 +13,8 @@ data class StudyOSShapes(
     val surface: Shape = RoundedCornerShape(8.dp),
     val dialog: Shape = RoundedCornerShape(12.dp),
     val bottomSheet: Shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-    val statusPill: Shape = RoundedCornerShape(4.dp)
+    val statusPill: Shape = RoundedCornerShape(4.dp),
+    val pill: Shape = RoundedCornerShape(100.dp)
 )
 
 val LocalStudyOSShapes = staticCompositionLocalOf { StudyOSShapes() }

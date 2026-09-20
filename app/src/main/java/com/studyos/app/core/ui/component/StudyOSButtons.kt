@@ -155,3 +155,34 @@ fun StudyOSIconButton(
         }
     }
 }
+
+@Composable
+fun StudyOSTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentDescription: String? = null
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+
+    androidx.compose.material3.TextButton(
+        onClick = onClick,
+        modifier = modifier
+            .defaultMinSize(minHeight = 44.dp)
+            .semantics {
+                this.role = Role.Button
+                if (contentDescription != null) {
+                    this.contentDescription = contentDescription
+                }
+            },
+        enabled = enabled
+    ) {
+        Text(
+            text = text,
+            style = typography.button,
+            color = if (enabled) colors.accent else colors.mutedText
+        )
+    }
+}

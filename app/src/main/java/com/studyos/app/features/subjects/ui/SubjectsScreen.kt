@@ -18,8 +18,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -34,11 +35,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.studyos.app.core.ui.component.StudyOSButton
+import com.studyos.app.core.ui.component.StudyOSConfirmationDialog
 import com.studyos.app.core.ui.component.StudyOSEmptyState
+import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSLoadingState
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
+import com.studyos.app.core.ui.component.StudyOSProgressBar
+import com.studyos.app.core.ui.component.StudyOSTextButton
+import com.studyos.app.core.ui.component.StudyOSTextDialog
+import com.studyos.app.domain.model.SubjectWithProgress
 import com.studyos.app.features.onboarding.ui.AddSubjectBottomSheet
 import com.studyos.app.features.subjects.viewmodel.SubjectsViewModel
 import com.studyos.app.theme.StudyOSTheme
@@ -46,13 +55,17 @@ import com.studyos.app.theme.StudyOSTheme
 @Composable
 fun SubjectsScreen(
     viewModel: SubjectsViewModel,
+    onSubjectClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
+
     var showAddSheet by remember { mutableStateOf(false) }
+    var subjectToRename by remember { mutableStateOf<SubjectWithProgress?>(null) }
+    var subjectToDelete by remember { mutableStateOf<SubjectWithProgress?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.actionMessage) {
@@ -88,10 +101,22 @@ fun SubjectsScreen(
 
                 StudyOSEmptyState(
                     title = "No subjects yet.",
-                    description = "Add your subjects to start organizing your studies.",
+                    description = "Add the subjects you study to start organizing your syllabus.",
                     actionButtonText = "Add subject",
                     onActionClick = { showAddSheet = true }
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    StudyOSTextButton(
+                        text = "Load sample subjects & chapters",
+                        onClick = { viewModel.loadSampleData() }
+                    )
+                }
             }
         } else {
             Column(
@@ -112,7 +137,7 @@ fun SubjectsScreen(
                             color = colors.primaryText
                         )
                         Text(
-                            text = "${uiState.subjects.size} active subjects",
+                            text = "${uiState.subjects.size} ${if (uiState.subjects.size == 1) "subject" else "subjects"}",
                             style = typography.secondary,
                             color = colors.secondaryText,
                             modifier = Modifier.padding(top = 2.dp)
@@ -131,46 +156,19 @@ fun SubjectsScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(uiState.subjects, key = { it.id }) { subject ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(shapes.surface)
-                                .background(colors.surface)
-                                .border(1.dp, colors.border, shapes.surface)
-                                .padding(horizontal = 16.dp, vertical = 14.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.MenuBook,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = colors.secondaryText
-                                )
-                                Spacer(modifier = Modifier.width(14.dp))
-                                Text(
-                                    text = subject.name,
-                                    style = typography.bodyMedium,
-                                    color = colors.primaryText,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (subject.isCustom) {
-                                    Text(
-                                        text = "Custom",
-                                        style = typography.caption,
-                                        color = colors.mutedText
-                                    )
-                                }
-                            }
-                        }
+                    items(uiState.subjects, key = { it.subject.id }) { item ->
+                        SubjectRowItem(
+                            item = item,
+                            onClick = { onSubjectClick(item.subject.id) },
+                            onRename = { subjectToRename = item },
+                            onDelete = { subjectToDelete = item }
+                        )
                     }
                 }
             }
         }
 
+        // Add Subject Sheet
         if (showAddSheet) {
             AddSubjectBottomSheet(
                 onDismissRequest = {
@@ -189,11 +187,155 @@ fun SubjectsScreen(
             )
         }
 
+        // Rename Subject Dialog
+        subjectToRename?.let { item: SubjectWithProgress ->
+            StudyOSTextDialog(
+                title = "Edit subject",
+                initialValue = item.subject.name,
+                placeholder = "Subject name",
+                confirmButtonText = "Save",
+                onConfirm = { newName: String ->
+                    val success = viewModel.renameSubject(item.subject.id, newName)
+                    if (success) {
+                        subjectToRename = null
+                    }
+                },
+                onDismiss = {
+                    subjectToRename = null
+                    viewModel.clearMessages()
+                },
+                errorMessage = uiState.errorMessage
+            )
+        }
+
+        // Delete Subject Confirmation Dialog
+        subjectToDelete?.let { item: SubjectWithProgress ->
+            StudyOSConfirmationDialog(
+                title = "Delete subject?",
+                message = "This will also remove its chapters.",
+                confirmButtonText = "Delete",
+                dismissButtonText = "Cancel",
+                isDestructive = true,
+                onConfirm = {
+                    viewModel.deleteSubject(item.subject.id)
+                    subjectToDelete = null
+                },
+                onDismiss = { subjectToDelete = null }
+            )
+        }
+
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp)
         )
+    }
+}
+
+@Composable
+private fun SubjectRowItem(
+    item: SubjectWithProgress,
+    onClick: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.surface)
+            .background(colors.surface)
+            .border(1.dp, colors.border, shapes.surface)
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = item.subject.name,
+                    style = typography.bodyMedium,
+                    color = colors.primaryText,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Box {
+                    StudyOSIconButton(
+                        onClick = { menuExpanded = true },
+                        contentDescription = "Subject options"
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = null,
+                            tint = colors.secondaryText,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier.background(colors.surface)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit subject", style = typography.body, color = colors.primaryText) },
+                            onClick = {
+                                menuExpanded = false
+                                onRename()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete subject", style = typography.body, color = colors.accent) },
+                            onClick = {
+                                menuExpanded = false
+                                onDelete()
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val chapterCountText = when (item.chapterCount) {
+                    0 -> "0 chapters"
+                    1 -> "1 chapter"
+                    else -> "${item.chapterCount} chapters"
+                }
+
+                Text(
+                    text = chapterCountText,
+                    style = typography.caption,
+                    color = colors.secondaryText
+                )
+
+                Text(
+                    text = "${item.progress}% complete",
+                    style = typography.caption,
+                    color = colors.secondaryText
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            StudyOSProgressBar(
+                progress = item.progress,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }

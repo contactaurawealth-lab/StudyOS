@@ -17,6 +17,10 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -128,5 +132,65 @@ fun StudyOSBottomSheet(
             )
         },
         content = content
+    )
+}
+
+@Composable
+fun StudyOSConfirmationDialog(
+    title: String,
+    message: String,
+    confirmButtonText: String = "Confirm",
+    dismissButtonText: String = "Cancel",
+    isDestructive: Boolean = false,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    StudyOSDialog(
+        onDismissRequest = onDismiss,
+        title = title,
+        text = message,
+        confirmButtonText = confirmButtonText,
+        onConfirm = onConfirm,
+        dismissButtonText = dismissButtonText,
+        onDismiss = onDismiss,
+        isDestructive = isDestructive
+    )
+}
+
+@Composable
+fun StudyOSTextDialog(
+    title: String,
+    initialValue: String = "",
+    placeholder: String = "",
+    confirmButtonText: String = "Save",
+    dismissButtonText: String = "Cancel",
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+    errorMessage: String? = null
+) {
+    var textValue by androidx.compose.runtime.remember(initialValue) {
+        androidx.compose.runtime.mutableStateOf(initialValue)
+    }
+
+    StudyOSDialog(
+        onDismissRequest = onDismiss,
+        title = title,
+        confirmButtonText = confirmButtonText,
+        onConfirm = {
+            if (textValue.isNotBlank()) {
+                onConfirm(textValue)
+            }
+        },
+        dismissButtonText = dismissButtonText,
+        onDismiss = onDismiss,
+        content = {
+            StudyOSTextField(
+                value = textValue,
+                onValueChange = { textValue = it },
+                placeholder = placeholder,
+                errorMessage = errorMessage,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     )
 }

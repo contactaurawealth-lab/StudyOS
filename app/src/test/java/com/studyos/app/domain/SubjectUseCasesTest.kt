@@ -19,8 +19,12 @@ class FakeSubjectRepository : SubjectRepository {
     val items = mutableListOf<Subject>()
 
     override fun getAllSubjects(): Flow<List<Subject>> = flowOf(items.toList())
+    override fun observeSubjects(): Flow<List<Subject>> = getAllSubjects()
+    override fun observeSubjectsWithProgress(): Flow<List<com.studyos.app.domain.model.SubjectWithProgress>> =
+        flowOf(items.map { com.studyos.app.domain.model.SubjectWithProgress(it, 0, 0, 0) })
     override suspend fun getAllSubjectsOnce(): List<Subject> = items.toList()
     override fun getSubjectById(id: String): Flow<Subject?> = flowOf(items.find { it.id == id })
+    override suspend fun getSubjectByIdOnce(id: String): Subject? = items.find { it.id == id }
     override suspend fun findByName(name: String): Subject? =
         items.find { it.name.equals(name.trim(), ignoreCase = true) }
     override suspend fun saveSubject(subject: Subject) {
