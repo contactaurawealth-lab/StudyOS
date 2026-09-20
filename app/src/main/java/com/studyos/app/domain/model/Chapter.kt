@@ -50,7 +50,8 @@ data class SubjectWithProgress(
     val subject: Subject,
     val chapterCount: Int,
     val completedChapterCount: Int,
-    val progress: Int
+    val progress: Int,
+    val currentChapterName: String? = null
 )
 
 data class ChapterSearchResult(

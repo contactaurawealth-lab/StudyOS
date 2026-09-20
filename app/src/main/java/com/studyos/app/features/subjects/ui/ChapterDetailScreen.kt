@@ -41,7 +41,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import com.studyos.app.core.ui.component.GlassCard
+import com.studyos.app.core.ui.component.GlassChip
+import com.studyos.app.core.ui.component.GlassDialog
+import com.studyos.app.core.ui.component.GlassIconButton
+import com.studyos.app.core.ui.component.GlassTopBar
+import com.studyos.app.core.ui.component.ShimmerPlaceholder
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSConfirmationDialog
 import com.studyos.app.core.ui.component.StudyOSEmptyState
@@ -69,6 +79,7 @@ fun ChapterDetailScreen(
 
     var showEditSheet by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.isDeleted) {
@@ -90,7 +101,21 @@ fun ChapterDetailScreen(
             .background(colors.background)
     ) {
         if (uiState.isLoading) {
-            StudyOSLoadingState(message = "Loading chapter...")
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = StudyOSTheme.spacing.screenHorizontal, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                repeat(3) {
+                    ShimmerPlaceholder(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(110.dp),
+                        shape = shapes.medium
+                    )
+                }
+            }
         } else if (uiState.chapter == null) {
             StudyOSEmptyState(
                 title = "Chapter not found",
@@ -105,17 +130,14 @@ fun ChapterDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
                     .widthIn(max = 600.dp)
             ) {
-                // Top Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        StudyOSIconButton(
+                // Glass Top Bar: ← SubjectName ⋮
+                GlassTopBar(
+                    title = subjectName,
+                    subtitle = chapter.name,
+                    navigationIcon = {
+                        GlassIconButton(
                             onClick = onBack,
                             contentDescription = "Back to subject"
                         ) {
@@ -126,67 +148,97 @@ fun ChapterDetailScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+                    },
+                    actions = {
+                        Box {
+                            GlassIconButton(
+                                onClick = { menuExpanded = true },
+                                contentDescription = "Chapter options"
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreVert,
+                                    contentDescription = null,
+                                    tint = colors.secondaryText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
 
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = subjectName,
-                            style = typography.secondary,
-                            color = colors.secondaryText
-                        )
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                                modifier = Modifier.background(colors.surface)
+                            ) {
+                                val isCompleted = chapter.status == ChapterStatus.COMPLETED || chapter.progress == 100
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (isCompleted) "Mark in progress" else "Mark complete",
+                                            style = typography.body,
+                                            color = colors.primaryText
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        if (isCompleted) {
+                                            viewModel.updateStatus(ChapterStatus.IN_PROGRESS)
+                                        } else {
+                                            viewModel.updateStatus(ChapterStatus.COMPLETED)
+                                        }
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Reset progress", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.updateProgress(0)
+                                        viewModel.updateStatus(ChapterStatus.NOT_STARTED)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Practice & Revision", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onOpenPractice(chapter.id)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Ask AI Assistant", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onAskAi(chapter.id)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Edit chapter", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showEditSheet = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete chapter", style = typography.body, color = colors.accent) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showDeleteConfirmDialog = true
+                                    }
+                                )
+                            }
+                        }
                     }
+                )
 
-                    Row {
-                        StudyOSIconButton(
-                            onClick = { onAskAi(chapter.id) },
-                            contentDescription = "Ask AI about this chapter"
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Psychology,
-                                contentDescription = null,
-                                tint = colors.accent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        StudyOSIconButton(
-                            onClick = { showEditSheet = true },
-                            contentDescription = "Edit chapter"
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Edit,
-                                contentDescription = null,
-                                tint = colors.secondaryText,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        StudyOSIconButton(
-                            onClick = { showDeleteConfirmDialog = true },
-                            contentDescription = "Delete chapter"
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.DeleteOutline,
-                                contentDescription = null,
-                                tint = colors.secondaryText,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Chapter Title & Description Card
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shapes.surface)
-                        .background(colors.surface)
-                        .border(1.dp, colors.border, shapes.surface)
-                        .padding(20.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Chapter Title & Description Card
+                    GlassCard(
+                        backgroundColor = colors.glassSurface,
+                        padding = 18.dp
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -194,20 +246,20 @@ fun ChapterDetailScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Check,
                                     contentDescription = "Completed",
-                                    tint = colors.secondaryText,
+                                    tint = colors.success,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
                             Text(
                                 text = chapter.name,
-                                style = typography.screenTitle,
+                                style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
                                 color = colors.primaryText
                             )
                         }
 
                         if (!chapter.description.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = chapter.description,
                                 style = typography.body,
@@ -215,20 +267,14 @@ fun ChapterDetailScreen(
                             )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Progress Control Card
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shapes.surface)
-                        .background(colors.surface)
-                        .border(1.dp, colors.border, shapes.surface)
-                        .padding(20.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    // Progress Control Card
+                    GlassCard(
+                        backgroundColor = colors.glassSurface,
+                        padding = 18.dp
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -236,14 +282,14 @@ fun ChapterDetailScreen(
                         ) {
                             Text(
                                 text = "Progress",
-                                style = typography.sectionTitle,
+                                style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 color = colors.primaryText
                             )
 
                             Text(
                                 text = "${chapter.progress}%",
-                                style = typography.sectionTitle,
-                                color = colors.accent
+                                style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = if (chapter.progress == 100) colors.success else colors.accent
                             )
                         }
 
@@ -277,7 +323,7 @@ fun ChapterDetailScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        Spacer(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
                             text = "Status",
@@ -285,60 +331,54 @@ fun ChapterDetailScreen(
                             color = colors.mutedText
                         )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                        // Quick Status Buttons
+                        // Quick Status Chips
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            StatusOptionChip(
-                                label = "Not started",
-                                isSelected = chapter.status == ChapterStatus.NOT_STARTED && chapter.progress == 0,
-                                onClick = {
-                                    viewModel.updateStatus(ChapterStatus.NOT_STARTED)
-                                },
+                            GlassChip(
+                                text = "Not started",
+                                selected = chapter.status == ChapterStatus.NOT_STARTED && chapter.progress == 0,
+                                onClick = { viewModel.updateStatus(ChapterStatus.NOT_STARTED) },
                                 modifier = Modifier.weight(1f)
                             )
 
-                            StatusOptionChip(
-                                label = "In progress",
-                                isSelected = chapter.status == ChapterStatus.IN_PROGRESS && chapter.progress in 1..99,
-                                onClick = {
-                                    viewModel.updateStatus(ChapterStatus.IN_PROGRESS)
-                                },
+                            GlassChip(
+                                text = "In progress",
+                                selected = chapter.status == ChapterStatus.IN_PROGRESS && chapter.progress in 1..99,
+                                onClick = { viewModel.updateStatus(ChapterStatus.IN_PROGRESS) },
                                 modifier = Modifier.weight(1f)
                             )
 
-                            StatusOptionChip(
-                                label = "Completed",
-                                isSelected = chapter.status == ChapterStatus.COMPLETED || chapter.progress == 100,
-                                onClick = {
-                                    viewModel.updateStatus(ChapterStatus.COMPLETED)
-                                },
+                            GlassChip(
+                                text = "Completed",
+                                selected = chapter.status == ChapterStatus.COMPLETED || chapter.progress == 100,
+                                onClick = { viewModel.updateStatus(ChapterStatus.COMPLETED) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Practice & Revision Hub Button
+                    StudyOSButton(
+                        text = "Practice & Revision Hub",
+                        onClick = { onOpenPractice(chapter.id) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Ask AI Button
+                    StudyOSOutlinedButton(
+                        text = "Ask AI about this chapter",
+                        onClick = { onAskAi(chapter.id) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Practice & Revision Hub Button
-                StudyOSButton(
-                    text = "Practice & Revision Hub",
-                    onClick = { onOpenPractice(chapter.id) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Ask AI Button
-                StudyOSOutlinedButton(
-                    text = "Ask AI about this chapter",
-                    onClick = { onAskAi(chapter.id) },
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
 
             // Edit Chapter Bottom Sheet
@@ -363,9 +403,10 @@ fun ChapterDetailScreen(
 
             // Delete Confirmation Dialog
             if (showDeleteConfirmDialog) {
-                StudyOSConfirmationDialog(
+                GlassDialog(
+                    onDismissRequest = { showDeleteConfirmDialog = false },
                     title = "Delete chapter?",
-                    message = "Are you sure you want to remove \"${chapter.name}\"? This action cannot be undone.",
+                    message = "This will remove ${chapter.name} and its progress.",
                     confirmButtonText = "Delete",
                     dismissButtonText = "Cancel",
                     isDestructive = true,

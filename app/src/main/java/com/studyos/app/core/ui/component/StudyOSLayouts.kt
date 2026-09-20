@@ -1,5 +1,8 @@
 package com.studyos.app.core.ui.component
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +40,12 @@ fun StudyOSProgressBar(
     trackColor: Color = StudyOSTheme.colors.border,
     progressColor: Color = StudyOSTheme.colors.accent
 ) {
-    val clampedProgress = (progress.coerceIn(0, 100)) / 100f
+    val targetProgress = (progress.coerceIn(0, 100)) / 100f
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
+        label = "StudyOSProgressBarAnimation"
+    )
     val shapes = StudyOSTheme.shapes
 
     Box(
@@ -46,14 +55,14 @@ fun StudyOSProgressBar(
             .clip(shapes.pill)
             .background(trackColor)
             .semantics {
-                progressBarRangeInfo = ProgressBarRangeInfo(clampedProgress, 0f..1f)
+                progressBarRangeInfo = ProgressBarRangeInfo(animatedProgress, 0f..1f)
             }
     ) {
-        if (clampedProgress > 0f) {
+        if (animatedProgress > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(clampedProgress)
+                    .fillMaxWidth(animatedProgress)
                     .clip(shapes.pill)
                     .background(progressColor)
             )

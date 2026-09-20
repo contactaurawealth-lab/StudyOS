@@ -40,11 +40,16 @@ class SubjectRepositoryImpl(
                 val chapters = chaptersBySubject[subject.id] ?: emptyList()
                 val progress = calculateSubjectProgress(chapters)
                 val completedCount = chapters.count { it.status == ChapterStatus.COMPLETED || it.progress == 100 }
+                val currentChapter = chapters.find { it.status == ChapterStatus.IN_PROGRESS }
+                    ?: chapters.firstOrNull { it.progress < 100 }
+                    ?: chapters.firstOrNull()
+
                 SubjectWithProgress(
                     subject = subject,
                     chapterCount = chapters.size,
                     completedChapterCount = completedCount,
-                    progress = progress
+                    progress = progress,
+                    currentChapterName = currentChapter?.name
                 )
             }
         }

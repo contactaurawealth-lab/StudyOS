@@ -59,6 +59,11 @@ object StudyOSTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalStudyOSShapes.current
+
+    val spacing: StudyOSSpacing
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalStudyOSSpacing.current
 }
 
 @Composable
@@ -119,7 +124,8 @@ fun StudyOSTheme(
     CompositionLocalProvider(
         LocalStudyOSColors provides colors,
         LocalStudyOSTypography provides StudyOSTypography(),
-        LocalStudyOSShapes provides StudyOSShapes()
+        LocalStudyOSShapes provides StudyOSShapes(),
+        LocalStudyOSSpacing provides StudyOSSpacing()
     ) {
         MaterialTheme(
             colorScheme = materialColorScheme,

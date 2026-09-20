@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyOS — Personal Study Operating System for Android</title>
+  <meta name="description" content="StudyOS is a minimal, distraction-free Android study workspace built with Kotlin and Jetpack Compose. Features glassmorphic UI, spaced-repetition revision, context-aware AI learning, and an integrated practice hub.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F59E0B'><path d='M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090A0D;
+      --bg-gradient: radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.12), transparent 50%),
+                           radial-gradient(circle at 85% 30%, rgba(245, 158, 11, 0.08), transparent 40%),
+                           #090A0D;
+      --surface: rgba(22, 24, 29, 0.65);
+      --surface-hover: rgba(30, 33, 40, 0.85);
+      --surface-solid: #13151A;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(245, 158, 11, 0.3);
+      --accent: #F59E0B;
+      --accent-hover: #D97706;
+      --accent-glow: rgba(245, 158, 11, 0.25);
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --text-muted: #6B7280;
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 22px;
+      --radius-modal: 28px;
+      --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    [data-theme="light"] {
+      --bg: #F8F9FA;
+      --bg-gradient: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.1), transparent 50%),
+                           #F8F9FA;
+      --surface: rgba(255, 255, 255, 0.8);
+      --surface-hover: rgba(255, 255, 255, 0.95);
+      --surface-solid: #FFFFFF;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-accent: rgba(217, 119, 6, 0.4);
+      --accent: #D97706;
+      --accent-hover: #B45309;
+      --accent-glow: rgba(217, 119, 6, 0.2);
+      --text-primary: #111827;
+      --text-secondary: #4B5563;
+      --text-muted: #9CA3AF;
+      --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.25s ease, border-color 0.25s ease;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Ambient background orbs */
+    .ambient-glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(80px);
+    }
+
+    /* Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 16px 24px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(9, 10, 13, 0.7);
+      border-bottom: 1px solid var(--border);
+    }
+    [data-theme="light"] header {
+      background: rgba(248, 249, 250, 0.75);
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--accent), #B45309);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-lg);
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-glass {
+      background: var(--surface);
+      color: var(--text-primary);
+      border-color: var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .btn-glass:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-accent);
+      transform: translateY(-1px);
+    }
+
+    .theme-toggle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 80px 0 60px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border-accent);
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 20px;
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .hero-title {
+      font-size: 3.4rem;
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 36px;
+      max-width: 580px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 36px;
+    }
+
+    .btn-download-hero {
+      padding: 15px 30px;
+      font-size: 1.05rem;
+      border-radius: var(--radius-lg);
+    }
+
+    .hero-specs {
+      display: flex;
+      gap: 24px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .hero-specs span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Phone Mockup */
+    .mockup-wrapper {
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    .phone-frame {
+      width: 330px;
+      height: 670px;
+      background: #0E1015;
+      border-radius: 46px;
+      border: 11px solid #1F232B;
+      box-shadow: var(--shadow-glass), 0 0 60px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-notch {
+      width: 110px;
+      height: 22px;
+      background: #1F232B;
+      border-radius: 0 0 14px 14px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .phone-content {
+      padding: 34px 16px 16px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #0A0C0F;
+      color: #EDEFEF;
+      font-size: 0.85rem;
+      overflow-y: hidden;
+    }
+
+    .app-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .app-greeting {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .app-date {
+      font-size: 0.72rem;
+      color: #9CA3AF;
+    }
+
+    .glass-card-mock {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .alert-pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 10px;
+    }
+
+    .bottom-bar-mock {
+      margin-top: auto;
+      background: rgba(22, 24, 29, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+    }
+    .bottom-tab {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      padding: 6px 10px;
+      border-radius: 12px;
+      color: #9CA3AF;
+    }
+    .bottom-tab.active {
+      background: rgba(255, 255, 255, 0.09);
+      color: #FFF;
+      font-weight: 600;
+    }
+    .bottom-tab.active svg {
+      fill: var(--accent);
+    }
+
+    /* Learning Loop Flow */
+    .loop-section {
+      padding: 80px 0;
+      text-align: center;
+    }
+
+    .section-tag {
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+
+    .section-heading {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      max-width: 650px;
+      margin: 0 auto 48px;
+    }
+
+    .loop-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .loop-step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: var(--shadow-glass);
+    }
+
+    .loop-step span.icon {
+      font-size: 1.25rem;
+    }
+
+    .loop-arrow {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    /* Pillars / Features */
+    .features-section {
+      padding: 60px 0 100px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-glass);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-accent);
+      transform: translateY(-3px);
+    }
+
+    .feature-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 22px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+      line-height: 1.6;
+    }
+
+    /* Download Box */
+    .download-section {
+      padding: 80px 0 100px;
+    }
+
+    .download-card {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(22, 24, 29, 0.95));
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-modal);
+      padding: 56px 48px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .download-card h2 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+
+    .download-card p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      margin-bottom: 28px;
+    }
+
+    .download-cta-box {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .btn-download-large {
+      padding: 18px 36px;
+      font-size: 1.15rem;
+      justify-content: center;
+      border-radius: var(--radius-lg);
+    }
+
+    .integrity-box {
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .integrity-box .label {
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .integrity-box .hash {
+      word-break: break-all;
+      color: var(--text-secondary);
+    }
+
+    /* Terminal Instructions */
+    .terminal-box {
+      background: #0B0D11;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      color: #A7F3D0;
+      margin-top: 14px;
+      position: relative;
+    }
+    .terminal-title {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      background: rgba(9, 10, 13, 0.9);
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 40px;
+      }
+      .hero-title {
+        font-size: 2.6rem;
+      }
+      .hero-subtitle {
+        margin: 0 auto 30px;
+      }
+      .hero-actions {
+        justify-content: center;
+      }
+      .hero-specs {
+        justify-content: center;
+      }
+      .download-card {
+        grid-template-columns: 1fr;
+        padding: 36px 24px;
+      }
+      .nav-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+        </div>
+        StudyOS
+      </a>
+
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#loop">Practice Loop</a>
+        <a href="#ai">AI Engine</a>
+        <a href="#specs">Specs</a>
+        <a href="https://github.com/StudyOS/StudyOS" target="_blank">GitHub</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <a href="./downloads/StudyOS.apk" download class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          Download APK
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="container hero">
+    <div class="hero-text">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Phase 12 Glassmorphism Release • v1.0.0
+      </div>
+      <h1 class="hero-title">
+        The Personal <span>Study Operating System</span> for Android
+      </h1>
+      <p class="hero-subtitle">
+        A distraction-free, glassmorphic workspace engineered for deep focus, spaced-repetition active recall, context-aware AI learning, and mastery.
+      </p>
+
+      <div class="hero-actions">
+        <a href="./downloads/StudyOS.apk" download class="btn btn-primary btn-download-hero">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          Download APK (19 MB)
+        </a>
+        <a href="https://github.com/StudyOS/StudyOS" target="_blank" class="btn btn-glass">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          View GitHub Repository
+        </a>
+      </div>
+
+      <div class="hero-specs">
+        <span>✓ Android 8.0+ (API 26+)</span>
+        <span>✓ 100% Offline-First</span>
+        <span>✓ Zero Trackers</span>
+        <span>✓ Open Source</span>
+      </div>
+    </div>
+
+    <!-- Phone Preview Mockup -->
+    <div class="mockup-wrapper">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-content">
+          <div class="app-topbar">
+            <div>
+              <div class="app-greeting">Good morning, Stotra</div>
+              <div class="app-date">Sunday, September 20</div>
+            </div>
+            <div style="font-size:1.1rem; color:#F59E0B">⋮</div>
+          </div>
+
+          <!-- Alert -->
+          <div class="glass-card-mock" style="border-color: rgba(245, 158, 11, 0.3);">
+            <div class="alert-pill">Revision Due</div>
+            <div style="font-weight:600; font-size:0.88rem;">3 Flashcards ready for review</div>
+            <div style="font-size:0.75rem; color:#9CA3AF;">Spaced-repetition Leitner schedule</div>
+          </div>
+
+          <!-- Today's Focus -->
+          <div class="glass-card-mock">
+            <div class="alert-pill" style="color:#A7F3D0;">Recommended Focus</div>
+            <div style="font-weight:700; font-size:1rem; margin-top:2px;">Mathematics</div>
+            <div style="color:#9CA3AF; font-size:0.8rem;">Calculus & Limits</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: 72%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#9CA3AF;">
+              <span>72% completed</span>
+              <span style="color:#F59E0B; font-weight:600;">Start Session →</span>
+            </div>
+          </div>
+
+          <!-- AI Assistant Tile -->
+          <div class="glass-card-mock">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.1rem;">🧠</span>
+              <span style="font-weight:600;">AI Study Engine</span>
+            </div>
+            <div style="font-size:0.75rem; color:#9CA3AF; margin-top:4px;">
+              Doubt solving, "Teach Me" mode, and custom practice quizzes.
+            </div>
+          </div>
+
+          <!-- Floating Glass Bottom Bar Mock -->
+          <div class="bottom-bar-mock">
+            <div class="bottom-tab active">
+              <svg width="14" height="14" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              Today
+            </div>
+            <div class="bottom-tab">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+              Subjects
+            </div>
+            <div class="bottom-tab">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+              Progress
+            </div>
+            <div class="bottom-tab">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+              Calendar
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Connected Learning Loop -->
+  <section class="container loop-section" id="loop">
+    <div class="section-tag">Continuous Mastery Engine</div>
+    <h2 class="section-heading">One Unified Learning Loop</h2>
+    <p class="section-desc">
+      Features in StudyOS are not disconnected islands. Every note, flashcard, quiz, mistake, and recall session feeds back into your chapter mastery.
+    </p>
+
+    <div class="loop-grid">
+      <div class="loop-step"><span class="icon">📖</span> Learn Chapter</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><span class="icon">✍️</span> Make Notes</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><span class="icon">📇</span> Flashcards</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><span class="icon">📝</span> Practice Quiz</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><span class="icon">🎯</span> Mistake Bank</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><span class="icon">🔁</span> Active Recall</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step" style="border-color:var(--border-accent); color:var(--accent);"><span class="icon">🏆</span> Mastery</div>
+    </div>
+  </section>
+
+  <!-- Core Pillars / Features -->
+  <section class="container features-section" id="features">
+    <div style="text-align: center; margin-bottom: 50px;">
+      <div class="section-tag">Architecture & Design</div>
+      <h2 class="section-heading">Engineered for Deep Academic Work</h2>
+      <p class="section-desc">Every element is crafted to protect focus, minimize cognitive overhead, and accelerate retention.</p>
+    </div>
+
+    <div class="features-grid">
+      <!-- 1 -->
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        </div>
+        <h3>Glassmorphism UI System</h3>
+        <p>Translucent surfaces, subtle 1dp borders, soft elevations, and ergonomic touch targets (≥44dp). Visual calm with zero dashboard clutter.</p>
+      </div>
+
+      <!-- 2 -->
+      <div class="feature-card" id="ai">
+        <div class="feature-icon-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 21l3.52-.93C9.37 20.65 10.65 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-1.32 0-2.55-.41-3.56-1.11l-.25-.18-2.22.59.59-2.17-.18-.28C5.54 13.79 5 12.45 5 11c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7z"/></svg>
+        </div>
+        <h3>Context-Aware AI Assistant</h3>
+        <p>Ask doubts with complete context of your current chapter, weak topics, and previous mistakes. Supports "Teach Me" mode, concept simplification, and adaptive quizzes.</p>
+      </div>
+
+      <!-- 3 -->
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        </div>
+        <h3>Spaced Repetition & Recall</h3>
+        <p>Intelligent Leitner-based scheduling. Blitz 5, 10, or 15-minute active recall drills designed to beat the forgetting curve before exams arrive.</p>
+      </div>
+
+      <!-- 4 -->
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        </div>
+        <h3>Chapter Practice Hub</h3>
+        <p>Each chapter gets its dedicated hub: markdown notes, flashcards with rating feedback, timed multiple-choice quizzes, and instant mistake conversion.</p>
+      </div>
+
+      <!-- 5 -->
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+        </div>
+        <h3>Fluid Progress Animations</h3>
+        <p>Animated numerical counters and 450ms smooth progress transitions. View real-time subject breakdowns and milestone completions.</p>
+      </div>
+
+      <!-- 6 -->
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        </div>
+        <h3>100% Offline-First & Private</h3>
+        <p>All data stored locally on your device via Room SQLite Database v7. No account required, no remote trackers, zero latency.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download & Installation Section -->
+  <section class="container download-section" id="specs">
+    <div class="download-card">
+      <div>
+        <h2>Download StudyOS</h2>
+        <p>Get the latest production debug build directly. No app store bloat or forced telemetry.</p>
+
+        <div class="download-cta-box">
+          <a href="./downloads/StudyOS.apk" download class="btn btn-primary btn-download-large">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            Download StudyOS.apk (19.4 MB)
+          </a>
+
+          <div class="terminal-box">
+            <div class="terminal-title">Install directly in Termux</div>
+            <code>termux-open /root/StudyOS/docs/downloads/StudyOS.apk</code>
+          </div>
+
+          <div class="terminal-box">
+            <div class="terminal-title">Install via ADB</div>
+            <code>adb install app-debug.apk</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="integrity-box">
+        <div class="label">RELEASE INFORMATION</div>
+        <div style="margin-bottom: 8px; color:var(--text-primary);">StudyOS v1.0.0 (Phase 12 Complete)</div>
+        <div class="label">COMPATIBILITY</div>
+        <div style="margin-bottom: 8px; color:var(--text-primary);">Android 8.0+ (Oreo, API 26+)</div>
+        <div class="label">TARGET ARCHITECTURE</div>
+        <div style="margin-bottom: 8px; color:var(--text-primary);">arm64-v8a, armeabi-v7a, x86, x86_64</div>
+        <div class="label">SHA-256 CHECKSUM</div>
+        <div class="hash">eee8c139f73f1311d98280170d91eef4f8d26caea30e2fe5dc51c8b064ba3353</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-content">
+      <div>
+        <strong>StudyOS</strong> • Personal Study Operating System for Android
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/StudyOS/StudyOS" target="_blank">GitHub</a>
+        <a href="./downloads/StudyOS.apk" download>Direct APK</a>
+        <a href="#features">Architecture</a>
+        <a href="https://github.com/StudyOS/StudyOS/blob/master/LICENSE" target="_blank">MIT License</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Dark / Light Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = root.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      root.setAttribute('data-theme', newTheme);
+      localStorage.setItem('studyos-theme', newTheme);
+    });
+
+    // Check preferred theme
+    const savedTheme = localStorage.getItem('studyos-theme');
+    if (savedTheme) {
+      root.setAttribute('data-theme', savedTheme);
+    }
+  </script>
+</body>
+</html>

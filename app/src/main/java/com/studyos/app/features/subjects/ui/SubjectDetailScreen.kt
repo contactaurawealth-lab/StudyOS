@@ -44,6 +44,15 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.ui.text.font.FontWeight
+import com.studyos.app.core.ui.component.GlassCard
+import com.studyos.app.core.ui.component.GlassDialog
+import com.studyos.app.core.ui.component.GlassIconButton
+import com.studyos.app.core.ui.component.GlassTopBar
+import com.studyos.app.core.ui.component.ShimmerPlaceholder
 import com.studyos.app.core.ui.component.StudyOSConfirmationDialog
 import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSIconButton
@@ -95,7 +104,21 @@ fun SubjectDetailScreen(
             .background(colors.background)
     ) {
         if (uiState.isLoading) {
-            StudyOSLoadingState(message = "Loading subject...")
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = StudyOSTheme.spacing.screenHorizontal, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                repeat(4) {
+                    ShimmerPlaceholder(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp),
+                        shape = shapes.medium
+                    )
+                }
+            }
         } else if (uiState.subject == null) {
             StudyOSEmptyState(
                 title = "Subject not found",
@@ -108,17 +131,14 @@ fun SubjectDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
                     .widthIn(max = 600.dp)
             ) {
-                // Top Navigation Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        StudyOSIconButton(
+                // Glass Top Bar: ← SubjectName ⋮
+                GlassTopBar(
+                    title = subject.name,
+                    subtitle = "${uiState.chapters.size} chapters • ${uiState.progress}% complete",
+                    navigationIcon = {
+                        GlassIconButton(
                             onClick = onBack,
                             contentDescription = "Back to subjects"
                         ) {
@@ -129,64 +149,69 @@ fun SubjectDetailScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = subject.name,
-                            style = typography.subsectionTitle,
-                            color = colors.primaryText
-                        )
-                    }
-
-                    Box {
-                        StudyOSIconButton(
-                            onClick = { menuExpanded = true },
-                            contentDescription = "Subject options"
+                    },
+                    actions = {
+                        GlassIconButton(
+                            onClick = { showAddChapterSheet = true },
+                            contentDescription = "Add chapter"
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.MoreVert,
+                                imageVector = Icons.Outlined.Add,
                                 contentDescription = null,
-                                tint = colors.secondaryText,
+                                tint = colors.primaryText,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
 
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                            modifier = Modifier.background(colors.surface)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Edit subject", style = typography.body, color = colors.primaryText) },
-                                onClick = {
-                                    menuExpanded = false
-                                    showRenameDialog = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete subject", style = typography.body, color = colors.accent) },
-                                onClick = {
-                                    menuExpanded = false
-                                    showDeleteConfirmDialog = true
-                                }
-                            )
+                        Box {
+                            GlassIconButton(
+                                onClick = { menuExpanded = true },
+                                contentDescription = "Subject options"
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreVert,
+                                    contentDescription = null,
+                                    tint = colors.secondaryText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                                modifier = Modifier.background(colors.surface)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit subject", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showRenameDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete subject", style = typography.body, color = colors.accent) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showDeleteConfirmDialog = true
+                                    }
+                                )
+                            }
                         }
                     }
-                }
+                )
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Subject Progress Header Card
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shapes.surface)
-                        .background(colors.surface)
-                        .border(1.dp, colors.border, shapes.surface)
-                        .padding(18.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Subject Progress Header Card
+                    GlassCard(
+                        backgroundColor = colors.glassSurface,
+                        padding = 16.dp
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -194,7 +219,7 @@ fun SubjectDetailScreen(
                         ) {
                             Text(
                                 text = "${uiState.progress}% complete",
-                                style = typography.sectionTitle,
+                                style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
                                 color = colors.primaryText
                             )
 
@@ -218,53 +243,55 @@ fun SubjectDetailScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // Chapters Section Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Chapters",
-                        style = typography.sectionTitle,
-                        color = colors.primaryText
-                    )
-
-                    StudyOSOutlinedButton(
-                        text = "Add chapter",
-                        onClick = { showAddChapterSheet = true }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Chapter List / Empty State
-                if (uiState.chapters.isEmpty()) {
                     Spacer(modifier = Modifier.height(20.dp))
-                    StudyOSEmptyState(
-                        title = "No chapters yet.",
-                        description = "Add chapters to start tracking this subject.",
-                        actionButtonText = "Add chapter",
-                        onActionClick = { showAddChapterSheet = true }
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+
+                    // Chapters Section Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        itemsIndexed(uiState.chapters, key = { _, chapter -> chapter.id }) { index, chapter ->
-                            ChapterListItemRow(
-                                chapter = chapter,
-                                isFirst = index == 0,
-                                isLast = index == uiState.chapters.size - 1,
-                                onClick = { onChapterClick(chapter.id) },
-                                onMoveUp = { viewModel.moveChapter(chapter.id, moveUp = true) },
-                                onMoveDown = { viewModel.moveChapter(chapter.id, moveUp = false) }
-                            )
+                        Text(
+                            text = "Chapters",
+                            style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
+                            color = colors.primaryText
+                        )
+
+                        StudyOSOutlinedButton(
+                            text = "Add chapter",
+                            onClick = { showAddChapterSheet = true }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Chapter List / Empty State
+                    if (uiState.chapters.isEmpty()) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        StudyOSEmptyState(
+                            title = "No chapters yet",
+                            description = "Add chapters to start tracking your progress.",
+                            actionButtonText = "Add Chapter",
+                            onActionClick = { showAddChapterSheet = true }
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            itemsIndexed(uiState.chapters, key = { _, chapter -> chapter.id }) { index, chapter ->
+                                ChapterListItemRow(
+                                    chapter = chapter,
+                                    index = index,
+                                    isFirst = index == 0,
+                                    isLast = index == uiState.chapters.size - 1,
+                                    onClick = { onChapterClick(chapter.id) },
+                                    onMoveUp = { viewModel.moveChapter(chapter.id, moveUp = true) },
+                                    onMoveDown = { viewModel.moveChapter(chapter.id, moveUp = false) },
+                                    onDelete = { viewModel.deleteChapter(chapter.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -316,9 +343,10 @@ fun SubjectDetailScreen(
 
         // Delete Subject Confirmation Dialog
         if (showDeleteConfirmDialog) {
-            StudyOSConfirmationDialog(
+            GlassDialog(
+                onDismissRequest = { showDeleteConfirmDialog = false },
                 title = "Delete subject?",
-                message = "This will also remove its chapters.",
+                message = "This will remove ${uiState.subject?.name ?: "this subject"} and its chapters.",
                 confirmButtonText = "Delete",
                 dismissButtonText = "Cancel",
                 isDestructive = true,
@@ -342,103 +370,128 @@ fun SubjectDetailScreen(
 @Composable
 private fun ChapterListItemRow(
     chapter: Chapter,
+    index: Int,
     isFirst: Boolean,
     isLast: Boolean,
     onClick: () -> Unit,
     onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit
+    onMoveDown: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
-    val isCompleted = chapter.status == ChapterStatus.COMPLETED || chapter.progress == 100
+    var menuExpanded by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shapes.surface)
-            .background(colors.surface)
-            .border(1.dp, colors.border, shapes.surface)
-            .clickable(onClick = onClick)
-            .semantics { role = Role.Button }
-            .padding(horizontal = 14.dp, vertical = 12.dp)
+    val isCompleted = chapter.status == ChapterStatus.COMPLETED || chapter.progress == 100
+    val formattedIndex = String.format("%02d", index + 1)
+    val stateText = when {
+        isCompleted -> "Complete ✓"
+        chapter.progress > 0 -> "${chapter.progress}%"
+        else -> "Not started"
+    }
+    val stateColor = when {
+        isCompleted -> colors.success
+        chapter.progress > 0 -> colors.accent
+        else -> colors.mutedText
+    }
+
+    GlassCard(
+        onClick = onClick,
+        backgroundColor = colors.glassSurface,
+        padding = 14.dp
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isCompleted) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Chapter Number (01, 02, etc.)
+            Text(
+                text = formattedIndex,
+                style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                color = colors.mutedText,
+                modifier = Modifier.width(28.dp)
+            )
+
+            // Title & State
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = chapter.name,
+                    style = typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    color = if (isCompleted) colors.secondaryText else colors.primaryText
+                )
+                Text(
+                    text = stateText,
+                    style = typography.caption.copy(fontWeight = FontWeight.Medium),
+                    color = stateColor,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Overflow menu for chapter actions
+            Box {
+                GlassIconButton(
+                    onClick = { menuExpanded = true },
+                    contentDescription = "Chapter options",
+                    modifier = Modifier.size(34.dp)
+                ) {
                     Icon(
-                        imageVector = Icons.Outlined.Check,
-                        contentDescription = "Completed",
+                        imageVector = Icons.Outlined.MoreVert,
+                        contentDescription = null,
                         tint = colors.secondaryText,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = chapter.name,
-                        style = typography.bodyMedium,
-                        color = if (isCompleted) colors.secondaryText else colors.primaryText
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier.background(colors.surface)
+                ) {
+                    if (!isFirst) {
+                        DropdownMenuItem(
+                            text = { Text("Move up", style = typography.body, color = colors.primaryText) },
+                            onClick = {
+                                menuExpanded = false
+                                onMoveUp()
+                            }
+                        )
+                    }
+                    if (!isLast) {
+                        DropdownMenuItem(
+                            text = { Text("Move down", style = typography.body, color = colors.primaryText) },
+                            onClick = {
+                                menuExpanded = false
+                                onMoveDown()
+                            }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Delete chapter", style = typography.body, color = colors.accent) },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        }
                     )
-                    if (!chapter.description.isNullOrBlank()) {
-                        Text(
-                            text = chapter.description,
-                            style = typography.secondary,
-                            color = colors.mutedText,
-                            maxLines = 1,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    text = "${chapter.progress}%",
-                    style = typography.caption,
-                    color = if (isCompleted) colors.secondaryText else colors.primaryText
-                )
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                // Reorder controls
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    StudyOSIconButton(
-                        onClick = onMoveUp,
-                        enabled = !isFirst,
-                        contentDescription = "Move chapter up"
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ArrowUpward,
-                            contentDescription = null,
-                            tint = if (!isFirst) colors.secondaryText else colors.mutedText.copy(alpha = 0.4f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    StudyOSIconButton(
-                        onClick = onMoveDown,
-                        enabled = !isLast,
-                        contentDescription = "Move chapter down"
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ArrowDownward,
-                            contentDescription = null,
-                            tint = if (!isLast) colors.secondaryText else colors.mutedText.copy(alpha = 0.4f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(4.dp))
 
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+                contentDescription = null,
+                tint = colors.mutedText,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+
+        if (chapter.progress in 1..99) {
+            Spacer(modifier = Modifier.height(8.dp))
             StudyOSProgressBar(
                 progress = chapter.progress,
+                height = 3.dp,
                 modifier = Modifier.fillMaxWidth()
             )
         }

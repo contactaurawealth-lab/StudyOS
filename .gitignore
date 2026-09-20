@@ -11,5 +11,6 @@
 /build
 */build
 *.apk
+!docs/downloads/*.apk
 *.aab
 *.dex

@@ -20,9 +20,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ShowChart
+import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -41,6 +47,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.studyos.app.core.ui.component.DrawerNavigationItem
+import com.studyos.app.core.ui.component.GlassBottomBar
+import com.studyos.app.core.ui.component.GlassDialog
+import com.studyos.app.core.ui.component.GlassNavigationItem
+import com.studyos.app.core.ui.component.StudyOSNavigationDrawer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -112,6 +126,8 @@ fun StudyOSApp(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    var isDrawerOpen by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
@@ -130,7 +146,14 @@ fun StudyOSApp(
     val isStudySessionRoute = currentRoute?.startsWith("study-session/") == true
     val isTasksRoute = currentRoute == Screen.Tasks.route
     val isAiRoute = currentRoute?.startsWith("ai") == true
-    val isSubRoute = isSubSettingsRoute || isSubjectDetailRoute || isChapterDetailRoute || isStudySessionRoute || isTasksRoute || isAiRoute
+    val isPracticeRoute = currentRoute?.startsWith("practice/") == true ||
+        currentRoute?.startsWith("notes/") == true ||
+        currentRoute?.startsWith("flashcards/") == true ||
+        currentRoute?.startsWith("quiz/") == true ||
+        currentRoute?.startsWith("recall/") == true ||
+        currentRoute?.startsWith("exams/") == true
+    val isSubRoute = isSubSettingsRoute || isSubjectDetailRoute || isChapterDetailRoute ||
+        isStudySessionRoute || isTasksRoute || isAiRoute || isPracticeRoute
 
     val showShell = !isOnboardingRoute && !isSearchRoute
 
@@ -234,96 +257,25 @@ fun StudyOSApp(
                         navController = navController,
                         container = container,
                         startDestination = startDestination,
-                        onExitApp = onExitApp
+                        onExitApp = onExitApp,
+                        onOpenDrawer = { isDrawerOpen = true }
                     )
                 }
             }
         } else {
-            // Phone / Compact Screen Layout with Bottom Navigation
+            // Phone / Compact Screen Layout with Glass Bottom Navigation
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = colors.background,
-                topBar = {
-                    if (showShell && !isSubRoute) {
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    text = "StudyOS",
-                                    style = typography.subsectionTitle,
-                                    color = colors.primaryText
-                                )
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = colors.background,
-                                titleContentColor = colors.primaryText
-                            ),
-                            actions = {
-                                StudyOSIconButton(
-                                    onClick = { navController.navigate(Screen.Ai.route) },
-                                    contentDescription = "AI Assistant"
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Psychology,
-                                        contentDescription = null,
-                                        tint = colors.accent,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                StudyOSIconButton(
-                                    onClick = { navController.navigate(Screen.Search.route) },
-                                    contentDescription = "Search"
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Search,
-                                        contentDescription = null,
-                                        tint = colors.secondaryText,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        )
-                    }
-                },
                 bottomBar = {
                     if (showShell && !isSubRoute) {
-                        Column {
-                            StudyOSDivider()
-                            NavigationBar(
-                                containerColor = colors.surface,
-                                contentColor = colors.primaryText,
-                                tonalElevation = 0.dp
-                            ) {
-                                PhoneNavigationItems.forEach { item ->
-                                    val selected = currentRoute == item.screen.route
-                                    NavigationBarItem(
-                                        selected = selected,
-                                        onClick = {
-                                            navigateToTopLevel(navController, item.screen.route)
-                                        },
-                                        icon = {
-                                            Icon(
-                                                imageVector = item.icon,
-                                                contentDescription = item.title,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        },
-                                        label = {
-                                            Text(
-                                                text = item.title,
-                                                style = typography.caption
-                                            )
-                                        },
-                                        colors = NavigationBarItemDefaults.colors(
-                                            selectedIconColor = colors.accent,
-                                            selectedTextColor = colors.accent,
-                                            indicatorColor = colors.background,
-                                            unselectedIconColor = colors.secondaryText,
-                                            unselectedTextColor = colors.secondaryText
-                                        )
-                                    )
-                                }
+                        GlassBottomBar(
+                            items = PhoneBottomNavItems,
+                            currentRoute = currentRoute,
+                            onNavigate = { route ->
+                                navigateToTopLevel(navController, route)
                             }
-                        }
+                        )
                     }
                 }
             ) { innerPadding ->
@@ -336,13 +288,62 @@ fun StudyOSApp(
                         navController = navController,
                         container = container,
                         startDestination = startDestination,
-                        onExitApp = onExitApp
+                        onExitApp = onExitApp,
+                        onOpenDrawer = { isDrawerOpen = true }
                     )
                 }
             }
         }
+
+        if (showAboutDialog) {
+            GlassDialog(
+                onDismissRequest = { showAboutDialog = false },
+                title = "StudyOS",
+                message = "Version 1.0 (Glassmorphic Edition)\n\nA minimal, distraction-free study workspace designed to help you plan, learn, revise, and excel.",
+                confirmButtonText = "Close",
+                onConfirm = { showAboutDialog = false },
+                dismissButtonText = null
+            )
+        }
+
+        StudyOSNavigationDrawer(
+            isOpen = isDrawerOpen,
+            onClose = { isDrawerOpen = false },
+            currentRoute = currentRoute,
+            onNavigate = { route ->
+                navigateToTopLevel(navController, route)
+            },
+            primaryItems = PrimaryDrawerItems,
+            secondaryItems = SecondaryDrawerItems,
+            onAboutClick = {
+                isDrawerOpen = false
+                showAboutDialog = true
+            }
+        )
     }
 }
+
+private val PhoneBottomNavItems = listOf(
+    GlassNavigationItem(Screen.Today.route, "Today", Icons.Outlined.Today),
+    GlassNavigationItem(Screen.Subjects.route, "Subjects", Icons.Outlined.MenuBook),
+    GlassNavigationItem(Screen.Progress.route, "Progress", Icons.Outlined.ShowChart),
+    GlassNavigationItem(Screen.Planner.route, "Calendar", Icons.Outlined.CalendarMonth)
+)
+
+private val PrimaryDrawerItems = listOf(
+    DrawerNavigationItem("Today", Screen.Today.route, Icons.Outlined.Today),
+    DrawerNavigationItem("Subjects", Screen.Subjects.route, Icons.Outlined.MenuBook),
+    DrawerNavigationItem("Progress", Screen.Progress.route, Icons.Outlined.ShowChart),
+    DrawerNavigationItem("Calendar", Screen.Planner.route, Icons.Outlined.CalendarMonth),
+    DrawerNavigationItem("Revision", Screen.RevisionDashboard.route, Icons.Outlined.Psychology)
+)
+
+private val SecondaryDrawerItems = listOf(
+    DrawerNavigationItem("AI Assistant", Screen.Ai.route, Icons.Outlined.Psychology),
+    DrawerNavigationItem("Tasks", Screen.Tasks.route, Icons.Outlined.CheckCircle),
+    DrawerNavigationItem("Exams", Screen.Exams.route, Icons.Outlined.School),
+    DrawerNavigationItem("Settings", Screen.Settings.route, Icons.Outlined.Settings)
+)
 
 private fun navigateToTopLevel(navController: NavHostController, route: String) {
     navController.navigate(route) {
@@ -359,7 +360,8 @@ private fun StudyOSNavGraph(
     navController: NavHostController,
     container: StudyOSAppContainer,
     startDestination: String,
-    onExitApp: () -> Unit
+    onExitApp: () -> Unit,
+    onOpenDrawer: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -408,6 +410,10 @@ private fun StudyOSNavGraph(
                 },
                 onOpenRevision = {
                     navController.navigate(Screen.RevisionDashboard.route)
+                },
+                onOpenDrawer = onOpenDrawer,
+                onOpenSearch = {
+                    navController.navigate(Screen.Search.route)
                 }
             )
         }

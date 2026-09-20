@@ -18,10 +18,15 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,7 +35,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +46,9 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.studyos.app.core.ui.component.GlassCard
+import com.studyos.app.core.ui.component.GlassIconButton
+import com.studyos.app.core.ui.component.GlassTopBar
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSDivider
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
@@ -63,6 +73,8 @@ fun TodayScreen(
     onOpenExams: () -> Unit = {},
     onOpenFlashcards: () -> Unit = {},
     onOpenRevision: () -> Unit = {},
+    onOpenDrawer: () -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -70,6 +82,7 @@ fun TodayScreen(
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
     val snackbarHostState = remember { SnackbarHostState() }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.infoMessage) {
         uiState.infoMessage?.let {
@@ -97,31 +110,86 @@ fun TodayScreen(
             .fillMaxSize()
             .background(colors.background)
     ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Compact Modern Top Bar: ☰ Good morning, {name} ⋮
+            GlassTopBar(
+            title = uiState.greeting.removeSuffix("."),
+            subtitle = uiState.dateHeader,
+            navigationIcon = {
+                GlassIconButton(
+                    onClick = onOpenDrawer,
+                    contentDescription = "Open Navigation Menu"
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = null,
+                        tint = colors.primaryText,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            },
+            actions = {
+                Box {
+                    GlassIconButton(
+                        onClick = { menuExpanded = true },
+                        contentDescription = "More Options"
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = null,
+                            tint = colors.secondaryText,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier.background(colors.surface)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("AI Assistant", style = typography.body, color = colors.primaryText) },
+                            onClick = { menuExpanded = false; onOpenAi() },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Psychology, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Search", style = typography.body, color = colors.primaryText) },
+                            onClick = { menuExpanded = false; onOpenSearch() },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Search, null, tint = colors.secondaryText, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Plan Study Session", style = typography.body, color = colors.primaryText) },
+                            onClick = { menuExpanded = false; viewModel.openPlanSessionSheet() },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Add, null, tint = colors.secondaryText, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Revision & Active Recall", style = typography.body, color = colors.primaryText) },
+                            onClick = { menuExpanded = false; onOpenRevision() },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Psychology, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                    }
+                }
+            }
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
                 .verticalScroll(rememberScrollState())
                 .widthIn(max = 560.dp),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 1. Header (Date + Greeting)
-            Text(
-                text = uiState.dateHeader,
-                style = typography.secondary,
-                color = colors.secondaryText
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = uiState.greeting,
-                style = typography.screenTitle,
-                color = colors.primaryText
-            )
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Upcoming Exam or Flashcards Due Alerts
             if (uiState.upcomingExam != null || uiState.dueFlashcardsCount > 0) {
@@ -133,14 +201,10 @@ fun TodayScreen(
                     if (uiState.upcomingExam != null) {
                         val exam = uiState.upcomingExam!!
                         val days = kotlin.math.max(0L, (exam.targetDate - System.currentTimeMillis()) / 86_400_000L)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(shapes.card)
-                                .background(colors.surface)
-                                .border(1.dp, colors.border, shapes.card)
-                                .clickable { onOpenExams() }
-                                .padding(12.dp)
+                        GlassCard(
+                            modifier = Modifier.weight(1f),
+                            onClick = { onOpenExams() },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
                         ) {
                             Column {
                                 Text(
@@ -162,14 +226,10 @@ fun TodayScreen(
                     }
 
                     if (uiState.dueFlashcardsCount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(shapes.card)
-                                .background(colors.surface)
-                                .border(1.dp, colors.border, shapes.card)
-                                .clickable { onOpenFlashcards() }
-                                .padding(12.dp)
+                        GlassCard(
+                            modifier = Modifier.weight(1f),
+                            onClick = { onOpenFlashcards() },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
                         ) {
                             Column {
                                 Text(
@@ -195,21 +255,20 @@ fun TodayScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Revision & Recall Quick Launcher
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(shapes.card)
-                    .background(colors.cardBackground)
-                    .border(1.dp, colors.border, shapes.card)
-                    .clickable { onOpenRevision() }
-                    .padding(14.dp)
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onOpenRevision() },
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.Psychology,
                             contentDescription = null,
@@ -371,14 +430,15 @@ fun TodayScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
         }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp)
-        )
     }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = 16.dp)
+    )
+}
 }
 
 @Composable
@@ -388,16 +448,11 @@ private fun AiAssistantTodayCard(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shapes.surface)
-            .background(colors.surface)
-            .border(1.dp, colors.border, shapes.surface)
-            .clickable(onClick = onOpenAi)
-            .padding(18.dp)
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onOpenAi,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -437,15 +492,10 @@ private fun TodayFocusCard(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shapes.surface)
-            .background(colors.surface)
-            .border(1.dp, colors.border, shapes.surface)
-            .padding(20.dp)
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)
     ) {
         when (focusItem) {
             is FocusItem.SessionFocus -> {
@@ -601,16 +651,11 @@ private fun NextUpSection(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
 
     if (sessions.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shapes.surface)
-                .background(colors.surface)
-                .border(1.dp, colors.border, shapes.surface)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Text(
                 text = "No more sessions scheduled for today.",
@@ -619,12 +664,9 @@ private fun NextUpSection(
             )
         }
     } else {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shapes.surface)
-                .background(colors.surface)
-                .border(1.dp, colors.border, shapes.surface)
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
         ) {
             sessions.forEachIndexed { index, sessionItem ->
                 Row(
@@ -688,15 +730,10 @@ private fun TodayProgressCard(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shapes.surface)
-            .background(colors.surface)
-            .border(1.dp, colors.border, shapes.surface)
-            .padding(20.dp)
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -742,15 +779,10 @@ private fun ContinueStudyingCard(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shapes.surface)
-            .background(colors.surface)
-            .border(1.dp, colors.border, shapes.surface)
-            .padding(20.dp)
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             if (recentChapter.subjectName.isNotBlank()) {
@@ -798,16 +830,11 @@ private fun TodayTasksSection(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
 
     if (tasks.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shapes.surface)
-                .background(colors.surface)
-                .border(1.dp, colors.border, shapes.surface)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Text(
                 text = "No tasks scheduled for today.",
@@ -816,12 +843,9 @@ private fun TodayTasksSection(
             )
         }
     } else {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shapes.surface)
-                .background(colors.surface)
-                .border(1.dp, colors.border, shapes.surface)
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
         ) {
             tasks.forEachIndexed { index, taskItem ->
                 TaskItemRow(
