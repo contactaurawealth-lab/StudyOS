@@ -3,6 +3,7 @@ package com.studyos.app.features
 import com.studyos.app.core.datastore.PreferencesDataSource
 import com.studyos.app.core.model.AppState
 import com.studyos.app.core.model.AppTheme
+import com.studyos.app.domain.model.AiConfig
 import com.studyos.app.domain.model.Student
 import com.studyos.app.domain.model.StudyPreferences
 import com.studyos.app.domain.model.Subject
@@ -56,10 +57,15 @@ class FakePreferencesDataSource : PreferencesDataSource {
     val themeState = MutableStateFlow(AppTheme.SYSTEM)
     val onboardingCompletedState = MutableStateFlow(false)
     val appStateFlow = MutableStateFlow(AppState())
+    val aiConfigState = MutableStateFlow(AiConfig())
 
     override val appState: Flow<AppState> = appStateFlow
     override val themePreference: Flow<AppTheme> = themeState
     override val isOnboardingCompleted: Flow<Boolean> = onboardingCompletedState
+    override val aiConfig: Flow<AiConfig> = aiConfigState
+    override val revisionStreakDays: Flow<Int> = flowOf(0)
+    override val dailyRevisionTargetMinutes: Flow<Int> = flowOf(15)
+    override val lastRevisionEpochDay: Flow<Long> = flowOf(0L)
 
     override suspend fun setThemePreference(theme: AppTheme) {
         themeState.value = theme
@@ -72,6 +78,14 @@ class FakePreferencesDataSource : PreferencesDataSource {
     override suspend fun resetOnboarding() {
         onboardingCompletedState.value = false
     }
+
+    override suspend fun saveAiConfig(config: AiConfig) {
+        aiConfigState.value = config
+    }
+
+    override suspend fun updateRevisionStreak(todayEpochDay: Long): Int = 1
+
+    override suspend fun setDailyRevisionTargetMinutes(minutes: Int) {}
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

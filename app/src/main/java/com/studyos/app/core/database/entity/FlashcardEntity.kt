@@ -14,19 +14,32 @@ import java.util.UUID
             parentColumns = ["id"],
             childColumns = ["subjectId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = ChapterEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["chapterId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index(value = ["subjectId"])]
+    indices = [
+        Index(value = ["subjectId"]),
+        Index(value = ["chapterId"]),
+        Index(value = ["nextReview"])
+    ]
 )
 data class FlashcardEntity(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val subjectId: String,
     val chapterId: String? = null,
-    val front: String,
-    val back: String,
-    val repetitionLevel: Int = 0,
-    val nextReviewDate: Long? = null,
+    val question: String,
+    val answer: String,
+    val difficulty: String = "MEDIUM",
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val lastReviewed: Long? = null,
+    val nextReview: Long? = null,
+    val reviewCount: Int = 0,
+    val intervalDays: Int = 0,
+    val easeFactor: Float = 2.5f
 )

@@ -29,6 +29,7 @@ data class ChapterEntity(
     val orderIndex: Int = 0,
     val status: String = ChapterStatus.NOT_STARTED.name,
     val progress: Int = 0,
+    val lastOpenedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
@@ -47,6 +48,7 @@ fun ChapterEntity.toDomain(): Chapter {
         orderIndex = orderIndex,
         status = chapterStatus,
         progress = progress.coerceIn(0, 100),
+        lastOpenedAt = lastOpenedAt,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -61,6 +63,7 @@ fun Chapter.toEntity(): ChapterEntity {
         orderIndex = orderIndex,
         status = status.name,
         progress = progress.coerceIn(0, 100),
+        lastOpenedAt = lastOpenedAt,
         createdAt = createdAt,
         updatedAt = updatedAt
     )

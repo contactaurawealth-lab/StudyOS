@@ -36,6 +36,12 @@ interface ChapterDao {
     @Query("SELECT * FROM chapters WHERE id = :id LIMIT 1")
     suspend fun getChapterByIdOnce(id: String): ChapterEntity?
 
+    @Query("SELECT * FROM chapters WHERE lastOpenedAt IS NOT NULL ORDER BY lastOpenedAt DESC LIMIT 1")
+    fun observeMostRecentChapter(): Flow<ChapterEntity?>
+
+    @Query("UPDATE chapters SET lastOpenedAt = :timestamp WHERE id = :id")
+    suspend fun recordChapterOpened(id: String, timestamp: Long)
+
     @Query("SELECT MAX(orderIndex) FROM chapters WHERE subjectId = :subjectId")
     suspend fun getMaxOrderIndex(subjectId: String): Int?
 

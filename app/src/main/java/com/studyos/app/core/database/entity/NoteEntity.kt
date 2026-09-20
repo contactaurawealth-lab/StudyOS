@@ -14,16 +14,28 @@ import java.util.UUID
             parentColumns = ["id"],
             childColumns = ["subjectId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = ChapterEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["chapterId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index(value = ["subjectId"])]
+    indices = [
+        Index(value = ["subjectId"]),
+        Index(value = ["chapterId"]),
+        Index(value = ["isPinned"])
+    ]
 )
 data class NoteEntity(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val subjectId: String? = null,
+    val chapterId: String? = null,
     val title: String,
     val content: String,
+    val isPinned: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

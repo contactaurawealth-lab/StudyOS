@@ -133,4 +133,12 @@ class ChapterRepositoryImpl(
         }
         chapterDao.updateAll(updatedEntities)
     }
+
+    override fun observeMostRecentChapter(): Flow<Chapter?> {
+        return chapterDao.observeMostRecentChapter().map { it?.toDomain() }
+    }
+
+    override suspend fun recordChapterOpened(id: String) {
+        chapterDao.recordChapterOpened(id, System.currentTimeMillis())
+    }
 }

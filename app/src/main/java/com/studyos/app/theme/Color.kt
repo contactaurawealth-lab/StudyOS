@@ -40,7 +40,10 @@ data class StudyOSColors(
     val error: Color,
     val success: Color,
     val isDark: Boolean
-)
+) {
+    val cardBackground: Color get() = if (isDark) Color(0xFF262624) else Color(0xFFEFEFE9)
+    val buttonText: Color get() = if (isDark) Color(0xFF181817) else Color(0xFFFFFFFF)
+}
 
 val LocalStudyOSColors = staticCompositionLocalOf {
     StudyOSColors(

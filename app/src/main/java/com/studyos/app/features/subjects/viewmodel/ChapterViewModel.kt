@@ -9,6 +9,7 @@ import com.studyos.app.domain.usecase.ChapterActionResult
 import com.studyos.app.domain.usecase.DeleteChapterUseCase
 import com.studyos.app.domain.usecase.GetChapterUseCase
 import com.studyos.app.domain.usecase.GetSubjectByIdUseCase
+import com.studyos.app.domain.usecase.RecordChapterOpenedUseCase
 import com.studyos.app.domain.usecase.UpdateChapterProgressUseCase
 import com.studyos.app.domain.usecase.UpdateChapterStatusUseCase
 import com.studyos.app.domain.usecase.UpdateChapterUseCase
@@ -34,13 +35,17 @@ class ChapterViewModel(
     private val updateChapterUseCase: UpdateChapterUseCase,
     private val updateChapterProgressUseCase: UpdateChapterProgressUseCase,
     private val updateChapterStatusUseCase: UpdateChapterStatusUseCase,
-    private val deleteChapterUseCase: DeleteChapterUseCase
+    private val deleteChapterUseCase: DeleteChapterUseCase,
+    private val recordChapterOpenedUseCase: RecordChapterOpenedUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChapterUiState())
     val uiState: StateFlow<ChapterUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            recordChapterOpenedUseCase(chapterId)
+        }
         observeChapter()
     }
 

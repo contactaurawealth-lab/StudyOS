@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -57,6 +58,8 @@ import kotlin.math.roundToInt
 fun ChapterDetailScreen(
     viewModel: ChapterViewModel,
     onBack: () -> Unit,
+    onAskAi: (chapterId: String) -> Unit = {},
+    onOpenPractice: (chapterId: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -134,6 +137,18 @@ fun ChapterDetailScreen(
                     }
 
                     Row {
+                        StudyOSIconButton(
+                            onClick = { onAskAi(chapter.id) },
+                            contentDescription = "Ask AI about this chapter"
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Psychology,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
                         StudyOSIconButton(
                             onClick = { showEditSheet = true },
                             contentDescription = "Edit chapter"
@@ -306,6 +321,24 @@ fun ChapterDetailScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Practice & Revision Hub Button
+                StudyOSButton(
+                    text = "Practice & Revision Hub",
+                    onClick = { onOpenPractice(chapter.id) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Ask AI Button
+                StudyOSOutlinedButton(
+                    text = "Ask AI about this chapter",
+                    onClick = { onAskAi(chapter.id) },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             // Edit Chapter Bottom Sheet

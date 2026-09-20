@@ -8,8 +8,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import com.studyos.app.core.model.AppState
 import com.studyos.app.core.model.AppTheme
+import com.studyos.app.domain.model.AiConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -21,9 +24,16 @@ interface PreferencesDataSource {
     val appState: Flow<AppState>
     val themePreference: Flow<AppTheme>
     val isOnboardingCompleted: Flow<Boolean>
+    val aiConfig: Flow<AiConfig>
+    val revisionStreakDays: Flow<Int>
+    val dailyRevisionTargetMinutes: Flow<Int>
+    val lastRevisionEpochDay: Flow<Long>
     suspend fun setThemePreference(theme: AppTheme)
     suspend fun setOnboardingCompleted(completed: Boolean)
     suspend fun resetOnboarding()
+    suspend fun saveAiConfig(config: AiConfig)
+    suspend fun updateRevisionStreak(todayEpochDay: Long): Int
+    suspend fun setDailyRevisionTargetMinutes(minutes: Int)
 }
 
 class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDataSource {
@@ -32,6 +42,13 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         val THEME_PREFERENCE = stringPreferencesKey("theme_preference")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
+        val AI_API_KEY = stringPreferencesKey("ai_api_key")
+        val AI_BASE_URL = stringPreferencesKey("ai_base_url")
+        val AI_MODEL = stringPreferencesKey("ai_model")
+        val AI_SYSTEM_PROMPT = stringPreferencesKey("ai_system_prompt")
+        val REVISION_STREAK_DAYS = intPreferencesKey("revision_streak_days")
+        val DAILY_REVISION_TARGET_MINUTES = intPreferencesKey("daily_revision_target_minutes")
+        val LAST_REVISION_EPOCH_DAY = longPreferencesKey("last_revision_epoch_day")
     }
 
     override val appState: Flow<AppState> = context.dataStore.data
@@ -106,6 +123,105 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
     override suspend fun resetOnboarding() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.ONBOARDING_COMPLETED] = false
+        }
+    }
+
+    override val aiConfig: Flow<AiConfig> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            AiConfig(
+                apiKey = preferences[PreferencesKeys.AI_API_KEY] ?: "",
+                baseUrl = preferences[PreferencesKeys.AI_BASE_URL] ?: "https://api.openai.com/v1/",
+                model = preferences[PreferencesKeys.AI_MODEL] ?: "gpt-4o-mini",
+                customSystemPrompt = preferences[PreferencesKeys.AI_SYSTEM_PROMPT]
+            )
+        }
+
+    override suspend fun saveAiConfig(config: AiConfig) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_API_KEY] = config.apiKey.trim()
+            preferences[PreferencesKeys.AI_BASE_URL] = config.baseUrl.trim()
+            preferences[PreferencesKeys.AI_MODEL] = config.model.trim()
+            if (!config.customSystemPrompt.isNullOrBlank()) {
+                preferences[PreferencesKeys.AI_SYSTEM_PROMPT] = config.customSystemPrompt.trim()
+            } else {
+                preferences.remove(PreferencesKeys.AI_SYSTEM_PROMPT)
+            }
+        }
+    }
+
+    override val revisionStreakDays: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.REVISION_STREAK_DAYS] ?: 0
+        }
+
+    override val dailyRevisionTargetMinutes: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.DAILY_REVISION_TARGET_MINUTES] ?: 15
+        }
+
+    override val lastRevisionEpochDay: Flow<Long> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.LAST_REVISION_EPOCH_DAY] ?: 0L
+        }
+
+    override suspend fun updateRevisionStreak(todayEpochDay: Long): Int {
+        var updatedStreak = 1
+        context.dataStore.edit { preferences ->
+            val lastDay = preferences[PreferencesKeys.LAST_REVISION_EPOCH_DAY] ?: 0L
+            val currentStreak = preferences[PreferencesKeys.REVISION_STREAK_DAYS] ?: 0
+
+            updatedStreak = when {
+                lastDay == todayEpochDay -> {
+                    // Already logged today, keep existing streak (at least 1)
+                    if (currentStreak > 0) currentStreak else 1
+                }
+                lastDay == todayEpochDay - 1L -> {
+                    // Consecutive day
+                    currentStreak + 1
+                }
+                else -> {
+                    // Missed more than 1 day or first time
+                    1
+                }
+            }
+
+            preferences[PreferencesKeys.REVISION_STREAK_DAYS] = updatedStreak
+            preferences[PreferencesKeys.LAST_REVISION_EPOCH_DAY] = todayEpochDay
+        }
+        return updatedStreak
+    }
+
+    override suspend fun setDailyRevisionTargetMinutes(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DAILY_REVISION_TARGET_MINUTES] = minutes.coerceAtLeast(5)
         }
     }
 }

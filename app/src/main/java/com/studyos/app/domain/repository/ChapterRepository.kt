@@ -18,4 +18,6 @@ interface ChapterRepository {
     suspend fun deleteChapter(id: String)
     suspend fun reorderChapters(subjectId: String, chapters: List<Chapter>)
     suspend fun moveChapter(subjectId: String, chapterId: String, moveUp: Boolean)
+    fun observeMostRecentChapter(): Flow<Chapter?>
+    suspend fun recordChapterOpened(id: String)
 }

@@ -178,3 +178,11 @@ class LoadSampleDataUseCase(
         }
     }
 }
+
+class RecordChapterOpenedUseCase(
+    private val chapterRepository: ChapterRepository
+) {
+    suspend operator fun invoke(chapterId: String) {
+        chapterRepository.recordChapterOpened(chapterId)
+    }
+}

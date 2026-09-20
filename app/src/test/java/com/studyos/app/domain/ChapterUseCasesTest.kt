@@ -112,6 +112,17 @@ class FakeChapterRepository : ChapterRepository {
         current.add(targetIndex, item)
         reorderChapters(subjectId, current)
     }
+
+    override fun observeMostRecentChapter(): Flow<Chapter?> =
+        chaptersFlow.map { list -> list.filter { it.lastOpenedAt != null }.maxByOrNull { it.lastOpenedAt!! } }
+
+    override suspend fun recordChapterOpened(id: String) {
+        val chapter = items.find { it.id == id } ?: return
+        val updated = chapter.copy(lastOpenedAt = System.currentTimeMillis())
+        items.removeAll { it.id == id }
+        items.add(updated)
+        sync()
+    }
 }
 
 class ChapterUseCasesTest {

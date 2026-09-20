@@ -20,9 +20,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.studyos.app.features.ai.ui.AiAssistantScreen
+import com.studyos.app.features.ai.viewmodel.AiAssistantViewModel
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -53,10 +58,13 @@ import com.studyos.app.features.library.ui.LibraryScreen
 import com.studyos.app.features.onboarding.ui.OnboardingScreen
 import com.studyos.app.features.onboarding.viewmodel.OnboardingViewModel
 import com.studyos.app.features.planner.ui.PlannerScreen
+import com.studyos.app.features.planner.viewmodel.PlannerViewModel
 import com.studyos.app.features.progress.ui.ProgressScreen
 import com.studyos.app.features.progress.viewmodel.ProgressViewModel
 import com.studyos.app.features.search.ui.SearchScreen
 import com.studyos.app.features.search.viewmodel.SearchViewModel
+import com.studyos.app.features.tasks.ui.TasksScreen
+import com.studyos.app.features.tasks.viewmodel.TasksViewModel
 import com.studyos.app.features.settings.ui.EditPreferencesScreen
 import com.studyos.app.features.settings.ui.EditProfileScreen
 import com.studyos.app.features.settings.ui.ManageSubjectsScreen
@@ -69,8 +77,28 @@ import com.studyos.app.features.subjects.ui.SubjectsScreen
 import com.studyos.app.features.subjects.viewmodel.ChapterViewModel
 import com.studyos.app.features.subjects.viewmodel.SubjectDetailViewModel
 import com.studyos.app.features.subjects.viewmodel.SubjectsViewModel
+import com.studyos.app.features.today.ui.StudySessionPlaceholderScreen
 import com.studyos.app.features.today.ui.TodayScreen
+import com.studyos.app.features.today.viewmodel.StudySessionViewModel
 import com.studyos.app.features.today.viewmodel.TodayViewModel
+import com.studyos.app.features.practice.ui.ChapterPracticeHubScreen
+import com.studyos.app.features.practice.ui.FlashcardStudyScreen
+import com.studyos.app.features.practice.ui.MistakeBankScreen
+import com.studyos.app.features.practice.ui.NoteEditorScreen
+import com.studyos.app.features.practice.ui.QuizRunnerScreen
+import com.studyos.app.features.practice.viewmodel.ChapterPracticeHubViewModel
+import com.studyos.app.features.practice.viewmodel.FlashcardStudyViewModel
+import com.studyos.app.features.practice.viewmodel.MistakeBankViewModel
+import com.studyos.app.features.practice.viewmodel.NoteEditorViewModel
+import com.studyos.app.features.practice.viewmodel.QuizRunnerViewModel
+import com.studyos.app.features.exams.ui.ExamDetailScreen
+import com.studyos.app.features.exams.ui.ExamListScreen
+import com.studyos.app.features.exams.viewmodel.ExamViewModel
+import com.studyos.app.features.practice.ui.RevisionDashboardScreen
+import com.studyos.app.features.practice.ui.ActiveRecallRunnerScreen
+import com.studyos.app.features.practice.viewmodel.RevisionDashboardViewModel
+import com.studyos.app.features.practice.viewmodel.ActiveRecallRunnerViewModel
+import com.studyos.app.domain.model.ActiveRecallSessionType
 import com.studyos.app.theme.StudyOSTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,7 +127,10 @@ fun StudyOSApp(
     val isSubSettingsRoute = currentRoute?.startsWith("settings/") == true
     val isSubjectDetailRoute = currentRoute?.startsWith("subject/") == true
     val isChapterDetailRoute = currentRoute?.startsWith("chapter/") == true
-    val isSubRoute = isSubSettingsRoute || isSubjectDetailRoute || isChapterDetailRoute
+    val isStudySessionRoute = currentRoute?.startsWith("study-session/") == true
+    val isTasksRoute = currentRoute == Screen.Tasks.route
+    val isAiRoute = currentRoute?.startsWith("ai") == true
+    val isSubRoute = isSubSettingsRoute || isSubjectDetailRoute || isChapterDetailRoute || isStudySessionRoute || isTasksRoute || isAiRoute
 
     val showShell = !isOnboardingRoute && !isSearchRoute
 
@@ -158,7 +189,19 @@ fun StudyOSApp(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Secondary buttons in rail: Search and Settings
+                    // Secondary buttons in rail: AI Assistant, Search and Settings
+                    StudyOSIconButton(
+                        onClick = { navController.navigate(Screen.Ai.route) },
+                        contentDescription = "AI Assistant"
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Psychology,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
                     StudyOSIconButton(
                         onClick = { navController.navigate(Screen.Search.route) },
                         contentDescription = "Search"
@@ -215,6 +258,17 @@ fun StudyOSApp(
                                 titleContentColor = colors.primaryText
                             ),
                             actions = {
+                                StudyOSIconButton(
+                                    onClick = { navController.navigate(Screen.Ai.route) },
+                                    contentDescription = "AI Assistant"
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Psychology,
+                                        contentDescription = null,
+                                        tint = colors.accent,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                                 StudyOSIconButton(
                                     onClick = { navController.navigate(Screen.Search.route) },
                                     contentDescription = "Search"
@@ -332,7 +386,42 @@ private fun StudyOSNavGraph(
         // Top-Level Destinations
         composable(Screen.Today.route) {
             val todayViewModel = rememberTodayViewModel(container)
-            TodayScreen(viewModel = todayViewModel)
+            TodayScreen(
+                viewModel = todayViewModel,
+                onOpenSession = { sessionId ->
+                    navController.navigate(Screen.StudySession.createRoute(sessionId))
+                },
+                onOpenChapter = { chapterId ->
+                    navController.navigate(Screen.ChapterDetail.createRoute(chapterId))
+                },
+                onOpenTasks = {
+                    navController.navigate(Screen.Tasks.route)
+                },
+                onOpenAi = {
+                    navController.navigate(Screen.Ai.route)
+                },
+                onOpenExams = {
+                    navController.navigate(Screen.Exams.route)
+                },
+                onOpenFlashcards = {
+                    navController.navigate(Screen.FlashcardStudy.createRoute(isDueOnly = true))
+                },
+                onOpenRevision = {
+                    navController.navigate(Screen.RevisionDashboard.route)
+                }
+            )
+        }
+
+        composable(Screen.StudySession.route) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            val sessionViewModel = rememberStudySessionViewModel(container, sessionId)
+            StudySessionPlaceholderScreen(
+                viewModel = sessionViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenChapter = { chapterId ->
+                    navController.navigate(Screen.ChapterDetail.createRoute(chapterId))
+                }
+            )
         }
 
         composable(Screen.Subjects.route) {
@@ -362,12 +451,29 @@ private fun StudyOSNavGraph(
             val chapterViewModel = rememberChapterViewModel(container, chapterId)
             ChapterDetailScreen(
                 viewModel = chapterViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onAskAi = { targetChapterId ->
+                    navController.navigate(Screen.Ai.createRoute(chapterId = targetChapterId))
+                },
+                onOpenPractice = { targetChapterId ->
+                    navController.navigate(Screen.ChapterPractice.createRoute(targetChapterId))
+                }
             )
         }
 
         composable(Screen.Planner.route) {
-            PlannerScreen()
+            val plannerViewModel = rememberPlannerViewModel(container)
+            PlannerScreen(
+                viewModel = plannerViewModel
+            )
+        }
+
+        composable(Screen.Tasks.route) {
+            val tasksViewModel = rememberTasksViewModel(container)
+            TasksScreen(
+                viewModel = tasksViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Library.route) {
@@ -386,9 +492,53 @@ private fun StudyOSNavGraph(
 
         composable(Screen.More.route) {
             MoreScreen(
+                onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
                 onNavigateToSearch = { navController.navigate(Screen.Search.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onNavigateToProgress = { navController.navigate(Screen.Progress.route) }
+                onNavigateToProgress = { navController.navigate(Screen.Progress.route) },
+                onNavigateToAi = { navController.navigate(Screen.Ai.route) },
+                onNavigateToExams = { navController.navigate(Screen.Exams.route) },
+                onNavigateToMistakes = { navController.navigate(Screen.MistakeBank.route) },
+                onNavigateToRevision = { navController.navigate(Screen.RevisionDashboard.route) }
+            )
+        }
+
+        // AI Assistant
+        composable(
+            route = Screen.Ai.route,
+            arguments = listOf(
+                navArgument("conversationId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("chapterId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("subjectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val conversationId = backStackEntry.arguments?.getString("conversationId")
+            val chapterId = backStackEntry.arguments?.getString("chapterId")
+            val subjectId = backStackEntry.arguments?.getString("subjectId")
+            val aiViewModel = rememberAiAssistantViewModel(
+                container = container,
+                initialConversationId = conversationId,
+                initialChapterId = chapterId,
+                initialSubjectId = subjectId
+            )
+            AiAssistantScreen(
+                viewModel = aiViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenChapter = { targetChapterId ->
+                    navController.navigate(Screen.ChapterDetail.createRoute(targetChapterId))
+                }
             )
         }
 
@@ -442,6 +592,165 @@ private fun StudyOSNavGraph(
                 onBack = { navController.popBackStack() }
             )
         }
+
+        // Practice, Revision & Exam Prep Routes
+        composable(Screen.ChapterPractice.route) { backStackEntry ->
+            val chapterId = backStackEntry.arguments?.getString("chapterId") ?: ""
+            val practiceViewModel = rememberChapterPracticeHubViewModel(container, chapterId)
+            ChapterPracticeHubScreen(
+                viewModel = practiceViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenNote = { noteId, chapId ->
+                    navController.navigate(Screen.NoteEditor.createRoute(noteId = noteId, chapterId = chapId))
+                },
+                onStartFlashcards = { chapId ->
+                    navController.navigate(Screen.FlashcardStudy.createRoute(chapterId = chapId))
+                },
+                onStartQuiz = { quizId ->
+                    navController.navigate(Screen.QuizRunner.createRoute(quizId))
+                },
+                onOpenMistakeBank = {
+                    navController.navigate(Screen.MistakeBank.route)
+                }
+            )
+        }
+
+        composable(
+            route = Screen.NoteEditor.route,
+            arguments = listOf(
+                navArgument("noteId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("subjectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("chapterId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getString("noteId")
+            val subjectId = backStackEntry.arguments?.getString("subjectId")
+            val chapterId = backStackEntry.arguments?.getString("chapterId")
+            val noteViewModel = rememberNoteEditorViewModel(container, noteId, subjectId, chapterId)
+            NoteEditorScreen(
+                viewModel = noteViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenQuiz = { quizId ->
+                    navController.navigate(Screen.QuizRunner.createRoute(quizId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.FlashcardStudy.route,
+            arguments = listOf(
+                navArgument("chapterId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("isDueOnly") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val chapterId = backStackEntry.arguments?.getString("chapterId")
+            val isDueOnly = backStackEntry.arguments?.getBoolean("isDueOnly") ?: false
+            val flashcardViewModel = rememberFlashcardStudyViewModel(container, chapterId, isDueOnly)
+            FlashcardStudyScreen(
+                viewModel = flashcardViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.QuizRunner.route) { backStackEntry ->
+            val quizId = backStackEntry.arguments?.getString("quizId") ?: ""
+            val quizViewModel = rememberQuizRunnerViewModel(container, quizId)
+            QuizRunnerScreen(
+                viewModel = quizViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenMistakes = {
+                    navController.navigate(Screen.MistakeBank.route)
+                }
+            )
+        }
+
+        composable(Screen.MistakeBank.route) {
+            val mistakeViewModel = rememberMistakeBankViewModel(container)
+            MistakeBankScreen(
+                viewModel = mistakeViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Exams.route) {
+            val examViewModel = rememberExamViewModel(container)
+            ExamListScreen(
+                viewModel = examViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenExamDetail = { examId ->
+                    navController.navigate(Screen.ExamDetail.createRoute(examId))
+                }
+            )
+        }
+
+        composable(Screen.ExamDetail.route) { backStackEntry ->
+            val examId = backStackEntry.arguments?.getString("examId") ?: ""
+            val examViewModel = rememberExamViewModel(container)
+            ExamDetailScreen(
+                examId = examId,
+                viewModel = examViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenChapterPractice = { chapterId ->
+                    navController.navigate(Screen.ChapterPractice.createRoute(chapterId))
+                }
+            )
+        }
+
+        composable(Screen.RevisionDashboard.route) {
+            val revViewModel = rememberRevisionDashboardViewModel(container)
+            RevisionDashboardScreen(
+                viewModel = revViewModel,
+                onBack = { navController.popBackStack() },
+                onStartRecallSession = { sessionType, chapterId ->
+                    navController.navigate(Screen.ActiveRecallRunner.createRoute(sessionType.name, chapterId))
+                },
+                onOpenChapter = { chapterId ->
+                    navController.navigate(Screen.ChapterDetail.createRoute(chapterId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ActiveRecallRunner.route,
+            arguments = listOf(
+                navArgument("sessionType") {
+                    type = NavType.StringType
+                    defaultValue = "DEEP_15"
+                },
+                navArgument("chapterId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val sessionTypeStr = backStackEntry.arguments?.getString("sessionType") ?: "DEEP_15"
+            val chapterId = backStackEntry.arguments?.getString("chapterId")
+            val recallViewModel = rememberActiveRecallRunnerViewModel(container, sessionTypeStr, chapterId)
+            ActiveRecallRunnerScreen(
+                viewModel = recallViewModel,
+                onFinish = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -463,8 +772,63 @@ private fun rememberOnboardingViewModel(container: StudyOSAppContainer): Onboard
 private fun rememberTodayViewModel(container: StudyOSAppContainer): TodayViewModel {
     return androidx.lifecycle.viewmodel.compose.viewModel {
         TodayViewModel(
-            getStudentUseCase = container.getStudentUseCase,
+            getTodayDataUseCase = container.getTodayDataUseCase,
+            planSessionUseCase = container.planSessionUseCase,
+            deleteSessionUseCase = container.deleteSessionUseCase,
+            updateSessionStatusUseCase = container.updateSessionStatusUseCase,
+            getSubjectsUseCase = container.getSubjectsUseCase,
+            getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase,
+            getTodayTasksUseCase = container.getTodayTasksUseCase,
+            toggleTaskCompletionUseCase = container.toggleTaskCompletionUseCase,
+            getDueFlashcardsUseCase = container.getDueFlashcardsUseCase,
+            getExamsUseCase = container.getExamsUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberPlannerViewModel(container: StudyOSAppContainer): PlannerViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        PlannerViewModel(
+            getWeekScheduleUseCase = container.getWeekScheduleUseCase,
+            getUpcomingScheduleUseCase = container.getUpcomingScheduleUseCase,
+            savePlannerSessionUseCase = container.savePlannerSessionUseCase,
+            deletePlannerSessionUseCase = container.deletePlannerSessionUseCase,
+            moveSessionUseCase = container.moveSessionUseCase,
+            checkSessionOverlapUseCase = container.checkSessionOverlapUseCase,
+            getSubjectsUseCase = container.getSubjectsUseCase,
+            getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase,
             getStudyPreferencesUseCase = container.getStudyPreferencesUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberTasksViewModel(container: StudyOSAppContainer): TasksViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        TasksViewModel(
+            getTasksUseCase = container.getTasksUseCase,
+            createTaskUseCase = container.createTaskUseCase,
+            updateTaskUseCase = container.updateTaskUseCase,
+            toggleTaskCompletionUseCase = container.toggleTaskCompletionUseCase,
+            deleteTaskUseCase = container.deleteTaskUseCase,
+            getSubjectsUseCase = container.getSubjectsUseCase,
+            getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberStudySessionViewModel(container: StudyOSAppContainer, sessionId: String): StudySessionViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel(
+        key = "StudySessionViewModel_$sessionId"
+    ) {
+        StudySessionViewModel(
+            sessionId = sessionId,
+            studySessionRepository = container.studySessionRepository,
+            subjectRepository = container.subjectRepository,
+            chapterRepository = container.chapterRepository,
+            deleteSessionUseCase = container.deleteSessionUseCase
         )
     }
 }
@@ -512,7 +876,8 @@ private fun rememberChapterViewModel(container: StudyOSAppContainer, chapterId: 
             updateChapterUseCase = container.updateChapterUseCase,
             updateChapterProgressUseCase = container.updateChapterProgressUseCase,
             updateChapterStatusUseCase = container.updateChapterStatusUseCase,
-            deleteChapterUseCase = container.deleteChapterUseCase
+            deleteChapterUseCase = container.deleteChapterUseCase,
+            recordChapterOpenedUseCase = container.recordChapterOpenedUseCase
         )
     }
 }
@@ -552,3 +917,183 @@ private fun rememberSettingsViewModel(container: StudyOSAppContainer): SettingsV
         )
     }
 }
+
+@Composable
+private fun rememberAiAssistantViewModel(
+    container: StudyOSAppContainer,
+    initialConversationId: String?,
+    initialChapterId: String?,
+    initialSubjectId: String?
+): AiAssistantViewModel {
+    val key = "AiAssistantViewModel_${initialConversationId}_${initialChapterId}_${initialSubjectId}"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        AiAssistantViewModel(
+            initialConversationId = initialConversationId,
+            initialChapterId = initialChapterId,
+            initialSubjectId = initialSubjectId,
+            getConversationsUseCase = container.getConversationsUseCase,
+            getConversationUseCase = container.getConversationUseCase,
+            getMessagesUseCase = container.getMessagesUseCase,
+            createConversationUseCase = container.createConversationUseCase,
+            deleteConversationUseCase = container.deleteConversationUseCase,
+            getStudyContextUseCase = container.getStudyContextUseCase,
+            sendAiMessageUseCase = container.sendAiMessageUseCase,
+            saveAiConfigUseCase = container.saveAiConfigUseCase,
+            getAiConfigUseCase = container.getAiConfigUseCase,
+            getChapterAiContextUseCase = container.getChapterAiContextUseCase,
+            aiStudyEngineUseCase = container.aiStudyEngineUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberChapterPracticeHubViewModel(
+    container: StudyOSAppContainer,
+    chapterId: String
+): ChapterPracticeHubViewModel {
+    val key = "ChapterPracticeHubViewModel_$chapterId"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        ChapterPracticeHubViewModel(
+            chapterId = chapterId,
+            getChapterPracticeSummaryUseCase = container.getChapterPracticeSummaryUseCase,
+            getNotesForChapterUseCase = container.getNotesForChapterUseCase,
+            getFlashcardsForChapterUseCase = container.getFlashcardsForChapterUseCase,
+            getMistakesForChapterUseCase = container.getMistakesForChapterUseCase,
+            saveFlashcardUseCase = container.saveFlashcardUseCase,
+            deleteFlashcardUseCase = container.deleteFlashcardUseCase,
+            deleteNoteUseCase = container.deleteNoteUseCase,
+            toggleNotePinUseCase = container.toggleNotePinUseCase,
+            resolveMistakeUseCase = container.resolveMistakeUseCase,
+            convertMistakeToFlashcardUseCase = container.convertMistakeToFlashcardUseCase,
+            saveQuizUseCase = container.saveQuizUseCase,
+            aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
+            getAiConfigUseCase = container.getAiConfigUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberNoteEditorViewModel(
+    container: StudyOSAppContainer,
+    noteId: String?,
+    subjectId: String?,
+    chapterId: String?
+): NoteEditorViewModel {
+    val key = "NoteEditorViewModel_${noteId}_${subjectId}_${chapterId}"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        NoteEditorViewModel(
+            noteId = noteId,
+            initialSubjectId = subjectId,
+            initialChapterId = chapterId,
+            getNoteUseCase = container.getNoteUseCase,
+            saveNoteUseCase = container.saveNoteUseCase,
+            deleteNoteUseCase = container.deleteNoteUseCase,
+            saveFlashcardUseCase = container.saveFlashcardUseCase,
+            saveQuizUseCase = container.saveQuizUseCase,
+            aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
+            getAiConfigUseCase = container.getAiConfigUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberFlashcardStudyViewModel(
+    container: StudyOSAppContainer,
+    chapterId: String?,
+    isDueOnly: Boolean
+): FlashcardStudyViewModel {
+    val key = "FlashcardStudyViewModel_${chapterId}_${isDueOnly}"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        FlashcardStudyViewModel(
+            chapterId = chapterId,
+            isDueOnly = isDueOnly,
+            getFlashcardsForChapterUseCase = container.getFlashcardsForChapterUseCase,
+            getDueFlashcardsUseCase = container.getDueFlashcardsUseCase,
+            reviewFlashcardUseCase = container.reviewFlashcardUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberQuizRunnerViewModel(
+    container: StudyOSAppContainer,
+    quizId: String
+): QuizRunnerViewModel {
+    val key = "QuizRunnerViewModel_$quizId"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        QuizRunnerViewModel(
+            quizId = quizId,
+            getQuizWithQuestionsUseCase = container.getQuizWithQuestionsUseCase,
+            submitQuizAttemptUseCase = container.submitQuizAttemptUseCase,
+            saveActiveQuizStateUseCase = container.saveActiveQuizStateUseCase,
+            getActiveQuizStateUseCase = container.getActiveQuizStateUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberMistakeBankViewModel(
+    container: StudyOSAppContainer
+): MistakeBankViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        MistakeBankViewModel(
+            getAllMistakesUseCase = container.getAllMistakesUseCase,
+            resolveMistakeUseCase = container.resolveMistakeUseCase,
+            convertMistakeToFlashcardUseCase = container.convertMistakeToFlashcardUseCase,
+            aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
+            getAiConfigUseCase = container.getAiConfigUseCase,
+            subjectRepository = container.subjectRepository
+        )
+    }
+}
+
+@Composable
+private fun rememberExamViewModel(
+    container: StudyOSAppContainer
+): ExamViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        ExamViewModel(
+            getExamsUseCase = container.getExamsUseCase,
+            saveExamUseCase = container.saveExamUseCase,
+            deleteExamUseCase = container.deleteExamUseCase,
+            getExamDashboardUseCase = container.getExamDashboardUseCase,
+            subjectRepository = container.subjectRepository
+        )
+    }
+}
+
+@Composable
+private fun rememberRevisionDashboardViewModel(
+    container: StudyOSAppContainer
+): RevisionDashboardViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        RevisionDashboardViewModel(
+            getDueRevisionDashboardUseCase = container.getDueRevisionDashboardUseCase,
+            revisionRepository = container.revisionRepository
+        )
+    }
+}
+
+@Composable
+private fun rememberActiveRecallRunnerViewModel(
+    container: StudyOSAppContainer,
+    sessionTypeStr: String,
+    chapterId: String?
+): ActiveRecallRunnerViewModel {
+    val sessionType = try {
+        ActiveRecallSessionType.valueOf(sessionTypeStr)
+    } catch (_: Exception) {
+        ActiveRecallSessionType.DEEP_15
+    }
+    val key = "ActiveRecallRunnerViewModel_${sessionType.name}_$chapterId"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        ActiveRecallRunnerViewModel(
+            startActiveRecallSessionUseCase = container.startActiveRecallSessionUseCase,
+            completeActiveRecallSessionUseCase = container.completeActiveRecallSessionUseCase,
+            initialSessionType = sessionType,
+            chapterId = chapterId
+        )
+    }
+}
+
+

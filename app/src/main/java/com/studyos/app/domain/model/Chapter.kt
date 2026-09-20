@@ -16,6 +16,7 @@ data class Chapter(
     val orderIndex: Int = 0,
     val status: ChapterStatus = ChapterStatus.NOT_STARTED,
     val progress: Int = 0,
+    val lastOpenedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 ) {

@@ -17,6 +17,16 @@ sealed class Screen(val route: String) {
     object Planner : Screen("planner")
     object Library : Screen("library")
     object Progress : Screen("progress")
+    object Tasks : Screen("tasks")
+    object Ai : Screen("ai?conversationId={conversationId}&chapterId={chapterId}&subjectId={subjectId}") {
+        fun createRoute(conversationId: String? = null, chapterId: String? = null, subjectId: String? = null): String {
+            val params = mutableListOf<String>()
+            if (!conversationId.isNullOrBlank()) params.add("conversationId=$conversationId")
+            if (!chapterId.isNullOrBlank()) params.add("chapterId=$chapterId")
+            if (!subjectId.isNullOrBlank()) params.add("subjectId=$subjectId")
+            return if (params.isNotEmpty()) "ai?${params.joinToString("&")}" else "ai"
+        }
+    }
 
     // Mobile "More" screen
     object More : Screen("more")
@@ -27,6 +37,9 @@ sealed class Screen(val route: String) {
     }
     object ChapterDetail : Screen("chapter/{chapterId}") {
         fun createRoute(chapterId: String) = "chapter/$chapterId"
+    }
+    object StudySession : Screen("study-session/{sessionId}") {
+        fun createRoute(sessionId: String) = "study-session/$sessionId"
     }
 
     // Global Search
@@ -44,6 +57,53 @@ sealed class Screen(val route: String) {
     object SettingsProfile : Screen("settings/profile")
     object SettingsSubjects : Screen("settings/subjects")
     object SettingsPreferences : Screen("settings/preferences")
+
+    // Practice, Revision & Exam Prep destinations
+    object ChapterPractice : Screen("practice/{chapterId}") {
+        fun createRoute(chapterId: String) = "practice/$chapterId"
+    }
+
+    object NoteEditor : Screen("notes/edit?noteId={noteId}&subjectId={subjectId}&chapterId={chapterId}") {
+        fun createRoute(noteId: String? = null, subjectId: String? = null, chapterId: String? = null): String {
+            val params = mutableListOf<String>()
+            if (!noteId.isNullOrBlank()) params.add("noteId=$noteId")
+            if (!subjectId.isNullOrBlank()) params.add("subjectId=$subjectId")
+            if (!chapterId.isNullOrBlank()) params.add("chapterId=$chapterId")
+            return if (params.isNotEmpty()) "notes/edit?${params.joinToString("&")}" else "notes/edit"
+        }
+    }
+
+    object FlashcardStudy : Screen("flashcards/study?chapterId={chapterId}&isDueOnly={isDueOnly}") {
+        fun createRoute(chapterId: String? = null, isDueOnly: Boolean = false): String {
+            val params = mutableListOf<String>()
+            if (!chapterId.isNullOrBlank()) params.add("chapterId=$chapterId")
+            if (isDueOnly) params.add("isDueOnly=true")
+            return if (params.isNotEmpty()) "flashcards/study?${params.joinToString("&")}" else "flashcards/study"
+        }
+    }
+
+    object QuizRunner : Screen("quiz/{quizId}") {
+        fun createRoute(quizId: String) = "quiz/$quizId"
+    }
+
+    object MistakeBank : Screen("mistakes")
+
+    object Exams : Screen("exams")
+
+    object ExamDetail : Screen("exams/{examId}") {
+        fun createRoute(examId: String) = "exams/$examId"
+    }
+
+    // Phase 11: Revision & Active Recall
+    object RevisionDashboard : Screen("revision")
+
+    object ActiveRecallRunner : Screen("recall/runner?sessionType={sessionType}&chapterId={chapterId}") {
+        fun createRoute(sessionType: String = "DEEP_15", chapterId: String? = null): String {
+            val params = mutableListOf("sessionType=$sessionType")
+            if (!chapterId.isNullOrBlank()) params.add("chapterId=$chapterId")
+            return "recall/runner?${params.joinToString("&")}"
+        }
+    }
 }
 
 data class TopLevelDestination(
