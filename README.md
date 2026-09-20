@@ -3,10 +3,11 @@
 > **The Personal Study Operating System for Android**  
 > A minimal, distraction-free study workspace built with Kotlin and Jetpack Compose, featuring glassmorphism surfaces, context-aware AI learning, spaced repetition, and an integrated practice hub.
 
-[![Release](https://img.shields.io/badge/Release-v1.0.0%20Stable-F59E0B?style=flat-square)](docs/downloads/StudyOS.apk)
+[![Release](https://img.shields.io/badge/Release-v1.1.0%20Stable-F59E0B?style=flat-square)](https://github.com/contactaurawealth-lab/StudyOS/releases/tag/v1.1.0)
 [![Android](https://img.shields.io/badge/Platform-Android%208.0%2B%20(API%2026%2B)-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20M3-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Notifications](https://img.shields.io/badge/Notifications-100%25%20Local%20%26%20Free-10B981?style=flat-square)](#6--free-native-local-notifications--study-reminders)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2B%20Offline--First-22C55E?style=flat-square)](#architecture)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
@@ -14,18 +15,19 @@
 
 ## 📥 Direct APK Download
 
-Download the latest production-ready Android APK directly:
+Download the latest signed release Android APK directly:
 
-[![Download StudyOS APK](https://img.shields.io/badge/Download-StudyOS%20v1.0.0%20APK%20(19%20MB)-F59E0B?style=for-the-badge&logo=android&logoColor=white)](docs/downloads/StudyOS.apk)
+[![Download StudyOS APK](https://img.shields.io/badge/Download-StudyOS%20v1.1.0%20APK%20(12.7%20MB)-F59E0B?style=for-the-badge&logo=android&logoColor=white)](docs/downloads/StudyOS-v1.1.0.apk)
 
-- **File Name:** [`StudyOS.apk`](docs/downloads/StudyOS.apk)
-- **File Size:** `19.4 MB`
-- **Supported Architectures:** `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`
+- **File Name:** [`StudyOS-v1.1.0.apk`](docs/downloads/StudyOS-v1.1.0.apk) *(Also symlinked as `StudyOS.apk`)*
+- **File Size:** `12.7 MB`
+- **Supported Architectures:** `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` (Universal APK)
 - **Target OS:** Android 8.0 (API 26) through Android 14+
-- **SHA-256:** `eee8c139f73f1311d98280170d91eef4f8d26caea30e2fe5dc51c8b064ba3353`
+- **SHA-256 Checksum:** `0aa7730334562b0c5ae8f2ed86568d8c9788dc44cd51bb107931f79676f44d17`
+- **GitHub Release:** [v1.1.0 — Local Notifications & Revision Edition](https://github.com/contactaurawealth-lab/StudyOS/releases/tag/v1.1.0)
 
-> 🌐 **Live Landing Page**:
-> - **[https://studyos-workspace.vercel.app](https://studyos-workspace.vercel.app)** *(Global Vercel Edge)*
+> 🌐 **Live Web Experience**:
+> - **[https://studyos-workspace.vercel.app](https://studyos-workspace.vercel.app)** *(Global Production Vercel Edge)*
 > - **[https://studyos-android.vercel.app](https://studyos-android.vercel.app)** *(Alternative Mirror)*
 > - **[https://contactaurawealth-lab.github.io/StudyOS/](https://contactaurawealth-lab.github.io/StudyOS/)** *(GitHub Pages)*
 
@@ -34,22 +36,22 @@ Download the latest production-ready Android APK directly:
 ## 📱 Quick Installation Options
 
 ### Option 1: Standard Android Install
-1. Tap the **[Download APK](docs/downloads/StudyOS.apk)** link or download directly on your phone.
+1. Tap the **[Download APK (v1.1.0)](docs/downloads/StudyOS-v1.1.0.apk)** link directly on your phone or computer.
 2. In your phone's File Manager, open the **Download** folder.
-3. Tap **`StudyOS.apk`** and tap **Install** *(Allow installation from this source if prompted)*.
+3. Tap **`StudyOS-v1.1.0.apk`** and tap **Install** *(Allow installation from this source if prompted by Android)*.
 
 ### Option 2: Termux (Direct Terminal Install)
 ```bash
 # Copy to Android Download folder
-cp /root/StudyOS/docs/downloads/StudyOS.apk /sdcard/Download/StudyOS.apk
+cp /root/StudyOS/docs/downloads/StudyOS-v1.1.0.apk /sdcard/Download/StudyOS-v1.1.0.apk
 
-# Or open installation prompt directly
-termux-open /root/StudyOS/docs/downloads/StudyOS.apk
+# Or launch system package installer directly
+termux-open /root/StudyOS/docs/downloads/StudyOS-v1.1.0.apk
 ```
 
 ### Option 3: ADB
 ```bash
-adb install -r docs/downloads/StudyOS.apk
+adb install -r docs/downloads/StudyOS-v1.1.0.apk
 ```
 
 ---
@@ -140,6 +142,14 @@ Features in StudyOS form a connected cycle where practice, recall, and mistakes 
 - **Smooth Numerical Easing**: Animated counter transitions (`42% → 43%`) over 500ms.
 - **Subject Breakdowns**: Chapter counts, completion ratios, and visual progress bars.
 
+### 6. 🔔 Free Native Local Notifications & Study Reminders
+- **100% Free & Local**: Zero Firebase Cloud Messaging (FCM), zero OneSignal, zero third-party accounts. Runs directly on the device.
+- **Reliable Scheduling**: Uses Android-native `AlarmManager.setAndAllowWhileIdle()` to reliably trigger even in Android Doze mode.
+- **Reboot Persistence**: Broadcast receiver (`BootReceiver`) listens for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, and time/timezone shifts to immediately restore all upcoming study sessions and daily reminders.
+- **Interactive Deep Links**: Notifications take you directly into the planned subject, chapter, or session using `singleTop` intent routing.
+- **Android 13+ Educational Flow**: Explains why notifications are helpful before prompting for runtime `POST_NOTIFICATIONS` permission.
+- **Glassmorphic Notification Hub**: Accessible right from Settings with instant preview toggles, daily reminder time picker, and system permission recovery alerts.
+
 ---
 
 ## 🏛 Architecture & Tech Stack
@@ -148,7 +158,8 @@ Features in StudyOS form a connected cycle where practice, recall, and mistakes 
 com.studyos.app/
 ├── core/
 │   ├── database/       # Room DB v7 (Mappers, Entities, DAOs)
-│   ├── datastore/      # Preferences DataStore (Encrypted settings)
+│   ├── datastore/      # Preferences DataStore (Settings & Reminders)
+│   ├── notification/   # AlarmScheduler, BootReceiver, NotificationManager, AlarmReceiver
 │   └── ui/component/   # GlassCard, GlassTopBar, GlassBottomBar, Shimmer, etc.
 ├── domain/
 │   ├── model/          # Pure immutable Kotlin domain models
@@ -164,8 +175,8 @@ com.studyos.app/
 │   ├── progress/       # Academic progress analytics
 │   ├── planner/        # Calendar & session planner
 │   ├── exams/          # Exam countdowns & revision tracking
-│   └── settings/       # Preferences & theme toggles
-├── navigation/         # StudyOSNavHost, destinations & navigation drawer
+│   └── settings/       # Preferences, Notifications, & theme toggles
+├── navigation/         # StudyOSNavHost, destinations & deep-link intent routing
 └── theme/              # Color, Shape, Spacing, Typography & Theme
 ```
 
@@ -174,6 +185,7 @@ com.studyos.app/
 | **Language** | Kotlin 2.0 (Coroutines, StateFlow, Flow) |
 | **UI Framework** | Jetpack Compose + Material 3 |
 | **Local Database** | Room Database v7 (100% offline-first SQLite) |
+| **Notifications** | Android AlarmManager + NotificationManager (100% local) |
 | **Data Storage** | AndroidX DataStore Preferences |
 | **Design Tokens** | Custom Glassmorphism, 8-pt Spacing tokens, Material 3 shapes |
 | **Testing** | JUnit 4, Kotlinx Coroutines Test, Room Testing |

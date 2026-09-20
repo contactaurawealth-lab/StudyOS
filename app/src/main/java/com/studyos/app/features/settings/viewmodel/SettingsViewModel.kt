@@ -27,6 +27,12 @@ data class SettingsUiState(
     val subjects: List<Subject> = emptyList(),
     val preferences: StudyPreferences = StudyPreferences(),
     val currentTheme: AppTheme = AppTheme.SYSTEM,
+    val studyRemindersEnabled: Boolean = true,
+    val dailyReminderEnabled: Boolean = true,
+    val dailyReminderTime: String = "19:00",
+    val revisionRemindersEnabled: Boolean = true,
+    val areSystemNotificationsEnabled: Boolean = true,
+    val showPermissionRationaleDialog: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null,
     val notificationMessage: String? = null
@@ -41,7 +47,8 @@ class SettingsViewModel(
     private val deleteSubjectUseCase: DeleteSubjectUseCase,
     private val getStudyPreferencesUseCase: GetStudyPreferencesUseCase,
     private val saveStudyPreferencesUseCase: SaveStudyPreferencesUseCase,
-    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource
+    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource,
+    private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -55,6 +62,30 @@ class SettingsViewModel(
         viewModelScope.launch {
             preferencesDataSource.themePreference.collect { theme ->
                 _uiState.update { it.copy(currentTheme = theme) }
+            }
+        }
+
+        viewModelScope.launch {
+            preferencesDataSource.studyRemindersEnabled.collect { enabled ->
+                _uiState.update { it.copy(studyRemindersEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            preferencesDataSource.dailyReminderEnabled.collect { enabled ->
+                _uiState.update { it.copy(dailyReminderEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            preferencesDataSource.dailyReminderTime.collect { time ->
+                _uiState.update { it.copy(dailyReminderTime = time) }
+            }
+        }
+
+        viewModelScope.launch {
+            preferencesDataSource.revisionRemindersEnabled.collect { enabled ->
+                _uiState.update { it.copy(revisionRemindersEnabled = enabled) }
             }
         }
 
@@ -75,6 +106,62 @@ class SettingsViewModel(
                 if (prefs != null) {
                     _uiState.update { it.copy(preferences = prefs) }
                 }
+            }
+        }
+    }
+
+    fun setSystemNotificationsEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(areSystemNotificationsEnabled = enabled) }
+    }
+
+    fun setShowPermissionRationaleDialog(show: Boolean) {
+        _uiState.update { it.copy(showPermissionRationaleDialog = show) }
+    }
+
+    fun toggleStudyReminders(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesDataSource.setStudyRemindersEnabled(enabled)
+            _uiState.update {
+                it.copy(notificationMessage = if (enabled) "Study reminders enabled." else "Study reminders paused.")
+            }
+        }
+    }
+
+    fun toggleDailyReminder(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesDataSource.setDailyReminderEnabled(enabled)
+            if (enabled) {
+                val time = _uiState.value.dailyReminderTime
+                val parts = time.split(":")
+                val hour = parts.getOrNull(0)?.toIntOrNull() ?: 19
+                val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                alarmScheduler?.scheduleDailyReminder(hour, minute)
+                _uiState.update { it.copy(notificationMessage = "Daily reminder active.") }
+            } else {
+                alarmScheduler?.cancelDailyReminder()
+                _uiState.update { it.copy(notificationMessage = "Daily reminder disabled.") }
+            }
+        }
+    }
+
+    fun setDailyReminderTime(time: String) {
+        viewModelScope.launch {
+            preferencesDataSource.setDailyReminderTime(time)
+            if (_uiState.value.dailyReminderEnabled) {
+                val parts = time.split(":")
+                val hour = parts.getOrNull(0)?.toIntOrNull() ?: 19
+                val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                alarmScheduler?.scheduleDailyReminder(hour, minute)
+            }
+            _uiState.update { it.copy(notificationMessage = "Reminder time updated.") }
+        }
+    }
+
+    fun toggleRevisionReminders(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesDataSource.setRevisionRemindersEnabled(enabled)
+            _uiState.update {
+                it.copy(notificationMessage = if (enabled) "Revision reminders enabled." else "Revision reminders disabled.")
             }
         }
     }

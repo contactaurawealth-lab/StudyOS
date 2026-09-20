@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -46,12 +47,14 @@ class PlannerViewModel(
     private val getWeekScheduleUseCase: GetWeekScheduleUseCase,
     private val getUpcomingScheduleUseCase: GetUpcomingScheduleUseCase,
     private val checkSessionOverlapUseCase: CheckSessionOverlapUseCase,
-    private val savePlannerSessionUseCase: SavePlannerSessionUseCase,
     private val moveSessionUseCase: MoveSessionUseCase,
+    private val savePlannerSessionUseCase: SavePlannerSessionUseCase,
     private val deletePlannerSessionUseCase: DeletePlannerSessionUseCase,
     private val getSubjectsUseCase: GetSubjectsUseCase,
     private val getChaptersForSubjectUseCase: GetChaptersForSubjectUseCase,
-    private val getStudyPreferencesUseCase: GetStudyPreferencesUseCase
+    private val getStudyPreferencesUseCase: GetStudyPreferencesUseCase,
+    private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null,
+    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -150,7 +153,10 @@ class PlannerViewModel(
     ) {
         viewModelScope.launch {
             try {
-                savePlannerSessionUseCase(
+                if (sessionId != null) {
+                    alarmScheduler?.cancelSessionReminder(sessionId)
+                }
+                val session = savePlannerSessionUseCase(
                     sessionId = sessionId,
                     subjectId = subjectId,
                     chapterId = chapterId,
@@ -158,6 +164,11 @@ class PlannerViewModel(
                     scheduledStart = scheduledStart,
                     plannedMinutes = plannedMinutes
                 )
+                val remindersEnabled = preferencesDataSource?.studyRemindersEnabled?.firstOrNull() ?: true
+                if (remindersEnabled && alarmScheduler != null) {
+                    val subjectName = subjectId?.let { id -> uiState.value.subjects.find { it.id == id }?.name }
+                    alarmScheduler.scheduleSessionReminder(session, subjectName, null)
+                }
                 _isCreateSessionSheetOpen.value = false
                 _editingSession.value = null
             } catch (e: Exception) {
@@ -169,6 +180,7 @@ class PlannerViewModel(
     fun moveSession(sessionId: String, newDate: LocalDate) {
         viewModelScope.launch {
             try {
+                alarmScheduler?.cancelSessionReminder(sessionId)
                 moveSessionUseCase(sessionId, newDate)
             } catch (e: Exception) {
                 _errorMessage.value = "Couldn't move this session."
@@ -179,6 +191,7 @@ class PlannerViewModel(
     fun deleteSession(sessionId: String) {
         viewModelScope.launch {
             try {
+                alarmScheduler?.cancelSessionReminder(sessionId)
                 deletePlannerSessionUseCase(sessionId)
                 _editingSession.value = null
             } catch (e: Exception) {

@@ -27,6 +27,9 @@ interface StudySessionDao {
     @Query("SELECT * FROM study_sessions WHERE (scheduledStart >= :now OR scheduledEnd >= :now) ORDER BY scheduledStart ASC")
     fun observeUpcomingSessions(now: Long): Flow<List<StudySessionEntity>>
 
+    @Query("SELECT * FROM study_sessions WHERE scheduledStart >= :now AND status = 'PLANNED' ORDER BY scheduledStart ASC")
+    suspend fun getUpcomingSessionsOnce(now: Long): List<StudySessionEntity>
+
     @Query("SELECT * FROM study_sessions WHERE (id != :excludeSessionId OR :excludeSessionId IS NULL) AND scheduledStart < :end AND (CASE WHEN scheduledEnd IS NOT NULL THEN scheduledEnd ELSE scheduledStart + (plannedMinutes * 60000) END) > :start")
     suspend fun getConflictingSessionsOnce(start: Long, end: Long, excludeSessionId: String? = null): List<StudySessionEntity>
 

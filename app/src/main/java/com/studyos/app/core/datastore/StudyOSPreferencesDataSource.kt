@@ -28,12 +28,20 @@ interface PreferencesDataSource {
     val revisionStreakDays: Flow<Int>
     val dailyRevisionTargetMinutes: Flow<Int>
     val lastRevisionEpochDay: Flow<Long>
+    val studyRemindersEnabled: Flow<Boolean>
+    val dailyReminderEnabled: Flow<Boolean>
+    val dailyReminderTime: Flow<String>
+    val revisionRemindersEnabled: Flow<Boolean>
     suspend fun setThemePreference(theme: AppTheme)
     suspend fun setOnboardingCompleted(completed: Boolean)
     suspend fun resetOnboarding()
     suspend fun saveAiConfig(config: AiConfig)
     suspend fun updateRevisionStreak(todayEpochDay: Long): Int
     suspend fun setDailyRevisionTargetMinutes(minutes: Int)
+    suspend fun setStudyRemindersEnabled(enabled: Boolean)
+    suspend fun setDailyReminderEnabled(enabled: Boolean)
+    suspend fun setDailyReminderTime(time: String)
+    suspend fun setRevisionRemindersEnabled(enabled: Boolean)
 }
 
 class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDataSource {
@@ -49,6 +57,10 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         val REVISION_STREAK_DAYS = intPreferencesKey("revision_streak_days")
         val DAILY_REVISION_TARGET_MINUTES = intPreferencesKey("daily_revision_target_minutes")
         val LAST_REVISION_EPOCH_DAY = longPreferencesKey("last_revision_epoch_day")
+        val STUDY_REMINDERS_ENABLED = booleanPreferencesKey("study_reminders_enabled")
+        val DAILY_REMINDER_ENABLED = booleanPreferencesKey("daily_reminder_enabled")
+        val DAILY_REMINDER_TIME = stringPreferencesKey("daily_reminder_time")
+        val REVISION_REMINDERS_ENABLED = booleanPreferencesKey("revision_reminders_enabled")
     }
 
     override val appState: Flow<AppState> = context.dataStore.data
@@ -222,6 +234,62 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
     override suspend fun setDailyRevisionTargetMinutes(minutes: Int) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DAILY_REVISION_TARGET_MINUTES] = minutes.coerceAtLeast(5)
+        }
+    }
+
+    override val studyRemindersEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.STUDY_REMINDERS_ENABLED] ?: true
+        }
+
+    override val dailyReminderEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.DAILY_REMINDER_ENABLED] ?: true
+        }
+
+    override val dailyReminderTime: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.DAILY_REMINDER_TIME] ?: "19:00"
+        }
+
+    override val revisionRemindersEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.REVISION_REMINDERS_ENABLED] ?: true
+        }
+
+    override suspend fun setStudyRemindersEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.STUDY_REMINDERS_ENABLED] = enabled
+        }
+    }
+
+    override suspend fun setDailyReminderEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DAILY_REMINDER_ENABLED] = enabled
+        }
+    }
+
+    override suspend fun setDailyReminderTime(time: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DAILY_REMINDER_TIME] = time
+        }
+    }
+
+    override suspend fun setRevisionRemindersEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.REVISION_REMINDERS_ENABLED] = enabled
         }
     }
 }

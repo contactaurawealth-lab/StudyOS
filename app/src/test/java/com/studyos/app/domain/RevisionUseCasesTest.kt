@@ -132,12 +132,20 @@ private class FakeRevisionPreferencesDataSource : PreferencesDataSource {
     override val revisionStreakDays: Flow<Int> = flowOf(5)
     override val dailyRevisionTargetMinutes: Flow<Int> = flowOf(15)
     override val lastRevisionEpochDay: Flow<Long> = flowOf(100L)
+    override val studyRemindersEnabled: Flow<Boolean> = flowOf(true)
+    override val dailyReminderEnabled: Flow<Boolean> = flowOf(true)
+    override val dailyReminderTime: Flow<String> = flowOf("19:00")
+    override val revisionRemindersEnabled: Flow<Boolean> = flowOf(true)
     override suspend fun setThemePreference(theme: AppTheme) {}
     override suspend fun setOnboardingCompleted(completed: Boolean) {}
     override suspend fun resetOnboarding() {}
     override suspend fun saveAiConfig(config: AiConfig) {}
     override suspend fun updateRevisionStreak(todayEpochDay: Long): Int = 6
     override suspend fun setDailyRevisionTargetMinutes(minutes: Int) {}
+    override suspend fun setStudyRemindersEnabled(enabled: Boolean) {}
+    override suspend fun setDailyReminderEnabled(enabled: Boolean) {}
+    override suspend fun setDailyReminderTime(time: String) {}
+    override suspend fun setRevisionRemindersEnabled(enabled: Boolean) {}
 }
 
 private class FakeRevisionAiProvider : AiProvider {

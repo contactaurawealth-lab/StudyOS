@@ -121,6 +121,7 @@ fun StudyOSApp(
     container: StudyOSAppContainer,
     isOnboardingCompleted: Boolean,
     onExitApp: () -> Unit,
+    initialRoute: String? = null,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -128,6 +129,18 @@ fun StudyOSApp(
     val currentRoute = navBackStackEntry?.destination?.route
     var isDrawerOpen by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(initialRoute) {
+        if (!initialRoute.isNullOrBlank()) {
+            try {
+                navController.navigate(initialRoute) {
+                    launchSingleTop = true
+                }
+            } catch (e: Exception) {
+                // If route is invalid, stay on current destination
+            }
+        }
+    }
 
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
@@ -787,7 +800,9 @@ private fun rememberTodayViewModel(container: StudyOSAppContainer): TodayViewMod
             getTodayTasksUseCase = container.getTodayTasksUseCase,
             toggleTaskCompletionUseCase = container.toggleTaskCompletionUseCase,
             getDueFlashcardsUseCase = container.getDueFlashcardsUseCase,
-            getExamsUseCase = container.getExamsUseCase
+            getExamsUseCase = container.getExamsUseCase,
+            alarmScheduler = container.alarmScheduler,
+            preferencesDataSource = container.preferencesDataSource
         )
     }
 }
@@ -798,13 +813,15 @@ private fun rememberPlannerViewModel(container: StudyOSAppContainer): PlannerVie
         PlannerViewModel(
             getWeekScheduleUseCase = container.getWeekScheduleUseCase,
             getUpcomingScheduleUseCase = container.getUpcomingScheduleUseCase,
+            checkSessionOverlapUseCase = container.checkSessionOverlapUseCase,
+            moveSessionUseCase = container.moveSessionUseCase,
             savePlannerSessionUseCase = container.savePlannerSessionUseCase,
             deletePlannerSessionUseCase = container.deletePlannerSessionUseCase,
-            moveSessionUseCase = container.moveSessionUseCase,
-            checkSessionOverlapUseCase = container.checkSessionOverlapUseCase,
             getSubjectsUseCase = container.getSubjectsUseCase,
             getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase,
-            getStudyPreferencesUseCase = container.getStudyPreferencesUseCase
+            getStudyPreferencesUseCase = container.getStudyPreferencesUseCase,
+            alarmScheduler = container.alarmScheduler,
+            preferencesDataSource = container.preferencesDataSource
         )
     }
 }
@@ -919,7 +936,8 @@ private fun rememberSettingsViewModel(container: StudyOSAppContainer): SettingsV
             deleteSubjectUseCase = container.deleteSubjectUseCase,
             getStudyPreferencesUseCase = container.getStudyPreferencesUseCase,
             saveStudyPreferencesUseCase = container.saveStudyPreferencesUseCase,
-            preferencesDataSource = container.preferencesDataSource
+            preferencesDataSource = container.preferencesDataSource,
+            alarmScheduler = container.alarmScheduler
         )
     }
 }

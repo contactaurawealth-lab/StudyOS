@@ -20,6 +20,7 @@ import com.studyos.app.domain.usecase.UpdateSessionStatusUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -66,7 +67,9 @@ class TodayViewModel(
     private val getTodayTasksUseCase: GetTodayTasksUseCase,
     private val toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase,
     private val getDueFlashcardsUseCase: GetDueFlashcardsUseCase? = null,
-    private val getExamsUseCase: GetExamsUseCase? = null
+    private val getExamsUseCase: GetExamsUseCase? = null,
+    private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null,
+    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TodayUiState())
@@ -174,13 +177,18 @@ class TodayViewModel(
     ) {
         viewModelScope.launch {
             try {
-                planSessionUseCase(
+                val createdSession = planSessionUseCase(
                     subjectId = subjectId,
                     chapterId = chapterId,
                     title = title,
                     scheduledStart = scheduledStart,
                     plannedMinutes = plannedMinutes
                 )
+                val remindersEnabled = preferencesDataSource?.studyRemindersEnabled?.firstOrNull() ?: true
+                if (remindersEnabled && alarmScheduler != null) {
+                    val subjectName = subjectId?.let { id -> _uiState.value.subjects.find { it.id == id }?.name }
+                    alarmScheduler.scheduleSessionReminder(createdSession, subjectName, null)
+                }
                 _uiState.update {
                     it.copy(
                         isPlanSessionSheetOpen = false,
@@ -197,6 +205,7 @@ class TodayViewModel(
 
     fun deleteSession(sessionId: String) {
         viewModelScope.launch {
+            alarmScheduler?.cancelSessionReminder(sessionId)
             deleteSessionUseCase(sessionId)
             _uiState.update { it.copy(infoMessage = "Session deleted.") }
         }

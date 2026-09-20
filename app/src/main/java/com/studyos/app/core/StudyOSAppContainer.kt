@@ -84,6 +84,10 @@ class StudyOSAppContainer(private val context: Context) {
         StudyOSPreferencesDataSource(context)
     }
 
+    val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler by lazy {
+        com.studyos.app.core.notification.AlarmScheduler(context)
+    }
+
     // Repositories
     val studentRepository: StudentRepository by lazy {
         StudentRepositoryImpl(database.studentDao())
