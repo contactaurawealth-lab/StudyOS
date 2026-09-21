@@ -23,6 +23,22 @@ class StudyOSAlarmReceiver : BroadcastReceiver() {
         val dailyHour = intent.getIntExtra(AlarmScheduler.EXTRA_DAILY_HOUR, 19)
         val dailyMinute = intent.getIntExtra(AlarmScheduler.EXTRA_DAILY_MINUTE, 0)
 
+        // Handle Snooze
+        if (intent.action == AlarmScheduler.ACTION_SNOOZE_REMINDER) {
+            StudyOSNotificationManager.cancelNotification(context, notificationId)
+            val scheduler = AlarmScheduler(context)
+            scheduler.scheduleSnooze(
+                title = title,
+                message = message,
+                route = route,
+                subjectId = subjectId,
+                chapterId = chapterId,
+                sessionId = sessionId,
+                snoozeMinutes = 10
+            )
+            return
+        }
+
         // If this was a daily reminder, schedule the next day's alarm
         if (isDaily) {
             val scheduler = AlarmScheduler(context)

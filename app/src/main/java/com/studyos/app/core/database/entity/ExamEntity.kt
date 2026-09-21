@@ -17,6 +17,8 @@ data class ExamEntity(
     val name: String,
     val date: Long,
     val targetScore: Int? = null,
+    val actualScore: Int? = null,
+    val isCompleted: Boolean = false,
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()

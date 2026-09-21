@@ -70,7 +70,8 @@ import kotlin.math.max
 enum class TestListFilter(val label: String) {
     ALL("All"),
     MAJOR_EXAMS("Major Exams"),
-    MOCK_TUITION("Mock & Tuition")
+    MOCK_TUITION("Mock & Tuition"),
+    COMPLETED("Completed")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -152,9 +153,12 @@ fun ExamListScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Segmented Filter Chips: All, Major Exams, Mock & Tuition Tests
-                val mockCount = uiState.exams.count { it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true) }
-                val majorCount = uiState.exams.size - mockCount
+                // Segmented Filter Chips: All, Major Exams, Mock & Tuition Tests, Completed
+                val completedExams = uiState.exams.filter { it.isCompleted || it.actualScore != null }
+                val activeExams = uiState.exams.filter { !it.isCompleted && it.actualScore == null }
+                val mockCount = activeExams.count { it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true) }
+                val majorCount = activeExams.size - mockCount
+                val completedCount = completedExams.size
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -163,9 +167,10 @@ fun ExamListScreen(
                     TestListFilter.values().forEach { filter ->
                         val isSelected = selectedFilter == filter
                         val count = when (filter) {
-                            TestListFilter.ALL -> uiState.exams.size
+                            TestListFilter.ALL -> activeExams.size
                             TestListFilter.MAJOR_EXAMS -> majorCount
                             TestListFilter.MOCK_TUITION -> mockCount
+                            TestListFilter.COMPLETED -> completedCount
                         }
                         Box(
                             modifier = Modifier
@@ -187,13 +192,11 @@ fun ExamListScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val filteredExams = uiState.exams.filter { exam ->
-                    val isMock = exam.notes?.contains("[MOCK_TEST]") == true || exam.name.contains("Mock", true) || exam.name.contains("Tuition", true) || exam.name.contains("Test", true)
-                    when (selectedFilter) {
-                        TestListFilter.ALL -> true
-                        TestListFilter.MAJOR_EXAMS -> !isMock
-                        TestListFilter.MOCK_TUITION -> isMock
-                    }
+                val filteredExams = when (selectedFilter) {
+                    TestListFilter.ALL -> activeExams
+                    TestListFilter.MAJOR_EXAMS -> activeExams.filter { !(it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true)) }
+                    TestListFilter.MOCK_TUITION -> activeExams.filter { it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true) }
+                    TestListFilter.COMPLETED -> completedExams
                 }
 
                 if (filteredExams.isEmpty()) {
@@ -201,6 +204,7 @@ fun ExamListScreen(
                         title = when (selectedFilter) {
                             TestListFilter.MOCK_TUITION -> "No mock / tuition tests scheduled"
                             TestListFilter.MAJOR_EXAMS -> "No major exams scheduled"
+                            TestListFilter.COMPLETED -> "No completed tests or exams yet"
                             TestListFilter.ALL -> "No upcoming tests or exams"
                         },
                         description = "Schedule upcoming tuition quizzes, coaching mock tests, or major exams with subject selection and date/time.",
@@ -310,24 +314,41 @@ private fun ExamCardItem(
                     )
                 }
 
-                // Countdown Badge
-                Box(
-                    modifier = Modifier
-                        .clip(shapes.button)
-                        .background(colors.cardBackground)
-                        .border(1.dp, colors.border, shapes.button)
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = when {
-                            daysRemaining == 0L -> "TODAY"
-                            daysRemaining == 1L -> "TOMORROW"
-                            else -> "IN $daysRemaining DAYS"
-                        },
-                        style = typography.caption,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.accent
-                    )
+                // Status Badge: Score/Completed or Countdown
+                if (exam.isCompleted || exam.actualScore != null) {
+                    Box(
+                        modifier = Modifier
+                            .clip(shapes.button)
+                            .background(colors.cardBackground)
+                            .border(1.dp, colors.accent, shapes.button)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (exam.actualScore != null) "SCORE: ${exam.actualScore}%" else "COMPLETED",
+                            style = typography.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.accent
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .clip(shapes.button)
+                            .background(colors.cardBackground)
+                            .border(1.dp, colors.border, shapes.button)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = when {
+                                daysRemaining == 0L -> "TODAY"
+                                daysRemaining == 1L -> "TOMORROW"
+                                else -> "IN $daysRemaining DAYS"
+                            },
+                            style = typography.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.accent
+                        )
+                    }
                 }
             }
 
@@ -376,20 +397,53 @@ private fun ExamCardItem(
                 )
             }
 
-            if (exam.targetScore != null) {
+            if (exam.targetScore != null || exam.actualScore != null) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Target Score: ",
-                        style = typography.caption,
-                        color = colors.mutedText
-                    )
-                    Text(
-                        text = "${exam.targetScore}%",
-                        style = typography.caption,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.accent
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    if (exam.targetScore != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Target: ",
+                                style = typography.caption,
+                                color = colors.mutedText
+                            )
+                            Text(
+                                text = "${exam.targetScore}%",
+                                style = typography.caption,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.primaryText
+                            )
+                        }
+                    }
+
+                    if (exam.actualScore != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Actual: ",
+                                style = typography.caption,
+                                color = colors.mutedText
+                            )
+                            Text(
+                                text = "${exam.actualScore}%",
+                                style = typography.caption,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.accent
+                            )
+                            if (exam.targetScore != null) {
+                                val delta = exam.actualScore!! - exam.targetScore!!
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (delta >= 0) "(+${delta}%)" else "(${delta}%)",
+                                    style = typography.caption.copy(fontSize = 11.sp),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (delta >= 0) colors.accent else colors.secondaryText
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

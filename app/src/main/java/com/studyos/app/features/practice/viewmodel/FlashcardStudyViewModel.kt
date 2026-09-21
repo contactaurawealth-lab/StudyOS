@@ -114,6 +114,20 @@ class FlashcardStudyViewModel(
         }
     }
 
+    fun shuffleDeck() {
+        _uiState.update { state ->
+            if (state.cards.isEmpty()) return@update state
+            val current = state.currentIndex
+            if (current == 0) {
+                state.copy(cards = state.cards.shuffled(), isAnswerRevealed = false)
+            } else {
+                val reviewed = state.cards.subList(0, current)
+                val remaining = state.cards.subList(current, state.cards.size).shuffled()
+                state.copy(cards = reviewed + remaining, isAnswerRevealed = false)
+            }
+        }
+    }
+
     fun restartDeck() {
         loadDeck()
     }

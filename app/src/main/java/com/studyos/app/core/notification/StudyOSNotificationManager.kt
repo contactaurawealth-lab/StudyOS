@@ -97,15 +97,46 @@ object StudyOSNotificationManager {
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .addAction(
-                0,
-                "Open StudyOS",
-                pendingIntent
-            )
+
+        // Action 1: "Start Timer"
+        val timerIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(MainActivity.EXTRA_ROUTE, Screen.StudyTimer.route)
+            putExtra(MainActivity.EXTRA_AUTO_START_TIMER, true)
+            subjectId?.let { putExtra(MainActivity.EXTRA_SUBJECT_ID, it) }
+            chapterId?.let { putExtra(MainActivity.EXTRA_CHAPTER_ID, it) }
+        }
+        val timerPendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId + 500_000,
+            timerIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Action 2: "Snooze 10m"
+        val snoozeIntent = Intent(context, StudyOSAlarmReceiver::class.java).apply {
+            action = AlarmScheduler.ACTION_SNOOZE_REMINDER
+            putExtra(AlarmScheduler.EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(AlarmScheduler.EXTRA_TITLE, title)
+            putExtra(AlarmScheduler.EXTRA_MESSAGE, message)
+            putExtra(AlarmScheduler.EXTRA_ROUTE, route)
+            putExtra(AlarmScheduler.EXTRA_SUBJECT_ID, subjectId)
+            putExtra(AlarmScheduler.EXTRA_CHAPTER_ID, chapterId)
+            putExtra(AlarmScheduler.EXTRA_SESSION_ID, sessionId)
+        }
+        val snoozePendingIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId + 600_000,
+            snoozeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        builder.addAction(0, "▶️ Start Timer", timerPendingIntent)
+        builder.addAction(0, "⏰ Snooze 10m", snoozePendingIntent)
 
         try {
             val notificationManager = NotificationManagerCompat.from(context)

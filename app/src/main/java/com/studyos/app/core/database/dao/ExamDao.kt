@@ -20,6 +20,9 @@ interface ExamDao {
     @Query("SELECT * FROM exams WHERE id = :id LIMIT 1")
     suspend fun getExamByIdOnce(id: String): ExamEntity?
 
+    @Query("SELECT * FROM exams WHERE date >= :now ORDER BY date ASC")
+    suspend fun getUpcomingExamsOnce(now: Long): List<ExamEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExam(exam: ExamEntity)
 
@@ -28,6 +31,9 @@ interface ExamDao {
 
     @Query("DELETE FROM exams WHERE id = :id")
     suspend fun deleteExamById(id: String)
+
+    @Query("UPDATE exams SET actualScore = :actualScore, isCompleted = :isCompleted, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateExamScore(id: String, actualScore: Int?, isCompleted: Boolean, updatedAt: Long = System.currentTimeMillis())
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExamSubjects(crossRefs: List<ExamSubjectCrossRefEntity>)

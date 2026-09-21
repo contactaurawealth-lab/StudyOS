@@ -72,4 +72,5 @@ interface ExamRepository {
     suspend fun getExamByIdOnce(id: String): Exam?
     suspend fun saveExam(exam: Exam, subjectIds: List<String>): Exam
     suspend fun deleteExam(id: String)
+    suspend fun updateExamScore(id: String, actualScore: Int?, isCompleted: Boolean)
 }

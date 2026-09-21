@@ -117,6 +117,9 @@ sealed class Screen(val route: String) {
             return if (params.isEmpty()) "ai-study-session" else "ai-study-session?${params.joinToString("&")}"
         }
     }
+
+    // Notification Center
+    object NotificationCenter : Screen("notifications")
 }
 
 data class TopLevelDestination(

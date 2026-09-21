@@ -29,6 +29,7 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 val container = app.container
                 val scheduler = AlarmScheduler(context)
+                val now = System.currentTimeMillis()
 
                 // 1. Check daily reminder preferences
                 val dailyEnabled = container.preferencesDataSource.dailyReminderEnabled.firstOrNull() ?: true
@@ -43,7 +44,6 @@ class BootReceiver : BroadcastReceiver() {
                 // 2. Check study reminders preferences
                 val studyRemindersEnabled = container.preferencesDataSource.studyRemindersEnabled.firstOrNull() ?: true
                 if (studyRemindersEnabled) {
-                    val now = System.currentTimeMillis()
                     val upcomingSessions = container.database.studySessionDao().getUpcomingSessionsOnce(now)
 
                     for (sessionEntity in upcomingSessions) {
@@ -61,6 +61,16 @@ class BootReceiver : BroadcastReceiver() {
                         scheduler.scheduleSessionReminder(session, subjectName, chapterName)
                     }
                 }
+
+                // 3. Reschedule upcoming exam reminders
+                val upcomingExams = container.database.examDao().getUpcomingExamsOnce(now)
+                for (exam in upcomingExams) {
+                    scheduler.scheduleExamReminder(exam.id, exam.name, exam.date)
+                }
+
+                // 4. Refresh home-screen widgets
+                com.studyos.app.core.widget.DailyPlanWidgetProvider.triggerUpdate(context)
+                com.studyos.app.core.widget.ExamCountdownWidgetProvider.triggerUpdate(context)
             } catch (e: Exception) {
                 // Non-critical
             } finally {

@@ -55,7 +55,14 @@ data class SubjectWithProgress(
     val strongCount: Int = 0,
     val weakCount: Int = 0,
     val dueCount: Int = 0,
-    val readinessScore: Int = 0
+    val readinessScore: Int = 0,
+    val weakChapterId: String? = null,
+    val weakChapterName: String? = null,
+    val understandingPercentage: Int = 0,
+    val recallPercentage: Int = 0,
+    val practicePercentage: Int = 0,
+    val unresolvedMistakesCount: Int = 0,
+    val insight: String? = null
 )
 
 data class ChapterSearchResult(

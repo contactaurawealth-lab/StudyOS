@@ -46,11 +46,17 @@ class ExamRepositoryImpl(
         examDao.deleteExamById(id)
     }
 
+    override suspend fun updateExamScore(id: String, actualScore: Int?, isCompleted: Boolean) {
+        examDao.updateExamScore(id, actualScore, isCompleted)
+    }
+
     private fun ExamEntity.toDomain(subjectIds: List<String>): Exam = Exam(
         id = id,
         name = name,
         targetDate = date,
         targetScore = targetScore,
+        actualScore = actualScore,
+        isCompleted = isCompleted,
         notes = notes,
         subjectIds = subjectIds,
         createdAt = createdAt,
@@ -62,6 +68,8 @@ class ExamRepositoryImpl(
         name = name,
         date = targetDate,
         targetScore = targetScore,
+        actualScore = actualScore,
+        isCompleted = isCompleted,
         notes = notes,
         createdAt = createdAt,
         updatedAt = updatedAt

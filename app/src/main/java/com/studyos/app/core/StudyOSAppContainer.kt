@@ -468,6 +468,10 @@ class StudyOSAppContainer(private val context: Context) {
         com.studyos.app.domain.usecase.DeleteExamUseCase(examRepository)
     }
 
+    val updateExamScoreUseCase: com.studyos.app.domain.usecase.UpdateExamScoreUseCase by lazy {
+        com.studyos.app.domain.usecase.UpdateExamScoreUseCase(examRepository)
+    }
+
     val getExamDashboardUseCase: com.studyos.app.domain.usecase.GetExamDashboardUseCase by lazy {
         com.studyos.app.domain.usecase.GetExamDashboardUseCase(
             examRepository,
@@ -596,4 +600,37 @@ class StudyOSAppContainer(private val context: Context) {
     val submitRecallAnswerUseCase: com.studyos.app.domain.usecase.SubmitRecallAnswerUseCase by lazy {
         com.studyos.app.domain.usecase.SubmitRecallAnswerUseCase(recallRepository)
     }
+
+    val getDailyAiPlanUseCase: com.studyos.app.domain.usecase.GetDailyAiPlanUseCase by lazy {
+        com.studyos.app.domain.usecase.GetDailyAiPlanUseCase(
+            subjectRepository = subjectRepository,
+            chapterRepository = chapterRepository,
+            recallRepository = recallRepository,
+            mistakeRepository = mistakeRepository,
+            getChapterIntelligenceUseCase = getChapterIntelligenceUseCase
+        )
+    }
+
+    val getOverallExamReadinessUseCase: com.studyos.app.domain.usecase.GetOverallExamReadinessUseCase by lazy {
+        com.studyos.app.domain.usecase.GetOverallExamReadinessUseCase(
+            subjectRepository = subjectRepository,
+            chapterRepository = chapterRepository,
+            examRepository = examRepository,
+            recallRepository = recallRepository,
+            mistakeRepository = mistakeRepository,
+            getChapterIntelligenceUseCase = getChapterIntelligenceUseCase
+        )
+    }
+
+    val getSubjectReadinessUseCase: com.studyos.app.domain.usecase.GetSubjectReadinessUseCase by lazy {
+        com.studyos.app.domain.usecase.GetSubjectReadinessUseCase(
+            subjectRepository = subjectRepository,
+            chapterRepository = chapterRepository,
+            examRepository = examRepository,
+            recallRepository = recallRepository,
+            mistakeRepository = mistakeRepository,
+            getChapterIntelligenceUseCase = getChapterIntelligenceUseCase
+        )
+    }
 }
+

@@ -48,6 +48,7 @@ class SubjectRepositoryImpl(
                 val weakCount = chapters.count { it.progress in 1..49 }
                 val now = System.currentTimeMillis()
                 val dueCount = chapters.count { it.status != ChapterStatus.COMPLETED && (now - (it.lastOpenedAt ?: 0L) > 3 * 86400000L) }
+                val weakChapter = chapters.filter { it.progress in 1..49 || it.status == ChapterStatus.IN_PROGRESS }.minByOrNull { it.progress }
 
                 SubjectWithProgress(
                     subject = subject,
@@ -58,7 +59,14 @@ class SubjectRepositoryImpl(
                     strongCount = strongCount,
                     weakCount = weakCount,
                     dueCount = dueCount,
-                    readinessScore = progress
+                    readinessScore = progress,
+                    weakChapterId = weakChapter?.id ?: currentChapter?.id,
+                    weakChapterName = weakChapter?.name ?: currentChapter?.name,
+                    understandingPercentage = (progress * 0.85).toInt().coerceIn(0, 100),
+                    recallPercentage = (progress * 0.70).toInt().coerceIn(0, 100),
+                    practicePercentage = (progress * 0.75).toInt().coerceIn(0, 100),
+                    unresolvedMistakesCount = 0,
+                    insight = if (weakCount > 0) "$weakCount chapters require concept reinforcement." else "Syllabus on track."
                 )
             }
         }

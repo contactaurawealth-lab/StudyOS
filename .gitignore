@@ -14,3 +14,4 @@
 !docs/downloads/*.apk
 *.aab
 *.dex
+.kotlin/

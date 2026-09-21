@@ -1,5 +1,6 @@
 package com.studyos.app.features.practice.ui
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,14 +23,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Shuffle
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,6 +62,29 @@ fun FlashcardStudyScreen(
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
+    val context = LocalContext.current
+
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    var isTtsReady by remember { mutableStateOf(false) }
+
+    DisposableEffect(context) {
+        val speechEngine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                isTtsReady = true
+            }
+        }
+        tts = speechEngine
+        onDispose {
+            speechEngine.stop()
+            speechEngine.shutdown()
+        }
+    }
+
+    val speakText = { text: String ->
+        if (isTtsReady) {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "FLASHCARD_TTS")
+        }
+    }
 
     Box(
         modifier = modifier
@@ -112,7 +143,19 @@ fun FlashcardStudyScreen(
                         color = colors.primaryText
                     )
 
-                    Spacer(modifier = Modifier.width(36.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StudyOSIconButton(
+                            onClick = { viewModel.shuffleDeck() },
+                            contentDescription = "Shuffle Deck"
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Shuffle,
+                                contentDescription = null,
+                                tint = colors.secondaryText,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -142,13 +185,30 @@ fun FlashcardStudyScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = "QUESTION",
-                            style = typography.caption,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.secondaryText,
-                            letterSpacing = 1.sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "QUESTION",
+                                style = typography.caption,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.secondaryText,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            StudyOSIconButton(
+                                onClick = { speakText(card.question) },
+                                contentDescription = "Pronounce question"
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.VolumeUp,
+                                    contentDescription = null,
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -176,13 +236,30 @@ fun FlashcardStudyScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                Text(
-                                    text = "ANSWER",
-                                    style = typography.caption,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.secondaryText,
-                                    letterSpacing = 1.sp
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "ANSWER",
+                                        style = typography.caption,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.secondaryText,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    StudyOSIconButton(
+                                        onClick = { speakText(card.answer) },
+                                        contentDescription = "Pronounce answer"
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.VolumeUp,
+                                            contentDescription = null,
+                                            tint = colors.accent,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
 
                                 Spacer(modifier = Modifier.height(12.dp))
 

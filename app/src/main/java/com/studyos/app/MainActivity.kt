@@ -12,11 +12,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.studyos.app.core.model.AppState
 import com.studyos.app.core.notification.StudyOSNotificationManager
 import com.studyos.app.navigation.Screen
 import com.studyos.app.navigation.StudyOSApp
 import com.studyos.app.theme.StudyOSTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -34,6 +38,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val appContainer = (application as StudyOSApplication).container
+        checkAutoStartTimer(intent, appContainer)
 
         setContent {
             val appState by appContainer.preferencesDataSource.appState.collectAsState(
@@ -64,8 +69,29 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        val appContainer = (application as StudyOSApplication).container
+        checkAutoStartTimer(intent, appContainer)
         extractRouteFromIntent(intent)?.let {
             pendingRoute.value = it
+        }
+    }
+
+    private fun checkAutoStartTimer(intent: Intent?, container: com.studyos.app.core.StudyOSAppContainer) {
+        if (intent?.getBooleanExtra(EXTRA_AUTO_START_TIMER, false) == true) {
+            val subjectId = intent.getStringExtra(EXTRA_SUBJECT_ID)
+            if (!subjectId.isNullOrBlank()) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val subject = container.subjectRepository.getSubjectByIdOnce(subjectId)
+                    withContext(Dispatchers.Main) {
+                        if (subject != null) {
+                            container.studyTimerViewModel.selectSubject(subject)
+                        }
+                        container.studyTimerViewModel.startTimer()
+                    }
+                }
+            } else {
+                container.studyTimerViewModel.startTimer()
+            }
         }
     }
 
@@ -91,5 +117,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_SUBJECT_ID = "com.studyos.app.EXTRA_SUBJECT_ID"
         const val EXTRA_CHAPTER_ID = "com.studyos.app.EXTRA_CHAPTER_ID"
         const val EXTRA_SESSION_ID = "com.studyos.app.EXTRA_SESSION_ID"
+        const val EXTRA_AUTO_START_TIMER = "com.studyos.app.EXTRA_AUTO_START_TIMER"
     }
 }

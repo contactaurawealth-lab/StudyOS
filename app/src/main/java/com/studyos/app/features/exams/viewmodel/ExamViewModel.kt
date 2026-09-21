@@ -12,6 +12,8 @@ import com.studyos.app.domain.usecase.DeleteExamUseCase
 import com.studyos.app.domain.usecase.GetExamDashboardUseCase
 import com.studyos.app.domain.usecase.GetExamsUseCase
 import com.studyos.app.domain.usecase.SaveExamUseCase
+import com.studyos.app.core.notification.AlarmScheduler
+import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,7 +50,10 @@ class ExamViewModel(
     private val saveExamUseCase: SaveExamUseCase,
     private val deleteExamUseCase: DeleteExamUseCase,
     private val getExamDashboardUseCase: GetExamDashboardUseCase,
-    private val subjectRepository: SubjectRepository
+    private val subjectRepository: SubjectRepository,
+    private val updateExamScoreUseCase: com.studyos.app.domain.usecase.UpdateExamScoreUseCase? = null,
+    private val alarmScheduler: AlarmScheduler? = null,
+    private val context: Context? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExamUiState())
@@ -123,7 +128,7 @@ class ExamViewModel(
 
         viewModelScope.launch {
             val editingId = _uiState.value.editingExam?.id
-            saveExamUseCase(
+            val savedExam = saveExamUseCase(
                 id = editingId,
                 name = name,
                 targetDate = targetDate,
@@ -131,6 +136,10 @@ class ExamViewModel(
                 targetScore = targetScore,
                 notes = notes
             )
+            alarmScheduler?.scheduleExamReminder(savedExam.id, savedExam.name, savedExam.targetDate)
+            context?.let {
+                com.studyos.app.core.widget.ExamCountdownWidgetProvider.triggerUpdate(it)
+            }
             _uiState.update {
                 it.copy(
                     isCreateExamSheetOpen = false,
@@ -144,6 +153,10 @@ class ExamViewModel(
     fun deleteExam(id: String) {
         viewModelScope.launch {
             deleteExamUseCase(id)
+            alarmScheduler?.cancelExamReminder(id)
+            context?.let {
+                com.studyos.app.core.widget.ExamCountdownWidgetProvider.triggerUpdate(it)
+            }
             _uiState.update {
                 it.copy(
                     selectedExamId = if (it.selectedExamId == id) null else it.selectedExamId,
@@ -152,6 +165,23 @@ class ExamViewModel(
                     infoMessage = "Exam deleted."
                 )
             }
+        }
+    }
+
+    fun logExamScore(examId: String, actualScore: Int) {
+        viewModelScope.launch {
+            updateExamScoreUseCase?.invoke(examId, actualScore, isCompleted = true)
+            loadExamDetail(examId)
+            _uiState.update { it.copy(infoMessage = "Score recorded: $actualScore%") }
+        }
+    }
+
+    fun toggleExamCompleted(examId: String, completed: Boolean) {
+        viewModelScope.launch {
+            val currentScore = _uiState.value.examDashboard?.exam?.actualScore
+            updateExamScoreUseCase?.invoke(examId, currentScore, isCompleted = completed)
+            loadExamDetail(examId)
+            _uiState.update { it.copy(infoMessage = if (completed) "Exam marked as completed." else "Exam moved to upcoming.") }
         }
     }
 

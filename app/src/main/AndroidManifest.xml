@@ -53,7 +53,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- Home Screen Widget -->
+        <!-- Home Screen Widgets -->
         <receiver
             android:name=".core.widget.DailyPlanWidgetProvider"
             android:exported="true">
@@ -63,6 +63,17 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_daily_plan_info" />
+        </receiver>
+
+        <receiver
+            android:name=".core.widget.ExamCountdownWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_exam_countdown_info" />
         </receiver>
 
         <!-- FileProvider for secure backup JSON sharing -->

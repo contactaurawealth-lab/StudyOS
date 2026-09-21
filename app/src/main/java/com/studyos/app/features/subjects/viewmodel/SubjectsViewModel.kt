@@ -6,6 +6,7 @@ import com.studyos.app.domain.model.SubjectWithProgress
 import com.studyos.app.domain.usecase.AddSubjectResult
 import com.studyos.app.domain.usecase.AddSubjectUseCase
 import com.studyos.app.domain.usecase.DeleteSubjectUseCase
+import com.studyos.app.domain.usecase.GetSubjectReadinessUseCase
 import com.studyos.app.domain.usecase.GetSubjectsWithProgressUseCase
 import com.studyos.app.domain.usecase.LoadSampleDataUseCase
 import com.studyos.app.domain.usecase.RenameSubjectUseCase
@@ -16,8 +17,18 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class SubjectFilter {
+    ALL,
+    NEEDS_ATTENTION,
+    DUE_FOR_REVIEW,
+    COMPLETED
+}
+
 data class SubjectsUiState(
     val subjects: List<SubjectWithProgress> = emptyList(),
+    val filteredSubjects: List<SubjectWithProgress> = emptyList(),
+    val selectedFilter: SubjectFilter = SubjectFilter.ALL,
+    val selectedSubjectForDiagnostic: SubjectWithProgress? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val actionMessage: String? = null
@@ -28,7 +39,8 @@ class SubjectsViewModel(
     private val addSubjectUseCase: AddSubjectUseCase,
     private val renameSubjectUseCase: RenameSubjectUseCase,
     private val deleteSubjectUseCase: DeleteSubjectUseCase,
-    private val loadSampleDataUseCase: LoadSampleDataUseCase? = null
+    private val loadSampleDataUseCase: LoadSampleDataUseCase? = null,
+    private val getSubjectReadinessUseCase: GetSubjectReadinessUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubjectsUiState())
@@ -54,10 +66,63 @@ class SubjectsViewModel(
                     }
                 }
                 .collect { list ->
-                    _uiState.update {
-                        it.copy(subjects = list, isLoading = false, errorMessage = null)
+                    val enhancedList = if (getSubjectReadinessUseCase != null) {
+                        list.map { item ->
+                            try {
+                                val readiness = getSubjectReadinessUseCase(item.subject.id)
+                                if (readiness != null) {
+                                    item.copy(
+                                        readinessScore = readiness.readinessPercentage,
+                                        understandingPercentage = readiness.understandingPercentage,
+                                        recallPercentage = readiness.recallPercentage,
+                                        practicePercentage = readiness.practicePercentage,
+                                        strongCount = readiness.strongChaptersCount,
+                                        weakCount = readiness.weakChaptersCount,
+                                        dueCount = readiness.dueChaptersCount,
+                                        insight = readiness.insight
+                                    )
+                                } else item
+                            } catch (e: Exception) {
+                                item
+                            }
+                        }
+                    } else list
+
+                    _uiState.update { state ->
+                        state.copy(
+                            subjects = enhancedList,
+                            filteredSubjects = filterSubjects(enhancedList, state.selectedFilter),
+                            isLoading = false,
+                            errorMessage = null
+                        )
                     }
                 }
+        }
+    }
+
+    fun setFilter(filter: SubjectFilter) {
+        _uiState.update { current ->
+            current.copy(
+                selectedFilter = filter,
+                filteredSubjects = filterSubjects(current.subjects, filter)
+            )
+        }
+    }
+
+    fun showDiagnostic(subject: SubjectWithProgress) {
+        _uiState.update { it.copy(selectedSubjectForDiagnostic = subject) }
+    }
+
+    fun dismissDiagnostic() {
+        _uiState.update { it.copy(selectedSubjectForDiagnostic = null) }
+    }
+
+    private fun filterSubjects(list: List<SubjectWithProgress>, filter: SubjectFilter): List<SubjectWithProgress> {
+        return when (filter) {
+            SubjectFilter.ALL -> list
+            SubjectFilter.NEEDS_ATTENTION -> list.filter { it.weakCount > 0 || it.readinessScore < 70 }
+            SubjectFilter.DUE_FOR_REVIEW -> list.filter { it.dueCount > 0 }
+            SubjectFilter.COMPLETED -> list.filter { it.progress == 100 }
         }
     }
 

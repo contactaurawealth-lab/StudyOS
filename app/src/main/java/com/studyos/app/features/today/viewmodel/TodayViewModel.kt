@@ -3,14 +3,25 @@ package com.studyos.app.features.today.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studyos.app.core.util.DateTimeUtils
+import com.studyos.app.domain.engine.DailyAiPlan
+import com.studyos.app.domain.engine.OverallReadiness
 import com.studyos.app.domain.model.Chapter
+import com.studyos.app.domain.model.Exam
 import com.studyos.app.domain.model.FocusItem
+import com.studyos.app.domain.model.RecallDashboardSummary
 import com.studyos.app.domain.model.RecentChapterItem
+import com.studyos.app.domain.model.SmartStudyRecommendation
 import com.studyos.app.domain.model.StudySessionItem
 import com.studyos.app.domain.model.Subject
 import com.studyos.app.domain.model.TaskItem
 import com.studyos.app.domain.usecase.DeleteSessionUseCase
 import com.studyos.app.domain.usecase.GetChaptersForSubjectUseCase
+import com.studyos.app.domain.usecase.GetDailyAiPlanUseCase
+import com.studyos.app.domain.usecase.GetDueFlashcardsUseCase
+import com.studyos.app.domain.usecase.GetExamsUseCase
+import com.studyos.app.domain.usecase.GetOverallExamReadinessUseCase
+import com.studyos.app.domain.usecase.GetRecallDashboardUseCase
+import com.studyos.app.domain.usecase.GetSmartStudyRecommendationUseCase
 import com.studyos.app.domain.usecase.GetSubjectsUseCase
 import com.studyos.app.domain.usecase.GetTodayDataUseCase
 import com.studyos.app.domain.usecase.GetTodayTasksUseCase
@@ -23,15 +34,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-import com.studyos.app.domain.model.Exam
-import com.studyos.app.domain.usecase.GetDueFlashcardsUseCase
-import com.studyos.app.domain.usecase.GetExamsUseCase
-
-import com.studyos.app.domain.model.RecallDashboardSummary
-import com.studyos.app.domain.model.SmartStudyRecommendation
-import com.studyos.app.domain.usecase.GetRecallDashboardUseCase
-import com.studyos.app.domain.usecase.GetSmartStudyRecommendationUseCase
 
 data class TodayUiState(
     val studentName: String? = null,
@@ -49,9 +51,13 @@ data class TodayUiState(
     val subjects: List<Subject> = emptyList(),
     val dueFlashcardsCount: Int = 0,
     val upcomingExam: Exam? = null,
+    val overallReadiness: OverallReadiness? = null,
+    val selectedTimeBudgetMinutes: Int = 30,
+    val dailyAiPlan: DailyAiPlan? = null,
     val isLoading: Boolean = true,
     val isPlanSessionSheetOpen: Boolean = false,
-    val infoMessage: String? = null
+    val infoMessage: String? = null,
+    val unreadNotificationsCount: Int = 0
 ) {
     val dailyProgressPercentage: Int
         get() = if (dailyGoalMinutes > 0) {
@@ -77,8 +83,11 @@ class TodayViewModel(
     private val getExamsUseCase: GetExamsUseCase? = null,
     private val getSmartStudyRecommendationUseCase: GetSmartStudyRecommendationUseCase? = null,
     private val getRecallDashboardUseCase: GetRecallDashboardUseCase? = null,
+    private val getDailyAiPlanUseCase: GetDailyAiPlanUseCase? = null,
+    private val getOverallExamReadinessUseCase: GetOverallExamReadinessUseCase? = null,
     private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null,
-    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null
+    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null,
+    private val notificationDao: com.studyos.app.core.database.dao.NotificationDao? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TodayUiState())
@@ -137,6 +146,8 @@ class TodayViewModel(
         viewModelScope.launch {
             getSubjectsUseCase().collect { subjectsList ->
                 _uiState.update { it.copy(subjects = subjectsList) }
+                refreshDailyAiPlan()
+                refreshExamReadiness()
             }
         }
 
@@ -154,6 +165,7 @@ class TodayViewModel(
                     val now = System.currentTimeMillis()
                     val nextExam = exams.filter { it.targetDate >= now }.minByOrNull { it.targetDate }
                     _uiState.update { it.copy(upcomingExam = nextExam) }
+                    refreshExamReadiness()
                 }
             }
         }
@@ -166,7 +178,48 @@ class TodayViewModel(
             }
         }
 
+        notificationDao?.let { dao ->
+            viewModelScope.launch {
+                dao.getUnreadCount().collect { count ->
+                    _uiState.update { it.copy(unreadNotificationsCount = count) }
+                }
+            }
+        }
+
         refreshSmartRecommendation()
+        refreshDailyAiPlan()
+        refreshExamReadiness()
+    }
+
+    fun setTimeBudget(minutes: Int) {
+        _uiState.update { it.copy(selectedTimeBudgetMinutes = minutes) }
+        refreshDailyAiPlan(minutes)
+    }
+
+    fun refreshDailyAiPlan(timeMinutes: Int = _uiState.value.selectedTimeBudgetMinutes) {
+        getDailyAiPlanUseCase?.let { useCase ->
+            viewModelScope.launch {
+                try {
+                    val plan = useCase(timeMinutes)
+                    _uiState.update { it.copy(dailyAiPlan = plan) }
+                } catch (e: Exception) {
+                    // Graceful fallback
+                }
+            }
+        }
+    }
+
+    fun refreshExamReadiness() {
+        getOverallExamReadinessUseCase?.let { useCase ->
+            viewModelScope.launch {
+                try {
+                    val readiness = useCase()
+                    _uiState.update { it.copy(overallReadiness = readiness) }
+                } catch (e: Exception) {
+                    // Graceful fallback
+                }
+            }
+        }
     }
 
     fun refreshSmartRecommendation() {

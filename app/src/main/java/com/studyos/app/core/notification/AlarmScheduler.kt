@@ -204,6 +204,113 @@ class AlarmScheduler(private val context: Context) {
         }
     }
 
+    fun scheduleExamReminder(examId: String, examName: String, examTime: Long) {
+        if (examTime <= System.currentTimeMillis()) return
+
+        val dateFormat = java.text.SimpleDateFormat("EEEE, MMMM d 'at' hh:mm a", java.util.Locale.getDefault())
+        val formattedTime = dateFormat.format(java.util.Date(examTime))
+
+        // 1. 24 hours prior reminder
+        val reminder24h = examTime - 24 * 60 * 60 * 1000L
+        if (reminder24h > System.currentTimeMillis()) {
+            val reqCode24 = getExamRequestCode(examId, isOneHour = false)
+            val intent24 = Intent(context, StudyOSAlarmReceiver::class.java).apply {
+                action = ACTION_STUDY_REMINDER
+                putExtra(EXTRA_NOTIFICATION_ID, reqCode24)
+                putExtra(EXTRA_TITLE, "📝 Exam Tomorrow: $examName")
+                putExtra(EXTRA_MESSAGE, "Scheduled for $formattedTime. Review your formulas & notes.")
+                putExtra(EXTRA_ROUTE, "exams/$examId")
+            }
+            val pi24 = PendingIntent.getBroadcast(
+                context,
+                reqCode24,
+                intent24,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            setAlarm(reminder24h, pi24)
+        }
+
+        // 2. 1 hour prior reminder
+        val reminder1h = examTime - 60 * 60 * 1000L
+        if (reminder1h > System.currentTimeMillis()) {
+            val reqCode1 = getExamRequestCode(examId, isOneHour = true)
+            val intent1 = Intent(context, StudyOSAlarmReceiver::class.java).apply {
+                action = ACTION_STUDY_REMINDER
+                putExtra(EXTRA_NOTIFICATION_ID, reqCode1)
+                putExtra(EXTRA_TITLE, "⏱️ Starting in 1 Hour: $examName")
+                putExtra(EXTRA_MESSAGE, "Get your desk ready and stay calm. You've got this!")
+                putExtra(EXTRA_ROUTE, "exams/$examId")
+            }
+            val pi1 = PendingIntent.getBroadcast(
+                context,
+                reqCode1,
+                intent1,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            setAlarm(reminder1h, pi1)
+        }
+    }
+
+    fun cancelExamReminder(examId: String) {
+        val reqCode24 = getExamRequestCode(examId, isOneHour = false)
+        val pi24 = PendingIntent.getBroadcast(
+            context,
+            reqCode24,
+            Intent(context, StudyOSAlarmReceiver::class.java),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pi24 != null) {
+            alarmManager?.cancel(pi24)
+            pi24.cancel()
+        }
+
+        val reqCode1 = getExamRequestCode(examId, isOneHour = true)
+        val pi1 = PendingIntent.getBroadcast(
+            context,
+            reqCode1,
+            Intent(context, StudyOSAlarmReceiver::class.java),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pi1 != null) {
+            alarmManager?.cancel(pi1)
+            pi1.cancel()
+        }
+    }
+
+    fun scheduleSnooze(
+        title: String,
+        message: String,
+        route: String?,
+        subjectId: String?,
+        chapterId: String?,
+        sessionId: String?,
+        snoozeMinutes: Int = 10
+    ) {
+        val triggerTime = System.currentTimeMillis() + snoozeMinutes * 60 * 1000L
+        val requestCode = (System.currentTimeMillis() % 1_000_000).toInt() + 4_000_000
+
+        val intent = Intent(context, StudyOSAlarmReceiver::class.java).apply {
+            action = ACTION_STUDY_REMINDER
+            putExtra(EXTRA_NOTIFICATION_ID, requestCode)
+            putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_MESSAGE, message)
+            putExtra(EXTRA_ROUTE, route)
+            putExtra(EXTRA_SUBJECT_ID, subjectId)
+            putExtra(EXTRA_CHAPTER_ID, chapterId)
+            putExtra(EXTRA_SESSION_ID, sessionId)
+            putExtra(EXTRA_IS_DAILY, false)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        setAlarm(triggerTime, pendingIntent)
+    }
+
     private fun getSessionRequestCode(sessionId: String): Int {
         return (sessionId.hashCode() and 0x7FFFFFFF) % 1_000_000
     }
@@ -212,8 +319,14 @@ class AlarmScheduler(private val context: Context) {
         return ((chapterId.hashCode() and 0x7FFFFFFF) % 1_000_000) + 1_000_000
     }
 
+    private fun getExamRequestCode(examId: String, isOneHour: Boolean): Int {
+        val base = (examId.hashCode() and 0x7FFFFFFF) % 1_000_000
+        return if (isOneHour) base + 3_000_000 else base + 2_000_000
+    }
+
     companion object {
         const val ACTION_STUDY_REMINDER = "com.studyos.app.ACTION_STUDY_REMINDER"
+        const val ACTION_SNOOZE_REMINDER = "com.studyos.app.ACTION_SNOOZE_REMINDER"
         const val DAILY_REMINDER_REQUEST_CODE = 999_999
 
         const val EXTRA_NOTIFICATION_ID = "notification_id"

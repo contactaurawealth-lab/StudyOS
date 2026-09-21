@@ -244,6 +244,8 @@ data class Exam(
     val name: String,
     val targetDate: Long,
     val targetScore: Int? = null,
+    val actualScore: Int? = null,
+    val isCompleted: Boolean = false,
     val notes: String? = null,
     val subjectIds: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),

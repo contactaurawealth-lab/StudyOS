@@ -420,6 +420,11 @@ class DeleteExamUseCase(private val examRepository: ExamRepository) {
     suspend operator fun invoke(id: String) = examRepository.deleteExam(id)
 }
 
+class UpdateExamScoreUseCase(private val examRepository: ExamRepository) {
+    suspend operator fun invoke(id: String, actualScore: Int?, isCompleted: Boolean) =
+        examRepository.updateExamScore(id, actualScore, isCompleted)
+}
+
 class GetExamDashboardUseCase(
     private val examRepository: ExamRepository,
     private val subjectRepository: SubjectRepository,

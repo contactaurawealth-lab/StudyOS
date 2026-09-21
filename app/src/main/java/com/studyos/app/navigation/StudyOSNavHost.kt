@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Search
@@ -318,7 +319,7 @@ fun StudyOSApp(
             GlassDialog(
                 onDismissRequest = { showAboutDialog = false },
                 title = "StudyOS",
-                message = "Version 1.0 (Glassmorphic Edition)\n\nA minimal, distraction-free study workspace designed to help you plan, learn, revise, and excel.",
+                message = "StudyOS (Glassmorphic Edition)\n\nA minimal, offline-first study workspace designed to help you plan, learn, revise, and excel.",
                 confirmButtonText = "Close",
                 onConfirm = { showAboutDialog = false },
                 dismissButtonText = null
@@ -359,6 +360,7 @@ private val PrimaryDrawerItems = listOf(
 )
 
 private val SecondaryDrawerItems = listOf(
+    DrawerNavigationItem("Notifications", Screen.NotificationCenter.route, Icons.Outlined.Notifications),
     DrawerNavigationItem("AI Assistant", Screen.Ai.createRoute(), Icons.Outlined.Psychology),
     DrawerNavigationItem("Tasks", Screen.Tasks.route, Icons.Outlined.CheckCircle),
     DrawerNavigationItem("Exams", Screen.Exams.route, Icons.Outlined.School),
@@ -440,7 +442,18 @@ private fun StudyOSNavGraph(
                 onOpenDrawer = onOpenDrawer,
                 onOpenSearch = {
                     navController.navigate(Screen.Search.route)
+                },
+                onOpenNotifications = {
+                    navController.navigate(Screen.NotificationCenter.route)
                 }
+            )
+        }
+
+        composable(Screen.NotificationCenter.route) {
+            val notificationVm = rememberNotificationCenterViewModel(container)
+            com.studyos.app.features.notifications.ui.NotificationCenterScreen(
+                viewModel = notificationVm,
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -492,6 +505,12 @@ private fun StudyOSNavGraph(
                 viewModel = subjectsViewModel,
                 onSubjectClick = { subjectId ->
                     navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                },
+                onStartAiSession = { subjectId, chapterId ->
+                    navController.navigate(Screen.AiStudySession.createRoute(subjectId, chapterId))
+                },
+                onStartRecall = { subjectId ->
+                    navController.navigate(Screen.RevisionDashboard.route)
                 }
             )
         }
@@ -846,8 +865,22 @@ private fun rememberTodayViewModel(container: StudyOSAppContainer): TodayViewMod
             getExamsUseCase = container.getExamsUseCase,
             getSmartStudyRecommendationUseCase = container.getSmartStudyRecommendationUseCase,
             getRecallDashboardUseCase = container.getRecallDashboardUseCase,
+            getDailyAiPlanUseCase = container.getDailyAiPlanUseCase,
+            getOverallExamReadinessUseCase = container.getOverallExamReadinessUseCase,
             alarmScheduler = container.alarmScheduler,
-            preferencesDataSource = container.preferencesDataSource
+            preferencesDataSource = container.preferencesDataSource,
+            notificationDao = container.database.notificationDao()
+        )
+    }
+}
+
+@Composable
+private fun rememberNotificationCenterViewModel(
+    container: StudyOSAppContainer
+): com.studyos.app.features.notifications.viewmodel.NotificationCenterViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        com.studyos.app.features.notifications.viewmodel.NotificationCenterViewModel(
+            notificationDao = container.database.notificationDao()
         )
     }
 }
@@ -909,7 +942,8 @@ private fun rememberSubjectsViewModel(container: StudyOSAppContainer): SubjectsV
             addSubjectUseCase = container.addSubjectUseCase,
             renameSubjectUseCase = container.renameSubjectUseCase,
             deleteSubjectUseCase = container.deleteSubjectUseCase,
-            loadSampleDataUseCase = container.loadSampleDataUseCase
+            loadSampleDataUseCase = container.loadSampleDataUseCase,
+            getSubjectReadinessUseCase = container.getSubjectReadinessUseCase
         )
     }
 }
@@ -1130,13 +1164,17 @@ private fun rememberMistakeBankViewModel(
 private fun rememberExamViewModel(
     container: StudyOSAppContainer
 ): ExamViewModel {
+    val context = androidx.compose.ui.platform.LocalContext.current.applicationContext
     return androidx.lifecycle.viewmodel.compose.viewModel {
         ExamViewModel(
             getExamsUseCase = container.getExamsUseCase,
             saveExamUseCase = container.saveExamUseCase,
             deleteExamUseCase = container.deleteExamUseCase,
             getExamDashboardUseCase = container.getExamDashboardUseCase,
-            subjectRepository = container.subjectRepository
+            subjectRepository = container.subjectRepository,
+            updateExamScoreUseCase = container.updateExamScoreUseCase,
+            alarmScheduler = container.alarmScheduler,
+            context = context
         )
     }
 }

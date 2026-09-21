@@ -467,6 +467,7 @@ class StudyTimerViewModel(
                     it.copy(isSessionSaved = true, savedSessionMinutes = minutes)
                 }
                 subject?.id?.let { refreshTodaySubjectMinutes(it) }
+                com.studyos.app.core.widget.DailyPlanWidgetProvider.triggerUpdate(context)
             } catch (e: Exception) {
                 // Log failed but session state remains
             }
