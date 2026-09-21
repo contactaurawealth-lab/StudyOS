@@ -1,7 +1,6 @@
 package com.studyos.app.features.timer.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -25,25 +24,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,9 +47,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +60,7 @@ import com.studyos.app.core.ui.component.GlassIconButton
 import com.studyos.app.core.ui.component.GlassTopBar
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
+import com.studyos.app.core.ui.component.StudyOSTextField
 import com.studyos.app.features.timer.viewmodel.PomodoroPhase
 import com.studyos.app.features.timer.viewmodel.StudyTimerViewModel
 import com.studyos.app.features.timer.viewmodel.TimerMode
@@ -86,6 +82,15 @@ fun StudyTimerScreen(
 
     var subjectMenuExpanded by remember { mutableStateOf(false) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
+
+    // Keep screen awake (Desk Mode) when timer is running
+    val view = LocalView.current
+    DisposableEffect(uiState.keepScreenAwake, uiState.status) {
+        view.keepScreenOn = uiState.keepScreenAwake && uiState.status == TimerStatus.RUNNING
+        onDispose {
+            view.keepScreenOn = false
+        }
+    }
 
     Box(
         modifier = modifier
@@ -185,6 +190,14 @@ fun StudyTimerScreen(
                         }
                     )
                     TimerPresetChip(
+                        label = "+ Custom",
+                        selected = uiState.mode == TimerMode.COUNTDOWN && !listOf(25, 45, 60, 90).contains(uiState.totalDurationSeconds / 60),
+                        enabled = uiState.status != TimerStatus.RUNNING,
+                        onClick = {
+                            viewModel.showCustomDurationDialog(true)
+                        }
+                    )
+                    TimerPresetChip(
                         label = "Stopwatch",
                         selected = uiState.mode == TimerMode.COUNT_UP,
                         enabled = uiState.status != TimerStatus.RUNNING,
@@ -210,21 +223,41 @@ fun StudyTimerScreen(
                             .clip(shapes.card)
                             .background(colors.cardBackground)
                             .border(1.dp, colors.accent.copy(alpha = 0.4f), shapes.card)
-                            .padding(12.dp)
+                            .padding(14.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "POMODORO CYCLE • ${uiState.completedPomodoros} COMPLETED",
-                                    style = typography.caption,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.accent,
-                                    letterSpacing = 1.sp
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "POMODORO CYCLE • ${uiState.completedPomodoros} DONE",
+                                        style = typography.caption,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.accent,
+                                        letterSpacing = 1.sp
+                                    )
+
+                                    // 4-step cycle dots
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        val cycleStep = uiState.completedPomodoros % 4
+                                        (0..3).forEach { dotIdx ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (dotIdx < cycleStep) colors.accent else colors.border
+                                                    )
+                                            )
+                                        }
+                                    }
+                                }
 
                                 if (uiState.status != TimerStatus.RUNNING) {
                                     Text(
@@ -261,6 +294,72 @@ fun StudyTimerScreen(
                                             color = if (isCurrent) colors.accent else colors.secondaryText
                                         )
                                     }
+                                }
+                            }
+
+                            // Auto-start toggle row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.toggleAutoStartPomodoro() },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Auto-transition to next phase",
+                                    style = typography.caption,
+                                    color = colors.secondaryText
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(shapes.button)
+                                        .background(if (uiState.autoStartPomodoro) colors.accent.copy(alpha = 0.2f) else colors.surface)
+                                        .border(1.dp, if (uiState.autoStartPomodoro) colors.accent else colors.border, shapes.button)
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (uiState.autoStartPomodoro) "AUTO ON" else "MANUAL",
+                                        style = typography.caption.copy(fontSize = 10.sp),
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (uiState.autoStartPomodoro) colors.accent else colors.mutedText
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Restoration break guidance card
+                    if (uiState.pomodoroPhase != PomodoroPhase.FOCUS) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(shapes.card)
+                                .background(colors.cardBackground)
+                                .border(1.dp, colors.accent.copy(alpha = 0.3f), shapes.card)
+                                .padding(12.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "☕ ACTIVE RESTORATION BREAK",
+                                    style = typography.caption,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.accent,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Give your brain true recovery. Avoid social media & short-form video during breaks.",
+                                    style = typography.caption,
+                                    color = colors.secondaryText
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    BreakPromptItem("💧 Hydrate", "Drink water")
+                                    BreakPromptItem("👁️ 20-20-20", "Rest eyes")
+                                    BreakPromptItem("🧘 Stretch", "Roll shoulders")
+                                    BreakPromptItem("🚶 Move", "Stand up")
                                 }
                             }
                         }
@@ -317,7 +416,7 @@ fun StudyTimerScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.MenuBook,
+                                        imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                                         contentDescription = null,
                                         tint = colors.accent,
                                         modifier = Modifier.size(16.dp)
@@ -410,6 +509,25 @@ fun StudyTimerScreen(
                                 }
                             }
                         }
+
+                        // Today's studied minutes for this subject
+                        if (uiState.selectedSubject != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Timer,
+                                    contentDescription = null,
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Today: ${uiState.todaySubjectMinutes} min studied for ${uiState.selectedSubject!!.name}",
+                                    style = typography.caption,
+                                    color = colors.accent
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -446,8 +564,7 @@ fun StudyTimerScreen(
                             style = Stroke(width = strokeWidth)
                         )
                         // Progress Arc
-                        val sweep = if (uiState.mode == TimerMode.COUNT_UP) {
-                            // Rotate a small active dot / arc for stopwatch
+                        if (uiState.mode == TimerMode.COUNT_UP) {
                             val secAngle = ((uiState.elapsedSeconds % 60) / 60f) * 360f
                             drawArc(
                                 color = accentColor,
@@ -456,7 +573,6 @@ fun StudyTimerScreen(
                                 useCenter = false,
                                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                             )
-                            0f
                         } else {
                             val sweepAngle = 360f * animatedProgress
                             drawArc(
@@ -466,7 +582,6 @@ fun StudyTimerScreen(
                                 useCenter = false,
                                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                             )
-                            sweepAngle
                         }
                     }
 
@@ -478,7 +593,7 @@ fun StudyTimerScreen(
                         // Status Badge
                         val badgeText = when (uiState.status) {
                             TimerStatus.IDLE -> "READY"
-                            TimerStatus.RUNNING -> "FOCUSING"
+                            TimerStatus.RUNNING -> if (uiState.mode == TimerMode.POMODORO) uiState.pomodoroPhase.label.uppercase() else "FOCUSING"
                             TimerStatus.PAUSED -> "PAUSED"
                             TimerStatus.COMPLETED -> "COMPLETED"
                         }
@@ -499,8 +614,8 @@ fun StudyTimerScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Large Digital Clock Time
-                        val displaySec = if (uiState.mode == TimerMode.COUNTDOWN) {
+                        // Large Digital Clock Time (Fixed Pomodoro Bug!)
+                        val displaySec = if (uiState.mode == TimerMode.COUNTDOWN || uiState.mode == TimerMode.POMODORO) {
                             uiState.remainingSeconds
                         } else {
                             uiState.elapsedSeconds
@@ -529,10 +644,14 @@ fun StudyTimerScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         val subtitleText = when (uiState.status) {
-                            TimerStatus.RUNNING -> "Stay in the zone"
+                            TimerStatus.RUNNING -> if (uiState.mode == TimerMode.POMODORO) uiState.pomodoroPhase.label else "Stay in the zone"
                             TimerStatus.PAUSED -> "Take a quick breath"
                             TimerStatus.COMPLETED -> "Well done! Session logged"
-                            TimerStatus.IDLE -> if (uiState.mode == TimerMode.COUNTDOWN) "${uiState.totalDurationSeconds / 60}m session" else "Open session"
+                            TimerStatus.IDLE -> when (uiState.mode) {
+                                TimerMode.POMODORO -> "${uiState.pomodoroPhase.durationMinutes}m ${uiState.pomodoroPhase.label}"
+                                TimerMode.COUNTDOWN -> "${uiState.totalDurationSeconds / 60}m session"
+                                TimerMode.COUNT_UP -> "Open session"
+                            }
                         }
 
                         Text(
@@ -634,10 +753,159 @@ fun StudyTimerScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Desk Mode (Keep Screen On) Card
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shapes.card)
+                        .background(colors.cardBackground)
+                        .border(1.dp, colors.border, shapes.card)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { viewModel.toggleKeepScreenAwake() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Timer,
+                            contentDescription = null,
+                            tint = if (uiState.keepScreenAwake) colors.accent else colors.secondaryText,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Desk Mode (Keep Screen Awake)",
+                            style = typography.caption,
+                            color = if (uiState.keepScreenAwake) colors.primaryText else colors.secondaryText
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(shapes.button)
+                            .background(if (uiState.keepScreenAwake) colors.accent.copy(alpha = 0.2f) else colors.surface)
+                            .border(1.dp, if (uiState.keepScreenAwake) colors.accent else colors.border, shapes.button)
+                            .clickable { viewModel.toggleKeepScreenAwake() }
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (uiState.keepScreenAwake) "ENABLED" else "DISABLED",
+                            style = typography.caption.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = if (uiState.keepScreenAwake) colors.accent else colors.mutedText
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
+
+    // Custom Duration Dialog
+    if (uiState.showCustomDurationDialog) {
+        CustomDurationDialog(
+            initialMinutes = uiState.totalDurationSeconds / 60,
+            onDismiss = { viewModel.showCustomDurationDialog(false) },
+            onConfirm = { mins -> viewModel.setCustomDurationMinutes(mins) }
+        )
+    }
+}
+
+@Composable
+private fun BreakPromptItem(title: String, subtitle: String) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = title, style = typography.caption, fontWeight = FontWeight.SemiBold, color = colors.primaryText)
+        Text(text = subtitle, style = typography.caption.copy(fontSize = 10.sp), color = colors.mutedText)
+    }
+}
+
+@Composable
+private fun CustomDurationDialog(
+    initialMinutes: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var textValue by remember { mutableStateOf(initialMinutes.toString()) }
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val quickPresets = listOf(10, 15, 20, 30, 45, 75, 120)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        title = {
+            Text("Set Custom Timer Duration", style = typography.sectionTitle, color = colors.primaryText)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    text = "Quick Presets",
+                    style = typography.caption,
+                    color = colors.secondaryText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    quickPresets.forEach { mins ->
+                        val isSelected = textValue == mins.toString()
+                        Box(
+                            modifier = Modifier
+                                .clip(shapes.button)
+                                .background(if (isSelected) colors.accent.copy(alpha = 0.2f) else colors.cardBackground)
+                                .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
+                                .clickable { textValue = mins.toString() }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "${mins}m",
+                                style = typography.caption,
+                                color = if (isSelected) colors.accent else colors.primaryText
+                            )
+                        }
+                    }
+                }
+
+                StudyOSTextField(
+                    value = textValue,
+                    onValueChange = { input ->
+                        if (input.all { it.isDigit() } && input.length <= 3) {
+                            textValue = input
+                        }
+                    },
+                    label = "Minutes (1 - 360)",
+                    placeholder = "e.g. 30",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            StudyOSButton(
+                text = "Apply",
+                onClick = {
+                    val mins = textValue.toIntOrNull()?.coerceIn(1, 360) ?: 25
+                    onConfirm(mins)
+                }
+            )
+        },
+        dismissButton = {
+            StudyOSOutlinedButton(
+                text = "Cancel",
+                onClick = onDismiss
+            )
+        }
+    )
 }
 
 @Composable

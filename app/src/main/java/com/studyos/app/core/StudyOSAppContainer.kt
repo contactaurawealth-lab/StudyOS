@@ -117,6 +117,15 @@ class StudyOSAppContainer(private val context: Context) {
         PlannerRepositoryImpl(database.studySessionDao())
     }
 
+    val studyTimerViewModel: com.studyos.app.features.timer.viewmodel.StudyTimerViewModel by lazy {
+        com.studyos.app.features.timer.viewmodel.StudyTimerViewModel(
+            context = context.applicationContext,
+            studySessionRepository = studySessionRepository,
+            subjectRepository = subjectRepository,
+            chapterRepository = chapterRepository
+        )
+    }
+
     // Use Cases
     val getStudentUseCase: GetStudentUseCase by lazy {
         GetStudentUseCase(studentRepository)

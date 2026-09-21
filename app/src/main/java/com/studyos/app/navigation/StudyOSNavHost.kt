@@ -464,15 +464,8 @@ private fun StudyOSNavGraph(
         }
 
         composable(Screen.StudyTimer.route) {
-            val timerViewModel = androidx.compose.runtime.remember {
-                StudyTimerViewModel(
-                    studySessionRepository = container.studySessionRepository,
-                    subjectRepository = container.subjectRepository,
-                    chapterRepository = container.chapterRepository
-                )
-            }
             StudyTimerScreen(
-                viewModel = timerViewModel,
+                viewModel = container.studyTimerViewModel,
                 onBack = { navController.popBackStack() },
                 onOpenDrawer = onOpenDrawer
             )
