@@ -447,9 +447,13 @@ private fun QuizResultsView(
 
         // Action Buttons
         item {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val minutes = attempt.timeSpentSeconds / 60
+            val seconds = attempt.timeSpentSeconds % 60
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StudyOSButton(
                     text = "Finish",
@@ -458,8 +462,23 @@ private fun QuizResultsView(
                 )
 
                 StudyOSOutlinedButton(
-                    text = "Retake Quiz",
+                    text = "Retake",
                     onClick = onRetake,
+                    modifier = Modifier.weight(1f)
+                )
+
+                StudyOSOutlinedButton(
+                    text = "Share",
+                    onClick = {
+                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(
+                                android.content.Intent.EXTRA_TEXT,
+                                "🎯 I scored ${attempt.accuracyPercentage}% (${attempt.score}/${attempt.totalQuestions}) on my StudyOS Quiz in ${minutes}m ${seconds}s! 🚀 #StudyOS"
+                            )
+                        }
+                        context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Quiz Result"))
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }

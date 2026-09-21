@@ -23,6 +23,12 @@ interface RevisionDao {
     @Query("SELECT * FROM revision_schedules WHERE nextRevisionDue <= :currentTime ORDER BY nextRevisionDue ASC")
     fun observeDueSchedules(currentTime: Long): Flow<List<RevisionScheduleEntity>>
 
+    @Query("SELECT COUNT(*) FROM revision_schedules WHERE nextRevisionDue <= :currentTime")
+    suspend fun getDueCount(currentTime: Long): Int
+
+    @Query("SELECT * FROM revision_schedules WHERE nextRevisionDue <= :currentTime ORDER BY nextRevisionDue ASC")
+    suspend fun getDueSchedulesOnce(currentTime: Long): List<RevisionScheduleEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateSchedule(schedule: RevisionScheduleEntity)
 

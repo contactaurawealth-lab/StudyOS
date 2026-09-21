@@ -2,9 +2,12 @@ package com.studyos.app.features.practice.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.studyos.app.domain.engine.MistakePatternEngine
+import com.studyos.app.domain.engine.MistakePatternInsight
 import com.studyos.app.domain.model.AiConfig
 import com.studyos.app.domain.model.Mistake
 import com.studyos.app.domain.model.Subject
+import com.studyos.app.domain.repository.MistakeRepository
 import com.studyos.app.domain.repository.SubjectRepository
 import com.studyos.app.domain.usecase.AiPracticeToolsUseCase
 import com.studyos.app.domain.usecase.ConvertMistakeToFlashcardUseCase
@@ -14,6 +17,7 @@ import com.studyos.app.domain.usecase.ResolveMistakeUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,7 +39,9 @@ data class MistakeBankUiState(
     val selectedMistakeForAi: Mistake? = null,
     val aiExplanation: String? = null,
     val isExplaining: Boolean = false,
-    val infoMessage: String? = null
+    val infoMessage: String? = null,
+    val patternInsight: MistakePatternInsight? = null,
+    val showAddMistakeSheet: Boolean = false
 ) {
     val filteredMistakes: List<Mistake>
         get() {
@@ -71,7 +77,8 @@ class MistakeBankViewModel(
     private val convertMistakeToFlashcardUseCase: ConvertMistakeToFlashcardUseCase,
     private val aiPracticeToolsUseCase: AiPracticeToolsUseCase,
     private val getAiConfigUseCase: GetAiConfigUseCase,
-    private val subjectRepository: SubjectRepository
+    private val subjectRepository: SubjectRepository,
+    private val mistakeRepository: MistakeRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MistakeBankUiState())
@@ -83,15 +90,20 @@ class MistakeBankViewModel(
 
     private fun loadData() {
         viewModelScope.launch {
-            subjectRepository.getAllSubjects().collect { subjects ->
-                _uiState.update { it.copy(subjects = subjects) }
-            }
-        }
-
-        viewModelScope.launch {
-            getAllMistakesUseCase().collect { mistakes ->
-                _uiState.update { it.copy(mistakes = mistakes, isLoading = false) }
-            }
+            combine(
+                subjectRepository.getAllSubjects(),
+                getAllMistakesUseCase()
+            ) { subjects, mistakes ->
+                val insight = MistakePatternEngine.analyze(mistakes, subjects)
+                _uiState.update {
+                    it.copy(
+                        subjects = subjects,
+                        mistakes = mistakes,
+                        isLoading = false,
+                        patternInsight = insight
+                    )
+                }
+            }.collect {}
         }
     }
 
@@ -161,6 +173,46 @@ class MistakeBankViewModel(
                 aiExplanation = null,
                 isExplaining = false
             )
+        }
+    }
+
+    fun openAddMistakeSheet() {
+        _uiState.update { it.copy(showAddMistakeSheet = true) }
+    }
+
+    fun closeAddMistakeSheet() {
+        _uiState.update { it.copy(showAddMistakeSheet = false) }
+    }
+
+    fun addMistake(
+        question: String,
+        studentAnswer: String,
+        correctAnswer: String,
+        explanation: String?,
+        subjectId: String,
+        chapterId: String? = null,
+        topic: String? = null,
+        photoUri: String? = null
+    ) {
+        val repo = mistakeRepository ?: return
+        viewModelScope.launch {
+            val mistake = Mistake(
+                question = question.trim().ifEmpty { "Photo / Written Question" },
+                studentAnswer = studentAnswer.trim(),
+                correctAnswer = correctAnswer.trim(),
+                explanation = explanation?.trim()?.ifEmpty { null },
+                subjectId = subjectId,
+                chapterId = chapterId,
+                topic = topic?.trim()?.ifEmpty { "General" },
+                photoUri = photoUri
+            )
+            repo.recordMistake(mistake)
+            _uiState.update {
+                it.copy(
+                    showAddMistakeSheet = false,
+                    infoMessage = "Mistake logged to bank!"
+                )
+            }
         }
     }
 

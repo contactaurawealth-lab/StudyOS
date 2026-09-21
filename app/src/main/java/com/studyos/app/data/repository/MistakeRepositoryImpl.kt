@@ -60,6 +60,7 @@ class MistakeRepositoryImpl(
         missedCount = missedCount,
         lastMissedAt = lastMissedAt,
         isResolved = isResolved,
+        photoUri = photoUri,
         createdAt = createdAt
     )
 
@@ -75,6 +76,7 @@ class MistakeRepositoryImpl(
         missedCount = missedCount,
         lastMissedAt = lastMissedAt,
         isResolved = isResolved,
+        photoUri = photoUri,
         createdAt = createdAt
     )
 }

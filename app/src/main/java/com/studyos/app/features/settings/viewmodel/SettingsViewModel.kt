@@ -48,7 +48,8 @@ class SettingsViewModel(
     private val getStudyPreferencesUseCase: GetStudyPreferencesUseCase,
     private val saveStudyPreferencesUseCase: SaveStudyPreferencesUseCase,
     private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource,
-    private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null
+    private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null,
+    private val database: com.studyos.app.core.database.StudyOSDatabase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -275,6 +276,23 @@ class SettingsViewModel(
         viewModelScope.launch {
             preferencesDataSource.resetOnboarding()
             onReset()
+        }
+    }
+
+    fun exportBackup(context: android.content.Context, onReadyToShare: (java.io.File?) -> Unit) {
+        val db = database ?: return
+        viewModelScope.launch {
+            val result = com.studyos.app.core.backup.BackupManager.exportBackup(context, db)
+            _uiState.update { it.copy(notificationMessage = result.message) }
+            onReadyToShare(result.exportedFile)
+        }
+    }
+
+    fun restoreBackup(jsonString: String) {
+        val db = database ?: return
+        viewModelScope.launch {
+            val result = com.studyos.app.core.backup.BackupManager.restoreBackup(db, jsonString)
+            _uiState.update { it.copy(notificationMessage = result.message) }
         }
     }
 

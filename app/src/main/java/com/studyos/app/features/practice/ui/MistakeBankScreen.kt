@@ -1,5 +1,8 @@
 package com.studyos.app.features.practice.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,7 +15,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,12 +43,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.StudyOSButton
@@ -51,9 +62,13 @@ import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSLoadingState
 import com.studyos.app.core.ui.component.StudyOSMarkdown
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
+import com.studyos.app.core.ui.component.StudyOSTextField
 import com.studyos.app.features.practice.viewmodel.MistakeBankViewModel
 import com.studyos.app.features.practice.viewmodel.MistakeFilter
 import com.studyos.app.theme.StudyOSTheme
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,6 +134,13 @@ fun MistakeBankScreen(
                             color = colors.secondaryText
                         )
                     }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    StudyOSButton(
+                        text = "+ Log",
+                        onClick = { viewModel.openAddMistakeSheet() }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -278,6 +300,53 @@ fun MistakeBankScreen(
                 }
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // Pattern Intelligence Banner
+                val insight = uiState.patternInsight
+                if (insight != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(shapes.card)
+                            .background(colors.cardBackground)
+                            .border(1.dp, colors.accent.copy(alpha = 0.5f), shapes.card)
+                            .padding(14.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "PATTERN INTELLIGENCE",
+                                    style = typography.caption,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.accent,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "${insight.dominantCategoryPercentage}% ${insight.dominantCategory}",
+                                    style = typography.caption,
+                                    color = colors.primaryText,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Text(
+                                text = insight.headline,
+                                style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.primaryText
+                            )
+                            Text(
+                                text = insight.actionableTip,
+                                style = typography.caption,
+                                color = colors.secondaryText
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 // Mistakes List
                 val mistakes = uiState.filteredMistakes
                 if (mistakes.isEmpty()) {
@@ -402,6 +471,222 @@ fun MistakeBankScreen(
                             onClick = {
                                 viewModel.convertToFlashcard(selected)
                                 viewModel.closeAiExplanation()
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+
+        // Add Mistake Bottom Sheet
+        if (uiState.showAddMistakeSheet) {
+            val addSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            val context = LocalContext.current
+            var questionText by remember { mutableStateOf("") }
+            var studentAns by remember { mutableStateOf("") }
+            var correctAns by remember { mutableStateOf("") }
+            var explanationText by remember { mutableStateOf("") }
+            var selectedSubjectId by remember { mutableStateOf(uiState.subjects.firstOrNull()?.id ?: "") }
+            var selectedTopic by remember { mutableStateOf("Conceptual Gap") }
+            var attachedPhotoPath by remember { mutableStateOf<String?>(null) }
+
+            val photoPickerLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.GetContent()
+            ) { uri ->
+                if (uri != null) {
+                    try {
+                        val photosDir = File(context.filesDir, "mistake_photos").apply { mkdirs() }
+                        val file = File(photosDir, "mistake_${UUID.randomUUID()}.jpg")
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            FileOutputStream(file).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        attachedPhotoPath = file.absolutePath
+                    } catch (e: Exception) {
+                        // Ignore
+                    }
+                }
+            }
+
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.closeAddMistakeSheet() },
+                sheetState = addSheetState,
+                containerColor = colors.surface
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Log Question to Mistake Bank",
+                        style = typography.sectionTitle,
+                        color = colors.primaryText
+                    )
+
+                    // Subject Selector
+                    Text(text = "Subject", style = typography.caption, color = colors.secondaryText)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        uiState.subjects.forEach { sub ->
+                            val isSel = selectedSubjectId == sub.id
+                            Box(
+                                modifier = Modifier
+                                    .clip(shapes.button)
+                                    .background(if (isSel) colors.accent.copy(alpha = 0.2f) else colors.surface)
+                                    .border(1.dp, if (isSel) colors.accent else colors.border, shapes.button)
+                                    .clickable { selectedSubjectId = sub.id }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = sub.name,
+                                    style = typography.caption,
+                                    color = if (isSel) colors.accent else colors.primaryText
+                                )
+                            }
+                        }
+                    }
+
+                    // Error Type
+                    Text(text = "Error Pattern", style = typography.caption, color = colors.secondaryText)
+                    val errorTypes = listOf("Conceptual Gap", "Calculation Error", "Memory / Recall", "Careless Reading")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        errorTypes.forEach { type ->
+                            val isSel = selectedTopic == type
+                            Box(
+                                modifier = Modifier
+                                    .clip(shapes.button)
+                                    .background(if (isSel) colors.accent.copy(alpha = 0.2f) else colors.surface)
+                                    .border(1.dp, if (isSel) colors.accent else colors.border, shapes.button)
+                                    .clickable { selectedTopic = type }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = type,
+                                    style = typography.caption,
+                                    color = if (isSel) colors.accent else colors.primaryText
+                                )
+                            }
+                        }
+                    }
+
+                    // Question Text
+                    StudyOSTextField(
+                        value = questionText,
+                        onValueChange = { questionText = it },
+                        label = "Question",
+                        placeholder = "Type question or summarize...",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Attached Photo preview or button
+                    if (attachedPhotoPath != null) {
+                        val bitmap = remember(attachedPhotoPath) {
+                            try {
+                                android.graphics.BitmapFactory.decodeFile(attachedPhotoPath)
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        if (bitmap != null) {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Attached photo",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 160.dp)
+                                        .clip(shapes.card),
+                                    contentScale = ContentScale.Crop
+                                )
+                                StudyOSIconButton(
+                                    onClick = { attachedPhotoPath = null },
+                                    modifier = Modifier.align(Alignment.TopEnd)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = "Remove photo",
+                                        tint = colors.error
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        StudyOSOutlinedButton(
+                            text = "📸 Attach Question Photo",
+                            onClick = { photoPickerLauncher.launch("image/*") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    // Student Answer
+                    StudyOSTextField(
+                        value = studentAns,
+                        onValueChange = { studentAns = it },
+                        label = "Your Answer",
+                        placeholder = "What you selected/wrote...",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Correct Answer
+                    StudyOSTextField(
+                        value = correctAns,
+                        onValueChange = { correctAns = it },
+                        label = "Correct Answer",
+                        placeholder = "The correct answer...",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Explanation
+                    StudyOSTextField(
+                        value = explanationText,
+                        onValueChange = { explanationText = it },
+                        label = "Explanation (Optional)",
+                        placeholder = "Why was this wrong? Formula or concept...",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        StudyOSOutlinedButton(
+                            text = "Cancel",
+                            onClick = { viewModel.closeAddMistakeSheet() },
+                            modifier = Modifier.weight(1f)
+                        )
+                        StudyOSButton(
+                            text = "Save Mistake",
+                            onClick = {
+                                val subj = if (selectedSubjectId.isNotBlank()) selectedSubjectId else uiState.subjects.firstOrNull()?.id ?: ""
+                                if (subj.isNotBlank() && (questionText.isNotBlank() || attachedPhotoPath != null)) {
+                                    viewModel.addMistake(
+                                        question = questionText,
+                                        studentAnswer = studentAns,
+                                        correctAnswer = correctAns,
+                                        explanation = explanationText,
+                                        subjectId = subj,
+                                        topic = selectedTopic,
+                                        photoUri = attachedPhotoPath
+                                    )
+                                }
                             },
                             modifier = Modifier.weight(1f)
                         )

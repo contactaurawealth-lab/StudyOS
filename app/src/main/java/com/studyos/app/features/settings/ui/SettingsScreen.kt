@@ -82,6 +82,24 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showTimePickerDialog by remember { mutableStateOf(false) }
+    var showRestoreConfirmDialog by remember { mutableStateOf(false) }
+    var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                if (!json.isNullOrBlank()) {
+                    pendingRestoreJson = json
+                    showRestoreConfirmDialog = true
+                }
+            } catch (e: Exception) {
+                // Handled gracefully
+            }
+        }
+    }
 
     // Check system notification status
     LaunchedEffect(Unit) {
@@ -396,6 +414,76 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Data & Backup Section
+            StudyOSSectionHeader(
+                title = "Data & Backup",
+                description = "Export and restore your offline data safely across devices."
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shapes.surface)
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, shapes.surface)
+            ) {
+                Column {
+                    StudyOSListItem(
+                        title = "Export backup (JSON)",
+                        subtitle = "Save all subjects, chapters, flashcards, and mistakes",
+                        onClick = {
+                            viewModel.exportBackup(context) { file ->
+                                if (file != null) {
+                                    try {
+                                        val fileUri = androidx.core.content.FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.fileprovider",
+                                            file
+                                        )
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "application/json"
+                                            putExtra(Intent.EXTRA_STREAM, fileUri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "Save or Share StudyOS Backup"))
+                                    } catch (e: Exception) {
+                                        // Ignore or fallback
+                                    }
+                                }
+                            }
+                        },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+                                contentDescription = null,
+                                tint = colors.mutedText,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    )
+
+                    StudyOSDivider()
+
+                    StudyOSListItem(
+                        title = "Restore backup (JSON)",
+                        subtitle = "Import and merge data from a previously saved JSON file",
+                        onClick = {
+                            filePickerLauncher.launch("application/json")
+                        },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+                                contentDescription = null,
+                                tint = colors.mutedText,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
             // About Section
             StudyOSSectionHeader(
                 title = "About"
@@ -416,12 +504,12 @@ fun SettingsScreen(
                         color = colors.primaryText
                     )
                     Text(
-                        text = "Version 1.1.0",
+                        text = "Android Edition • 100% Offline-First",
                         style = typography.secondary,
                         color = colors.secondaryText
                     )
                     Text(
-                        text = "Local-first study app • No internet or account required",
+                        text = "Local-first study operating system • No internet, cloud or account required",
                         style = typography.caption,
                         color = colors.mutedText
                     )
@@ -514,6 +602,31 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
+        )
+    }
+
+    if (showRestoreConfirmDialog && pendingRestoreJson != null) {
+        StudyOSDialog(
+            onDismissRequest = {
+                showRestoreConfirmDialog = false
+                pendingRestoreJson = null
+            },
+            title = "Restore Backup",
+            text = "Restoring will import and merge subjects, chapters, notes, flashcards, quizzes, and mistakes from your backup file into your local database. Do you want to proceed?",
+            confirmButtonText = "Restore Data",
+            onConfirm = {
+                val json = pendingRestoreJson
+                showRestoreConfirmDialog = false
+                pendingRestoreJson = null
+                if (json != null) {
+                    viewModel.restoreBackup(json)
+                }
+            },
+            dismissButtonText = "Cancel",
+            onDismiss = {
+                showRestoreConfirmDialog = false
+                pendingRestoreJson = null
             }
         )
     }

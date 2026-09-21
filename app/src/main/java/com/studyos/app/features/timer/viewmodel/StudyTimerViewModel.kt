@@ -20,7 +20,14 @@ import java.util.UUID
 
 enum class TimerMode {
     COUNTDOWN,
-    COUNT_UP
+    COUNT_UP,
+    POMODORO
+}
+
+enum class PomodoroPhase(val label: String, val durationMinutes: Int) {
+    FOCUS("Focus Session", 25),
+    SHORT_BREAK("Short Break", 5),
+    LONG_BREAK("Long Break", 15)
 }
 
 enum class TimerStatus {
@@ -36,6 +43,8 @@ data class StudyTimerUiState(
     val totalDurationSeconds: Int = 25 * 60, // 25 min default Pomodoro
     val remainingSeconds: Int = 25 * 60,
     val elapsedSeconds: Int = 0,
+    val pomodoroPhase: PomodoroPhase = PomodoroPhase.FOCUS,
+    val completedPomodoros: Int = 0,
     val subjects: List<Subject> = emptyList(),
     val chapters: List<Chapter> = emptyList(),
     val selectedSubject: Subject? = null,
@@ -87,7 +96,52 @@ class StudyTimerViewModel(
     fun setTimerMode(mode: TimerMode) {
         if (_uiState.value.status == TimerStatus.RUNNING) return
         resetTimer()
-        _uiState.update { it.copy(mode = mode) }
+        val defaultSec = if (mode == TimerMode.POMODORO) 25 * 60 else _uiState.value.totalDurationSeconds
+        _uiState.update {
+            it.copy(
+                mode = mode,
+                pomodoroPhase = PomodoroPhase.FOCUS,
+                totalDurationSeconds = defaultSec,
+                remainingSeconds = if (mode == TimerMode.COUNT_UP) 0 else defaultSec
+            )
+        }
+    }
+
+    fun setPomodoroPhase(phase: PomodoroPhase) {
+        if (_uiState.value.status == TimerStatus.RUNNING) return
+        val totalSec = phase.durationMinutes * 60
+        _uiState.update {
+            it.copy(
+                pomodoroPhase = phase,
+                totalDurationSeconds = totalSec,
+                remainingSeconds = totalSec,
+                elapsedSeconds = 0,
+                status = TimerStatus.IDLE
+            )
+        }
+    }
+
+    fun skipPomodoroPhase() {
+        timerJob?.cancel()
+        timerJob = null
+        val current = _uiState.value
+        val nextPhase = when (current.pomodoroPhase) {
+            PomodoroPhase.FOCUS -> {
+                val nextCount = current.completedPomodoros + 1
+                if (nextCount % 4 == 0) PomodoroPhase.LONG_BREAK else PomodoroPhase.SHORT_BREAK
+            }
+            PomodoroPhase.SHORT_BREAK, PomodoroPhase.LONG_BREAK -> PomodoroPhase.FOCUS
+        }
+        val dur = nextPhase.durationMinutes * 60
+        _uiState.update {
+            it.copy(
+                pomodoroPhase = nextPhase,
+                totalDurationSeconds = dur,
+                remainingSeconds = dur,
+                elapsedSeconds = 0,
+                status = TimerStatus.IDLE
+            )
+        }
     }
 
     fun setPresetMinutes(minutes: Int) {
@@ -119,18 +173,49 @@ class StudyTimerViewModel(
                 val current = _uiState.value
                 if (current.status != TimerStatus.RUNNING) break
 
-                if (current.mode == TimerMode.COUNTDOWN) {
+                if (current.mode == TimerMode.COUNTDOWN || current.mode == TimerMode.POMODORO) {
                     val newRemaining = (current.remainingSeconds - 1).coerceAtLeast(0)
                     val newElapsed = current.elapsedSeconds + 1
                     if (newRemaining <= 0) {
-                        _uiState.update {
-                            it.copy(
-                                remainingSeconds = 0,
-                                elapsedSeconds = newElapsed,
-                                status = TimerStatus.COMPLETED
-                            )
+                        if (current.mode == TimerMode.POMODORO) {
+                            if (current.pomodoroPhase == PomodoroPhase.FOCUS) {
+                                autoSaveSession()
+                                val nextCount = current.completedPomodoros + 1
+                                val nextPhase = if (nextCount % 4 == 0) PomodoroPhase.LONG_BREAK else PomodoroPhase.SHORT_BREAK
+                                val dur = nextPhase.durationMinutes * 60
+                                _uiState.update {
+                                    it.copy(
+                                        remainingSeconds = dur,
+                                        totalDurationSeconds = dur,
+                                        elapsedSeconds = 0,
+                                        pomodoroPhase = nextPhase,
+                                        completedPomodoros = nextCount,
+                                        status = TimerStatus.IDLE
+                                    )
+                                }
+                            } else {
+                                val nextPhase = PomodoroPhase.FOCUS
+                                val dur = nextPhase.durationMinutes * 60
+                                _uiState.update {
+                                    it.copy(
+                                        remainingSeconds = dur,
+                                        totalDurationSeconds = dur,
+                                        elapsedSeconds = 0,
+                                        pomodoroPhase = nextPhase,
+                                        status = TimerStatus.IDLE
+                                    )
+                                }
+                            }
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    remainingSeconds = 0,
+                                    elapsedSeconds = newElapsed,
+                                    status = TimerStatus.COMPLETED
+                                )
+                            }
+                            autoSaveSession()
                         }
-                        autoSaveSession()
                         break
                     } else {
                         _uiState.update {
@@ -166,7 +251,7 @@ class StudyTimerViewModel(
         _uiState.update {
             it.copy(
                 status = TimerStatus.IDLE,
-                remainingSeconds = if (it.mode == TimerMode.COUNTDOWN) duration else 0,
+                remainingSeconds = if (it.mode == TimerMode.COUNT_UP) 0 else duration,
                 elapsedSeconds = 0,
                 isSessionSaved = false
             )

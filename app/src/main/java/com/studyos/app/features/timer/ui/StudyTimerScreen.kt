@@ -65,6 +65,7 @@ import com.studyos.app.core.ui.component.GlassIconButton
 import com.studyos.app.core.ui.component.GlassTopBar
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
+import com.studyos.app.features.timer.viewmodel.PomodoroPhase
 import com.studyos.app.features.timer.viewmodel.StudyTimerViewModel
 import com.studyos.app.features.timer.viewmodel.TimerMode
 import com.studyos.app.features.timer.viewmodel.TimerStatus
@@ -103,6 +104,7 @@ fun StudyTimerScreen(
                 subtitle = when (uiState.mode) {
                     TimerMode.COUNTDOWN -> "Deep Work Focus Block"
                     TimerMode.COUNT_UP -> "Open Study Stopwatch"
+                    TimerMode.POMODORO -> "Pomodoro Technique • ${uiState.pomodoroPhase.label}"
                 },
                 navigationIcon = {
                     GlassIconButton(
@@ -190,6 +192,79 @@ fun StudyTimerScreen(
                             viewModel.setTimerMode(TimerMode.COUNT_UP)
                         }
                     )
+                    TimerPresetChip(
+                        label = "🍅 Pomodoro",
+                        selected = uiState.mode == TimerMode.POMODORO,
+                        enabled = uiState.status != TimerStatus.RUNNING,
+                        onClick = {
+                            viewModel.setTimerMode(TimerMode.POMODORO)
+                        }
+                    )
+                }
+
+                if (uiState.mode == TimerMode.POMODORO) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(shapes.card)
+                            .background(colors.cardBackground)
+                            .border(1.dp, colors.accent.copy(alpha = 0.4f), shapes.card)
+                            .padding(12.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "POMODORO CYCLE • ${uiState.completedPomodoros} COMPLETED",
+                                    style = typography.caption,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.accent,
+                                    letterSpacing = 1.sp
+                                )
+
+                                if (uiState.status != TimerStatus.RUNNING) {
+                                    Text(
+                                        text = "Skip Phase",
+                                        style = typography.caption,
+                                        color = colors.mutedText,
+                                        modifier = Modifier.clickable { viewModel.skipPomodoroPhase() }
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                PomodoroPhase.values().forEach { phase ->
+                                    val isCurrent = uiState.pomodoroPhase == phase
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(shapes.button)
+                                            .background(if (isCurrent) colors.accent.copy(alpha = 0.2f) else colors.surface)
+                                            .border(1.dp, if (isCurrent) colors.accent else colors.border, shapes.button)
+                                            .clickable(enabled = uiState.status != TimerStatus.RUNNING) {
+                                                viewModel.setPomodoroPhase(phase)
+                                            }
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = phase.label,
+                                            style = typography.caption,
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isCurrent) colors.accent else colors.secondaryText
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

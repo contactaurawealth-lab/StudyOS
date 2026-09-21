@@ -42,5 +42,6 @@ data class MistakeEntity(
     val missedCount: Int = 1,
     val lastMissedAt: Long = System.currentTimeMillis(),
     val isResolved: Boolean = false,
+    val photoUri: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

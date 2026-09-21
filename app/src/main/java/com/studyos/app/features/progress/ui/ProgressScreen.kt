@@ -22,8 +22,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.GlassCard
 import com.studyos.app.core.ui.component.GlassTopBar
 import com.studyos.app.core.ui.component.ShimmerPlaceholder
@@ -179,6 +181,112 @@ fun ProgressScreen(
                                         style = typography.caption,
                                         color = colors.secondaryText
                                     )
+                                }
+                            }
+
+                            // Weekly Study Report Card
+                            val report = uiState.weeklyReport
+                            if (report != null && report.totalMinutes > 0) {
+                                val context = androidx.compose.ui.platform.LocalContext.current
+                                Spacer(modifier = Modifier.height(12.dp))
+                                GlassCard(
+                                    backgroundColor = colors.glassSurface,
+                                    padding = 16.dp
+                                ) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "WEEKLY STUDY REPORT",
+                                                style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                color = colors.accent,
+                                                letterSpacing = 1.sp
+                                            )
+
+                                            Text(
+                                                text = "Share",
+                                                style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                                color = colors.accent,
+                                                modifier = Modifier.clickable {
+                                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                        type = "text/plain"
+                                                        putExtra(android.content.Intent.EXTRA_TEXT, report.shareableText)
+                                                    }
+                                                    context.startActivity(android.content.Intent.createChooser(sendIntent, "Share Weekly Report"))
+                                                }
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Text(
+                                            text = report.headline,
+                                            style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = colors.primaryText
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                val hours = report.totalMinutes / 60
+                                                val mins = report.totalMinutes % 60
+                                                Text(
+                                                    text = if (hours > 0) "${hours}h ${mins}m" else "${mins}m",
+                                                    style = typography.sectionTitle,
+                                                    color = colors.primaryText
+                                                )
+                                                Text(
+                                                    text = "Focused Study",
+                                                    style = typography.caption,
+                                                    color = colors.secondaryText
+                                                )
+                                            }
+
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "${report.activeDaysCount}/7 Days",
+                                                    style = typography.sectionTitle,
+                                                    color = colors.primaryText
+                                                )
+                                                Text(
+                                                    text = "Consistency",
+                                                    style = typography.caption,
+                                                    color = colors.secondaryText
+                                                )
+                                            }
+
+                                            if (report.mistakesResolved > 0) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "${report.mistakesResolved}",
+                                                        style = typography.sectionTitle,
+                                                        color = colors.accent
+                                                    )
+                                                    Text(
+                                                        text = "Mistakes Fixed",
+                                                        style = typography.caption,
+                                                        color = colors.secondaryText
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        if (report.subjectBreakdown.isNotEmpty()) {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Text(
+                                                text = "Top Subjects: " + report.subjectBreakdown.take(3).joinToString(", ") { "${it.first} (${it.second / 60}h)" },
+                                                style = typography.caption,
+                                                color = colors.mutedText
+                                            )
+                                        }
+                                    }
                                 }
                             }
 

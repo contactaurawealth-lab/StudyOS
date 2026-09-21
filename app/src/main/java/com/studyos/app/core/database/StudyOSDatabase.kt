@@ -86,7 +86,7 @@ import com.studyos.app.core.database.entity.TestEntity
         RecallItemEntity::class,
         RecallAttemptEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class StudyOSDatabase : RoomDatabase() {
@@ -547,6 +547,16 @@ abstract class StudyOSDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("ALTER TABLE `mistakes` ADD COLUMN `photoUri` TEXT DEFAULT NULL")
+                } catch (e: Exception) {
+                    // Column might already exist
+                }
+            }
+        }
+
         fun getDatabase(context: Context): StudyOSDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -554,7 +564,7 @@ abstract class StudyOSDatabase : RoomDatabase() {
                     StudyOSDatabase::class.java,
                     "studyos_database.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

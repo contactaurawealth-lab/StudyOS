@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">StudyOS</string>
+    <string name="widget_daily_plan_description">Shows your current study focus and top planned session</string>
+    <string name="shortcut_timer_short">Timer</string>
+    <string name="shortcut_timer_long">Start Study Timer</string>
+    <string name="shortcut_mistakes_short">Mistakes</string>
+    <string name="shortcut_mistakes_long">Review Mistake Bank</string>
+    <string name="shortcut_today_short">Today</string>
+    <string name="shortcut_today_long">Today\'s Study Plan</string>
 </resources>

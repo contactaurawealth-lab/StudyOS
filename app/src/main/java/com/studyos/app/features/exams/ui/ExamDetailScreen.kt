@@ -1,5 +1,6 @@
 package com.studyos.app.features.exams.ui
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
@@ -145,6 +148,29 @@ fun ExamDetailScreen(
                     }
 
                     Row {
+                        val context = LocalContext.current
+                        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+
+                        StudyOSIconButton(
+                            onClick = {
+                                val avgProgress = if (dashboard.subjectProgresses.isNotEmpty()) dashboard.subjectProgresses.map { it.progressPercentage }.average().toInt() else 0
+                                val shareText = "📊 My ${exam.name} Exam Readiness is at ${avgProgress}% completion on StudyOS! Days left: ${dashboard.daysRemaining}. Target Date: ${dateFormat.format(Date(exam.targetDate))}. 📚 #StudyOS"
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "Share Exam Readiness"))
+                            },
+                            contentDescription = "Share exam readiness"
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Share,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
                         StudyOSIconButton(
                             onClick = { viewModel.openEditExamSheet(exam) },
                             contentDescription = "Edit exam"

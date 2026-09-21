@@ -41,14 +41,14 @@ class StudyOSAlarmReceiver : BroadcastReceiver() {
             sessionId = sessionId
         )
 
-        // Persist notification record in Room database
+        // Persist notification record in Room database and check for smart revisions
         val app = context.applicationContext as? StudyOSApplication
         app?.let { application ->
             val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val notificationDao = application.container.database.notificationDao()
-                    notificationDao.insert(
+                    val db = application.container.database
+                    db.notificationDao().insert(
                         NotificationEntity(
                             title = title,
                             message = message,
@@ -56,6 +56,24 @@ class StudyOSAlarmReceiver : BroadcastReceiver() {
                             isRead = false
                         )
                     )
+
+                    // Check for due revisions if this is the daily reminder check
+                    if (isDaily) {
+                        val now = System.currentTimeMillis()
+                        val dueCount = db.revisionDao().getDueCount(now)
+                        if (dueCount > 0) {
+                            StudyOSNotificationManager.showNotification(
+                                context = context,
+                                notificationId = 888_888,
+                                title = "🔄 $dueCount Revisions Ready",
+                                message = "Beat the forgetting curve: review your spaced repetition queue today.",
+                                route = "revision"
+                            )
+                        }
+                    }
+
+                    // Trigger widget refresh
+                    com.studyos.app.core.widget.DailyPlanWidgetProvider.triggerUpdate(context)
                 } catch (e: Exception) {
                     // Non-critical logging
                 } finally {

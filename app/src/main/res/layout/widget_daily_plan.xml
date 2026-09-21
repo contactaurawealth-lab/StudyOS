@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="STUDYOS • TODAY"
+            android:textColor="#D39A3A"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/widget_status_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OFFLINE"
+            android:textColor="#888888"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Focused Study Session"
+        android:textColor="#F3F4F6"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/widget_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:text="Tap to review your study plan"
+        android:textColor="#9CA3AF"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_streak_or_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Daily Goal Active"
+            android:textColor="#D39A3A"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/widget_action_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_button_bg"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:text="Start"
+            android:textColor="#0A0B0E"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

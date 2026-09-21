@@ -962,7 +962,10 @@ private fun rememberChapterViewModel(container: StudyOSAppContainer, chapterId: 
 private fun rememberProgressViewModel(container: StudyOSAppContainer): ProgressViewModel {
     return androidx.lifecycle.viewmodel.compose.viewModel {
         ProgressViewModel(
-            getAcademicProgressUseCase = container.getAcademicProgressUseCase
+            getAcademicProgressUseCase = container.getAcademicProgressUseCase,
+            studySessionRepository = container.studySessionRepository,
+            subjectRepository = container.subjectRepository,
+            mistakeRepository = container.mistakeRepository
         )
     }
 }
@@ -994,7 +997,8 @@ private fun rememberSettingsViewModel(container: StudyOSAppContainer): SettingsV
             getStudyPreferencesUseCase = container.getStudyPreferencesUseCase,
             saveStudyPreferencesUseCase = container.saveStudyPreferencesUseCase,
             preferencesDataSource = container.preferencesDataSource,
-            alarmScheduler = container.alarmScheduler
+            alarmScheduler = container.alarmScheduler,
+            database = container.database
         )
     }
 }
@@ -1123,7 +1127,8 @@ private fun rememberMistakeBankViewModel(
             convertMistakeToFlashcardUseCase = container.convertMistakeToFlashcardUseCase,
             aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
             getAiConfigUseCase = container.getAiConfigUseCase,
-            subjectRepository = container.subjectRepository
+            subjectRepository = container.subjectRepository,
+            mistakeRepository = container.mistakeRepository
         )
     }
 }
