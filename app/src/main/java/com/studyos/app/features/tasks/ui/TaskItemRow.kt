@@ -50,20 +50,13 @@ fun TaskItemRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick(task.id) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Checkbox
+        // Checkbox with accessible 44dp touch target
         Box(
             modifier = Modifier
-                .size(22.dp)
-                .clip(shapes.statusPill)
-                .background(if (isCompleted) colors.accent else colors.surface)
-                .border(
-                    width = 1.dp,
-                    color = if (isCompleted) colors.accent else colors.border,
-                    shape = shapes.statusPill
-                )
+                .size(44.dp)
                 .clickable { onToggleCompletion(task.id) }
                 .semantics {
                     this.role = Role.Checkbox
@@ -71,25 +64,40 @@ fun TaskItemRow(
                 },
             contentAlignment = Alignment.Center
         ) {
-            if (isCompleted) {
-                Icon(
-                    imageVector = Icons.Outlined.Check,
-                    contentDescription = null,
-                    tint = colors.background,
-                    modifier = Modifier.size(15.dp)
-                )
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(shapes.statusPill)
+                    .background(if (isCompleted) colors.accent else colors.surface)
+                    .border(
+                        width = 1.dp,
+                        color = if (isCompleted) colors.accent else colors.border,
+                        shape = shapes.statusPill
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isCompleted) {
+                    Icon(
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = null,
+                        tint = colors.background,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(6.dp))
 
         // Content
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f).padding(vertical = 6.dp)) {
             Text(
                 text = task.title,
                 style = if (isCompleted) typography.body else typography.bodyMedium,
                 color = if (isCompleted) colors.mutedText else colors.primaryText,
-                textDecoration = if (isCompleted) TextDecoration.LineThrough else null
+                textDecoration = if (isCompleted) TextDecoration.LineThrough else null,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
 
             // Subtitle metadata row
@@ -105,7 +113,10 @@ fun TaskItemRow(
                     Text(
                         text = metaParts.joinToString(" • "),
                         style = typography.secondary,
-                        color = colors.secondaryText
+                        color = colors.secondaryText,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }

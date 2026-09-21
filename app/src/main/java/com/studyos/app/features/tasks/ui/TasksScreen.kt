@@ -3,11 +3,13 @@ package com.studyos.app.features.tasks.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -152,21 +154,27 @@ fun TasksScreen(
             SnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp)
-                .widthIn(max = 560.dp),
-            horizontalAlignment = Alignment.Start
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Filter tabs
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .widthIn(max = 680.dp)
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.Start
             ) {
+                // Filter tabs
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                 TaskFilter.values().forEach { filter ->
                     val isSelected = uiState.filter == filter
                     val chipBg = if (isSelected) colors.primaryText else colors.surface
@@ -281,4 +289,5 @@ fun TasksScreen(
             }
         }
     }
+}
 }

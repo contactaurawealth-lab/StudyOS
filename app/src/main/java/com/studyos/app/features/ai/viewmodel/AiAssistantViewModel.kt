@@ -95,34 +95,55 @@ class AiAssistantViewModel(
         }
     }
 
-    private fun initializeSession(convId: String?, subjectId: String?, chapterId: String?) {
+    private fun sanitizeParam(param: String?): String? {
+        if (param.isNullOrBlank()) return null
+        val trimmed = param.trim()
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) return null
+        return trimmed
+    }
+
+    private fun initializeSession(rawConvId: String?, rawSubjectId: String?, rawChapterId: String?) {
+        val convId = sanitizeParam(rawConvId)
+        val subjectId = sanitizeParam(rawSubjectId)
+        val chapterId = sanitizeParam(rawChapterId)
+
         viewModelScope.launch {
-            if (!convId.isNullOrBlank()) {
-                val conversation = getConversationUseCase.getOnce(convId)
-                if (conversation != null) {
-                    loadConversation(conversation)
+            try {
+                if (!convId.isNullOrBlank()) {
+                    val conversation = getConversationUseCase.getOnce(convId)
+                    if (conversation != null) {
+                        loadConversation(conversation)
+                        return@launch
+                    }
+                }
+
+                // If chapter or subject specified, start conversation with context attached
+                if (chapterId != null || subjectId != null) {
+                    val newConv = createConversationUseCase(
+                        subjectId = subjectId,
+                        chapterId = chapterId
+                    )
+                    loadConversation(newConv)
                     return@launch
                 }
-            }
 
-            // If chapter or subject specified, start conversation with context attached
-            if (chapterId != null || subjectId != null) {
-                val newConv = createConversationUseCase(
-                    subjectId = subjectId,
-                    chapterId = chapterId
-                )
-                loadConversation(newConv)
-                return@launch
-            }
-
-            // Otherwise, get most recent conversation or create a new one
-            val existingList = _uiState.value.conversations
-            if (existingList.isNotEmpty()) {
-                val recent = existingList.first().conversation
-                loadConversation(recent)
-            } else {
-                val newConv = createConversationUseCase()
-                loadConversation(newConv)
+                // Otherwise, get most recent conversation or create a new one
+                val existingList = _uiState.value.conversations
+                if (existingList.isNotEmpty()) {
+                    val recent = existingList.first().conversation
+                    loadConversation(recent)
+                } else {
+                    val newConv = createConversationUseCase()
+                    loadConversation(newConv)
+                }
+            } catch (e: Exception) {
+                // Fallback gracefully without shutting down the app
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        messages = emptyList()
+                    )
+                }
             }
         }
     }

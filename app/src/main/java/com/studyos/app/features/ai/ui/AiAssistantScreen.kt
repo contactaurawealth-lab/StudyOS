@@ -175,7 +175,10 @@ fun AiAssistantScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            Column {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 StudyOSDivider()
                 AiChatInputBar(
                     text = uiState.inputText,
@@ -183,16 +186,23 @@ fun AiAssistantScreen(
                     onSendMessage = { viewModel.sendMessage() },
                     onStopGeneration = viewModel::stopGeneration,
                     onQuickActionClick = viewModel::executeQuickAction,
-                    isGenerating = uiState.isGenerating
+                    isGenerating = uiState.isGenerating,
+                    modifier = Modifier.widthIn(max = 720.dp)
                 )
             }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 720.dp)
+            ) {
             // AI Tutor Header & Mode Selector
             AiTutorHeader(
                 selectedMode = uiState.selectedMode,
@@ -305,4 +315,5 @@ fun AiAssistantScreen(
             }
         }
     }
+}
 }

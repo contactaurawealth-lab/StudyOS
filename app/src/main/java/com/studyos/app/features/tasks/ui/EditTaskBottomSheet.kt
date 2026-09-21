@@ -170,6 +170,7 @@ fun EditTaskBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(bottom = 20.dp)
             ) {
                 TaskPriority.values().forEach { prio ->

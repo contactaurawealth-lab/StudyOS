@@ -77,29 +77,33 @@ class CreateConversationUseCase(
         subjectId: String? = null,
         chapterId: String? = null
     ): AiConversation {
+        val cleanSubjectId = subjectId?.trim()?.takeIf { it.isNotBlank() && !it.startsWith("{") }
+        val cleanChapterId = chapterId?.trim()?.takeIf { it.isNotBlank() && !it.startsWith("{") }
+
+        val validSubject = cleanSubjectId?.let { subjectRepository.getSubjectByIdOnce(it) }
+        val validChapter = cleanChapterId?.let { chapterRepository.getChapterById(it) }
+
+        val verifiedSubjectId = validSubject?.id
+        val verifiedChapterId = validChapter?.id
+
         val resolvedTitle = when {
             !title.isNullOrBlank() -> title.trim()
-            chapterId != null -> {
-                val chapter = chapterRepository.getChapterById(chapterId)
-                val subject = subjectId?.let { subjectRepository.getSubjectByIdOnce(it) }
-                if (subject != null && chapter != null) {
-                    "${subject.name} • ${chapter.name}"
+            validChapter != null -> {
+                if (validSubject != null) {
+                    "${validSubject.name} • ${validChapter.name}"
                 } else {
-                    chapter?.name ?: "Chapter Study"
+                    validChapter.name
                 }
             }
-            subjectId != null -> {
-                val subject = subjectRepository.getSubjectByIdOnce(subjectId)
-                subject?.name?.let { "$it Study" } ?: "Subject Study"
-            }
+            validSubject != null -> "${validSubject.name} Study"
             else -> "New Conversation"
         }
 
         val conversation = AiConversation(
             id = UUID.randomUUID().toString(),
             title = resolvedTitle,
-            subjectId = subjectId,
-            chapterId = chapterId,
+            subjectId = verifiedSubjectId,
+            chapterId = verifiedChapterId,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )

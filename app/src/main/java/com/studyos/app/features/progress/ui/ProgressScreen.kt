@@ -58,115 +58,123 @@ fun ProgressScreen(
                 } else null
             )
 
-            if (uiState.isLoading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = spacing.screenHorizontal, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    ShimmerPlaceholder(
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                if (uiState.isLoading) {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp),
-                        shape = shapes.medium
-                    )
-                    repeat(3) {
+                            .fillMaxSize()
+                            .widthIn(max = 680.dp)
+                            .padding(horizontal = spacing.screenHorizontal, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
                         ShimmerPlaceholder(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(80.dp),
+                                .height(130.dp),
                             shape = shapes.medium
                         )
+                        repeat(3) {
+                            ShimmerPlaceholder(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(80.dp),
+                                shape = shapes.medium
+                            )
+                        }
                     }
-                }
-            } else {
-                val progress = uiState.academicProgress
+                } else {
+                    val progress = uiState.academicProgress
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = spacing.screenHorizontal)
-                        .widthIn(max = 560.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 680.dp)
+                            .padding(horizontal = spacing.screenHorizontal),
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    if (progress.totalChapters == 0) {
-                        Spacer(modifier = Modifier.height(32.dp))
-                        StudyOSEmptyState(
-                            title = "No progress yet",
-                            description = "Add chapters and update their progress to see your study coverage."
-                        )
-                    } else {
-                        // Animated overall progress percentage (400-600ms)
-                        val animatedProgress by animateIntAsState(
-                            targetValue = progress.overallProgress,
-                            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-                            label = "overallProgressAnimation"
-                        )
-
-                        // Overall Progress Card
-                        GlassCard(
-                            backgroundColor = colors.glassSurface,
-                            padding = 18.dp
-                        ) {
-                            Text(
-                                text = "Overall progress",
-                                style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
-                                color = colors.secondaryText
+                        if (progress.totalChapters == 0) {
+                            Spacer(modifier = Modifier.height(32.dp))
+                            StudyOSEmptyState(
+                                title = "No progress yet",
+                                description = "Add chapters and update their progress to see your study coverage."
+                            )
+                        } else {
+                            // Animated overall progress percentage (400-600ms)
+                            val animatedProgress by animateIntAsState(
+                                targetValue = progress.overallProgress,
+                                animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+                                label = "overallProgressAnimation"
                             )
 
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Bottom
+                            // Overall Progress Card
+                            GlassCard(
+                                backgroundColor = colors.glassSurface,
+                                padding = 18.dp
                             ) {
                                 Text(
-                                    text = "$animatedProgress%",
-                                    style = typography.screenTitle,
-                                    color = colors.primaryText
+                                    text = "Overall progress",
+                                    style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                    color = colors.secondaryText
                                 )
 
-                                Text(
-                                    text = "${progress.completedChapters} of ${progress.totalChapters} chapters",
-                                    style = typography.caption,
-                                    color = colors.secondaryText
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    Text(
+                                        text = "$animatedProgress%",
+                                        style = typography.screenTitle,
+                                        color = colors.primaryText
+                                    )
+
+                                    Text(
+                                        text = "${progress.completedChapters} of ${progress.totalChapters} chapters",
+                                        style = typography.caption,
+                                        color = colors.secondaryText
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                StudyOSProgressBar(
+                                    progress = progress.overallProgress,
+                                    height = 6.dp,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
 
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Subjects Breakdown Section Header
+                            Text(
+                                text = "Subjects",
+                                style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
+                                color = colors.primaryText
+                            )
+
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            StudyOSProgressBar(
-                                progress = progress.overallProgress,
-                                height = 6.dp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // Subjects Breakdown Section Header
-                        Text(
-                            text = "Subjects",
-                            style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
-                            color = colors.primaryText
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(progress.subjectBreakdowns, key = { it.subjectId }) { breakdown ->
-                                SubjectProgressRow(
-                                    breakdown = breakdown,
-                                    onClick = { onSubjectClick(breakdown.subjectId) }
-                                )
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(progress.subjectBreakdowns, key = { it.subjectId }) { breakdown ->
+                                    SubjectProgressRow(
+                                        breakdown = breakdown,
+                                        onClick = { onSubjectClick(breakdown.subjectId) }
+                                    )
+                                }
                             }
                         }
                     }

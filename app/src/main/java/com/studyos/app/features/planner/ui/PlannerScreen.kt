@@ -103,15 +103,20 @@ fun PlannerScreen(
             SnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
-                .widthIn(max = 560.dp),
-            horizontalAlignment = Alignment.Start
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 680.dp)
+                    .padding(horizontal = 20.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.Start
+            ) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Screen Header & View Mode Switcher
@@ -207,4 +212,5 @@ fun PlannerScreen(
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
 }

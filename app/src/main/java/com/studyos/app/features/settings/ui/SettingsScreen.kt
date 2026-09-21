@@ -111,14 +111,15 @@ fun SettingsScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.background)
+            .background(colors.background),
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 24.dp, vertical = 28.dp)
-                .widthIn(max = 600.dp)
+                .widthIn(max = 680.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

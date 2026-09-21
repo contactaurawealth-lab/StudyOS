@@ -101,12 +101,14 @@ fun SubjectDetailScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.background)
+            .background(colors.background),
+        contentAlignment = Alignment.TopCenter
     ) {
         if (uiState.isLoading) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .widthIn(max = 680.dp)
                     .padding(horizontal = StudyOSTheme.spacing.screenHorizontal, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -131,7 +133,7 @@ fun SubjectDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 600.dp)
+                    .widthIn(max = 680.dp)
             ) {
                 // Glass Top Bar: ← SubjectName ⋮
                 GlassTopBar(

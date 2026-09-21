@@ -56,13 +56,14 @@ fun SearchScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.background)
+            .background(colors.background),
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp, vertical = 24.dp)
-                .widthIn(max = 600.dp)
+                .widthIn(max = 680.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -180,15 +180,21 @@ fun TodayScreen(
             }
         )
 
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
-                .verticalScroll(rememberScrollState())
-                .widthIn(max = 560.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 680.dp)
+                    .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.Start
+            ) {
             Spacer(modifier = Modifier.height(16.dp))
 
             // Upcoming Exam or Flashcards Due Alerts
@@ -430,6 +436,7 @@ fun TodayScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
         }
+    }
     }
 
     SnackbarHost(

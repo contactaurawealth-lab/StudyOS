@@ -227,7 +227,7 @@ fun StudyOSApp(
 
                     // Secondary buttons in rail: AI Assistant, Search and Settings
                     StudyOSIconButton(
-                        onClick = { navController.navigate(Screen.Ai.route) },
+                        onClick = { navController.navigate(Screen.Ai.createRoute()) },
                         contentDescription = "AI Assistant"
                     ) {
                         Icon(
@@ -352,7 +352,7 @@ private val PrimaryDrawerItems = listOf(
 )
 
 private val SecondaryDrawerItems = listOf(
-    DrawerNavigationItem("AI Assistant", Screen.Ai.route, Icons.Outlined.Psychology),
+    DrawerNavigationItem("AI Assistant", Screen.Ai.createRoute(), Icons.Outlined.Psychology),
     DrawerNavigationItem("Tasks", Screen.Tasks.route, Icons.Outlined.CheckCircle),
     DrawerNavigationItem("Exams", Screen.Exams.route, Icons.Outlined.School),
     DrawerNavigationItem("Settings", Screen.Settings.route, Icons.Outlined.Settings)
@@ -413,7 +413,7 @@ private fun StudyOSNavGraph(
                     navController.navigate(Screen.Tasks.route)
                 },
                 onOpenAi = {
-                    navController.navigate(Screen.Ai.route)
+                    navController.navigate(Screen.Ai.createRoute())
                 },
                 onOpenExams = {
                     navController.navigate(Screen.Exams.route)
@@ -515,7 +515,7 @@ private fun StudyOSNavGraph(
                 onNavigateToSearch = { navController.navigate(Screen.Search.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToProgress = { navController.navigate(Screen.Progress.route) },
-                onNavigateToAi = { navController.navigate(Screen.Ai.route) },
+                onNavigateToAi = { navController.navigate(Screen.Ai.createRoute()) },
                 onNavigateToExams = { navController.navigate(Screen.Exams.route) },
                 onNavigateToMistakes = { navController.navigate(Screen.MistakeBank.route) },
                 onNavigateToRevision = { navController.navigate(Screen.RevisionDashboard.route) }

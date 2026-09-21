@@ -105,66 +105,74 @@ fun SubjectsScreen(
                 }
             )
 
-            if (uiState.isLoading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = StudyOSTheme.spacing.screenHorizontal, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    repeat(4) {
-                        ShimmerPlaceholder(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(96.dp),
-                            shape = shapes.medium
-                        )
-                    }
-                }
-            } else if (uiState.subjects.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = StudyOSTheme.spacing.screenHorizontal, vertical = 28.dp)
-                        .widthIn(max = 560.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    StudyOSEmptyState(
-                        title = "No subjects yet",
-                        description = "Add your first subject to start building your study plan.",
-                        actionButtonText = "Add Subject",
-                        onActionClick = { showAddSheet = true }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                if (uiState.isLoading) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 680.dp)
+                            .padding(horizontal = StudyOSTheme.spacing.screenHorizontal, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        StudyOSTextButton(
-                            text = "Load sample subjects & chapters",
-                            onClick = { viewModel.loadSampleData() }
-                        )
+                        repeat(4) {
+                            ShimmerPlaceholder(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(96.dp),
+                                shape = shapes.medium
+                            )
+                        }
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
-                        .widthIn(max = 560.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(uiState.subjects, key = { it.subject.id }) { item ->
-                        SubjectRowItem(
-                            item = item,
-                            onClick = { onSubjectClick(item.subject.id) },
-                            onRename = { subjectToRename = item },
-                            onDelete = { subjectToDelete = item }
+                } else if (uiState.subjects.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 680.dp)
+                            .padding(horizontal = StudyOSTheme.spacing.screenHorizontal, vertical = 28.dp),
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        StudyOSEmptyState(
+                            title = "No subjects yet",
+                            description = "Add your first subject to start building your study plan.",
+                            actionButtonText = "Add Subject",
+                            onActionClick = { showAddSheet = true }
                         )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            StudyOSTextButton(
+                                text = "Load sample subjects & chapters",
+                                onClick = { viewModel.loadSampleData() }
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 680.dp)
+                            .padding(horizontal = StudyOSTheme.spacing.screenHorizontal),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(uiState.subjects, key = { it.subject.id }) { item ->
+                            SubjectRowItem(
+                                item = item,
+                                onClick = { onSubjectClick(item.subject.id) },
+                                onRename = { subjectToRename = item },
+                                onDelete = { subjectToDelete = item }
+                            )
+                        }
                     }
                 }
             }
