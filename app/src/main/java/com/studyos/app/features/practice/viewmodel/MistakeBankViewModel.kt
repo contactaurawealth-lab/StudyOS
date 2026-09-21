@@ -28,6 +28,7 @@ data class MistakeBankUiState(
     val mistakes: List<Mistake> = emptyList(),
     val subjects: List<Subject> = emptyList(),
     val selectedFilter: MistakeFilter = MistakeFilter.UNRESOLVED,
+    val selectedCategory: String? = null,
     val selectedSubjectId: String? = null,
     val searchQuery: String = "",
     val isLoading: Boolean = true,
@@ -45,16 +46,23 @@ data class MistakeBankUiState(
                     MistakeFilter.ALL -> true
                 }
                 val matchesSubject = selectedSubjectId == null || mistake.subjectId == selectedSubjectId
+                val matchesCategory = selectedCategory == null || (mistake.topic?.contains(selectedCategory, ignoreCase = true) == true)
                 val matchesQuery = searchQuery.isBlank() ||
                         mistake.question.contains(searchQuery, ignoreCase = true) ||
                         (mistake.topic?.contains(searchQuery, ignoreCase = true) == true)
 
-                matchesFilter && matchesSubject && matchesQuery
+                matchesFilter && matchesSubject && matchesCategory && matchesQuery
             }
         }
 
     val unresolvedCount: Int get() = mistakes.count { !it.isResolved }
     val resolvedCount: Int get() = mistakes.count { it.isResolved }
+    val conceptCount: Int get() = mistakes.count { !it.isResolved && (it.topic?.contains("Concept", ignoreCase = true) == true) }
+    val memoryCount: Int get() = mistakes.count { !it.isResolved && (it.topic?.contains("Memory", ignoreCase = true) == true) }
+    val calculationCount: Int get() = mistakes.count { !it.isResolved && (it.topic?.contains("Calculation", ignoreCase = true) == true) }
+    val carelessCount: Int get() = mistakes.count { !it.isResolved && (it.topic?.contains("Careless", ignoreCase = true) == true || it.topic?.contains("Misread", ignoreCase = true) == true) }
+    val isReviewModalOpen: Boolean = false
+    val currentReviewIndex: Int = 0
 }
 
 class MistakeBankViewModel(
@@ -93,6 +101,10 @@ class MistakeBankViewModel(
 
     fun setSubjectFilter(subjectId: String?) {
         _uiState.update { it.copy(selectedSubjectId = subjectId) }
+    }
+
+    fun setCategoryFilter(category: String?) {
+        _uiState.update { it.copy(selectedCategory = if (it.selectedCategory == category) null else category) }
     }
 
     fun onSearchQueryChanged(query: String) {

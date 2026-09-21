@@ -20,7 +20,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSIconButton
@@ -90,18 +95,18 @@ fun SearchScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             if (!uiState.hasSearched) {
                 Text(
-                    text = "Search subjects and chapters.",
+                    text = "Search across subjects, chapters, notes, flashcards, mistakes, and recall prompts.",
                     style = typography.secondary,
                     color = colors.mutedText,
                     modifier = Modifier.padding(start = 8.dp)
                 )
-            } else if (uiState.subjectResults.isEmpty() && uiState.chapterResults.isEmpty()) {
+            } else if (uiState.totalResultsCount == 0) {
                 StudyOSEmptyState(
-                    title = "No results",
+                    title = "No results found",
                     description = "Nothing matched \"${uiState.query}\"."
                 )
             } else {
@@ -109,11 +114,13 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // 1. Subjects
                     if (uiState.subjectResults.isNotEmpty()) {
                         item {
                             Text(
                                 text = "Subjects (${uiState.subjectResults.size})",
                                 style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
                                 color = colors.secondaryText,
                                 modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
                             )
@@ -138,7 +145,7 @@ fun SearchScreen(
                                         imageVector = Icons.Outlined.MenuBook,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp),
-                                        tint = colors.secondaryText
+                                        tint = colors.accent
                                     )
                                     Spacer(modifier = Modifier.width(14.dp))
                                     Text(
@@ -151,12 +158,14 @@ fun SearchScreen(
                         }
                     }
 
+                    // 2. Chapters
                     if (uiState.chapterResults.isNotEmpty()) {
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Chapters (${uiState.chapterResults.size})",
                                 style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
                                 color = colors.secondaryText,
                                 modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
                             )
@@ -182,7 +191,7 @@ fun SearchScreen(
                                             imageVector = Icons.Outlined.BookmarkBorder,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp),
-                                            tint = colors.secondaryText
+                                            tint = colors.accent
                                         )
                                         Spacer(modifier = Modifier.width(14.dp))
                                         Column(modifier = Modifier.weight(1f)) {
@@ -212,6 +221,225 @@ fun SearchScreen(
                                         progress = result.chapter.progress,
                                         modifier = Modifier.fillMaxWidth()
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Notes
+                    if (uiState.noteResults.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Notes (${uiState.noteResults.size})",
+                                style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.secondaryText,
+                                modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                            )
+                        }
+
+                        items(uiState.noteResults, key = { "note_${it.id}" }) { note ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shapes.surface)
+                                    .background(colors.surface)
+                                    .border(1.dp, colors.border, shapes.surface)
+                                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Description,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                                        tint = colors.accent
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = note.title,
+                                            style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            color = colors.primaryText
+                                        )
+                                        if (note.content.isNotBlank()) {
+                                            Text(
+                                                text = note.content.take(120),
+                                                style = typography.caption,
+                                                color = colors.secondaryText,
+                                                maxLines = 2,
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Flashcards
+                    if (uiState.flashcardResults.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Flashcards (${uiState.flashcardResults.size})",
+                                style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.secondaryText,
+                                modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                            )
+                        }
+
+                        items(uiState.flashcardResults, key = { "fc_${it.id}" }) { card ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shapes.surface)
+                                    .background(colors.surface)
+                                    .border(1.dp, colors.border, shapes.surface)
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Style,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                                        tint = colors.accent
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = card.question,
+                                            style = typography.bodyMedium,
+                                            color = colors.primaryText
+                                        )
+                                        Text(
+                                            text = card.answer,
+                                            style = typography.caption,
+                                            color = colors.mutedText,
+                                            maxLines = 1,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 5. Mistakes
+                    if (uiState.mistakeResults.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Mistakes (${uiState.mistakeResults.size})",
+                                style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.secondaryText,
+                                modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                            )
+                        }
+
+                        items(uiState.mistakeResults, key = { "mst_${it.id}" }) { mistake ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shapes.surface)
+                                    .background(colors.surface)
+                                    .border(1.dp, colors.border, shapes.surface)
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ErrorOutline,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                                        tint = colors.critical
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = mistake.question,
+                                            style = typography.bodyMedium,
+                                            color = colors.primaryText
+                                        )
+                                        Row(
+                                            modifier = Modifier.padding(top = 4.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            if (!mistake.topic.isNullOrBlank()) {
+                                                Text(
+                                                    text = mistake.topic,
+                                                    style = typography.caption,
+                                                    color = colors.accent
+                                                )
+                                            }
+                                            Text(
+                                                text = if (mistake.isResolved) "Resolved" else "Needs Review",
+                                                style = typography.caption,
+                                                color = if (mistake.isResolved) colors.success else colors.critical
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 6. Active Recall Items
+                    if (uiState.recallResults.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Recall Prompts (${uiState.recallResults.size})",
+                                style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.secondaryText,
+                                modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                            )
+                        }
+
+                        items(uiState.recallResults, key = { "rec_${it.id}" }) { recall ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shapes.surface)
+                                    .background(colors.surface)
+                                    .border(1.dp, colors.border, shapes.surface)
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Psychology,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                                        tint = colors.accent
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = recall.prompt,
+                                            style = typography.bodyMedium,
+                                            color = colors.primaryText
+                                        )
+                                        Text(
+                                            text = "Accuracy: ${recall.recallAccuracy}% • Next review in ${recall.intervalDays}d",
+                                            style = typography.caption,
+                                            color = colors.mutedText,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
                                 }
                             }
                         }

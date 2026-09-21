@@ -20,13 +20,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import com.studyos.app.core.ui.component.StudyOSLoadingState
+import com.studyos.app.domain.model.RecallDashboardSummary
+import com.studyos.app.domain.model.SmartStudyRecommendation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -73,6 +78,8 @@ fun TodayScreen(
     onOpenExams: () -> Unit = {},
     onOpenFlashcards: () -> Unit = {},
     onOpenRevision: () -> Unit = {},
+    onOpenTimer: () -> Unit = {},
+    onStartAiSession: (subjectId: String?, chapterId: String?) -> Unit = { _, _ -> },
     onOpenDrawer: () -> Unit = {},
     onOpenSearch: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -169,6 +176,13 @@ fun TodayScreen(
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text("Study Timer", style = typography.body, color = colors.primaryText) },
+                            onClick = { menuExpanded = false; onOpenTimer() },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Timer, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Revision & Active Recall", style = typography.body, color = colors.primaryText) },
                             onClick = { menuExpanded = false; onOpenRevision() },
                             leadingIcon = {
@@ -186,126 +200,98 @@ fun TodayScreen(
                 .fillMaxWidth(),
             contentAlignment = Alignment.TopCenter
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .widthIn(max = 680.dp)
-                    .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.Start
-            ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Upcoming Exam or Flashcards Due Alerts
-            if (uiState.upcomingExam != null || uiState.dueFlashcardsCount > 0) {
-                Spacer(modifier = Modifier.height(18.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+            if (uiState.isLoading) {
+                StudyOSLoadingState(message = "Loading StudyOS...")
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 680.dp)
+                        .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    if (uiState.upcomingExam != null) {
-                        val exam = uiState.upcomingExam!!
-                        val days = kotlin.math.max(0L, (exam.targetDate - System.currentTimeMillis()) / 86_400_000L)
-                        GlassCard(
-                            modifier = Modifier.weight(1f),
-                            onClick = { onOpenExams() },
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Upcoming Exam or Flashcards Due Alerts
+                    if (uiState.upcomingExam != null || uiState.dueFlashcardsCount > 0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Column {
-                                Text(
-                                    text = if (days == 0L) "EXAM TODAY" else "EXAM IN $days DAYS",
-                                    style = typography.caption,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.accent
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = exam.name,
-                                    style = typography.secondary,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.primaryText,
-                                    maxLines = 1
-                                )
+                            if (uiState.upcomingExam != null) {
+                                val exam = uiState.upcomingExam!!
+                                val days = kotlin.math.max(0L, (exam.targetDate - System.currentTimeMillis()) / 86_400_000L)
+                                GlassCard(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onOpenExams() },
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = if (days == 0L) "EXAM TODAY" else "EXAM IN $days DAYS",
+                                            style = typography.caption,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = colors.accent
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = exam.name,
+                                            style = typography.secondary,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.primaryText,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (uiState.dueFlashcardsCount > 0) {
+                                GlassCard(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onOpenFlashcards() },
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "FLASHCARDS",
+                                            style = typography.caption,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = colors.accent
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "${uiState.dueFlashcardsCount} cards due",
+                                            style = typography.secondary,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.primaryText,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
                             }
                         }
+                        Spacer(modifier = Modifier.height(14.dp))
                     }
 
-                    if (uiState.dueFlashcardsCount > 0) {
-                        GlassCard(
-                            modifier = Modifier.weight(1f),
-                            onClick = { onOpenFlashcards() },
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "FLASHCARDS",
-                                    style = typography.caption,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.accent
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "${uiState.dueFlashcardsCount} cards due",
-                                    style = typography.secondary,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.primaryText,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Revision & Recall Quick Launcher
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onOpenRevision() },
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Psychology,
-                            contentDescription = null,
-                            tint = colors.accent,
-                            modifier = Modifier.size(20.dp)
+                    // 1. "What should I study now?" Smart Recommendation Card
+                    uiState.smartRecommendation?.let { recommendation ->
+                        SmartStudyRecommendationCard(
+                            recommendation = recommendation,
+                            onStartSession = { onStartAiSession(recommendation.subjectId, recommendation.chapterId) },
+                            onOpenChapter = onOpenChapter
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Revision & Active Recall",
-                                style = typography.body.copy(fontWeight = FontWeight.SemiBold),
-                                color = colors.primaryText
-                            )
-                            Text(
-                                text = "Daily spaced repetition schedule & active recall drills",
-                                style = typography.caption,
-                                color = colors.secondaryText
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
-                        contentDescription = null,
-                        tint = colors.mutedText,
-                        modifier = Modifier.size(14.dp)
+                    // 2. AI Recall Engine Dashboard Widget (Spaced Repetition & Status Strip)
+                    RecallDashboardWidget(
+                        summary = uiState.recallDashboardSummary,
+                        onStartRecall = onOpenRevision
                     )
-                }
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
             // 2. Today's Focus
             StudyOSSectionHeader(
@@ -436,6 +422,7 @@ fun TodayScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
         }
+    }
     }
     }
 
@@ -865,6 +852,325 @@ private fun TodayTasksSection(
                     StudyOSDivider()
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SmartStudyRecommendationCard(
+    recommendation: SmartStudyRecommendation,
+    onStartSession: (chapterId: String) -> Unit,
+    onOpenChapter: (chapterId: String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header tag + Match score
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Bolt,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "WHAT SHOULD I STUDY NOW?",
+                        style = typography.caption,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.accent
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(colors.accent.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "${recommendation.priorityScore}% Match",
+                        style = typography.caption,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.accent
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Subject name
+            Text(
+                text = recommendation.subjectName,
+                style = typography.secondary,
+                color = colors.secondaryText
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            // Chapter name
+            Text(
+                text = recommendation.chapterName,
+                style = typography.subsectionTitle,
+                color = colors.primaryText
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Why list
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shapes.surface)
+                    .background(colors.surface.copy(alpha = 0.5f))
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Why this chapter?",
+                    style = typography.caption,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.secondaryText
+                )
+                recommendation.whyReasons.forEach { reason ->
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "•",
+                            style = typography.caption,
+                            color = colors.accent
+                        )
+                        Text(
+                            text = reason,
+                            style = typography.caption,
+                            color = colors.primaryText
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Action row & Duration
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Timer,
+                        contentDescription = null,
+                        tint = colors.mutedText,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "${recommendation.recommendedDurationMinutes} min recommended",
+                        style = typography.caption,
+                        color = colors.mutedText
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StudyOSOutlinedButton(
+                        text = "View",
+                        onClick = { onOpenChapter(recommendation.chapterId) },
+                        modifier = Modifier.height(36.dp)
+                    )
+                    StudyOSButton(
+                        text = "Start Session",
+                        onClick = { onStartSession(recommendation.chapterId) },
+                        modifier = Modifier.height(36.dp)
+                    )
+                }
+            }
+
+            // Next chapter preview
+            val nextChapter = recommendation.nextChapterPreview
+            if (nextChapter != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                StudyOSDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Up next:",
+                        style = typography.caption,
+                        color = colors.mutedText
+                    )
+                    Text(
+                        text = nextChapter,
+                        style = typography.caption,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.secondaryText
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecallDashboardWidget(
+    summary: RecallDashboardSummary?,
+    onStartRecall: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val dueCount = summary?.dueCount ?: 0
+    val weakCount = summary?.weakCount ?: 0
+    val masteredCount = summary?.masteredCount ?: 0
+
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onStartRecall,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Psychology,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "AI Recall Engine",
+                        style = typography.body.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.primaryText
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(colors.accent.copy(alpha = 0.10f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "Spaced Recall",
+                        style = typography.caption,
+                        color = colors.accent
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3 Stat Pills: Due, Weak, Mastered
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Due
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.surface)
+                        .background(if (dueCount > 0) colors.accent.copy(alpha = 0.12f) else colors.surface)
+                        .padding(vertical = 8.dp, horizontal = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$dueCount",
+                            style = typography.sectionTitle.copy(fontWeight = FontWeight.Bold),
+                            color = if (dueCount > 0) colors.accent else colors.secondaryText
+                        )
+                        Text(
+                            text = "Due",
+                            style = typography.caption,
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+
+                // Weak
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.surface)
+                        .background(if (weakCount > 0) colors.critical.copy(alpha = 0.12f) else colors.surface)
+                        .padding(vertical = 8.dp, horizontal = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$weakCount",
+                            style = typography.sectionTitle.copy(fontWeight = FontWeight.Bold),
+                            color = if (weakCount > 0) colors.critical else colors.secondaryText
+                        )
+                        Text(
+                            text = "Weak",
+                            style = typography.caption,
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+
+                // Mastered
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.surface)
+                        .background(if (masteredCount > 0) colors.success.copy(alpha = 0.12f) else colors.surface)
+                        .padding(vertical = 8.dp, horizontal = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$masteredCount",
+                            style = typography.sectionTitle.copy(fontWeight = FontWeight.Bold),
+                            color = if (masteredCount > 0) colors.success else colors.secondaryText
+                        )
+                        Text(
+                            text = "Mastered",
+                            style = typography.caption,
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            StudyOSButton(
+                text = if (dueCount > 0) "Start Recall ($dueCount Due)" else "Start Recall Drill",
+                onClick = onStartRecall,
+                modifier = Modifier.fillMaxWidth().height(38.dp)
+            )
         }
     }
 }

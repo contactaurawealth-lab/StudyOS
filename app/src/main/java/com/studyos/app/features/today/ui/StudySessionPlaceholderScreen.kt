@@ -52,6 +52,7 @@ fun StudySessionPlaceholderScreen(
     viewModel: StudySessionViewModel,
     onBack: () -> Unit,
     onOpenChapter: (chapterId: String) -> Unit,
+    onOpenTimer: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -223,27 +224,19 @@ fun StudySessionPlaceholderScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Calm notice
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(shapes.surface)
-                            .background(colors.background)
-                            .border(1.dp, colors.border, shapes.surface)
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Study timer and active session tracking will be available in Phase 7.",
-                            style = typography.secondary,
-                            color = colors.secondaryText
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    Spacer(modifier = Modifier.height(28.dp))
+                    StudyOSButton(
+                        text = "Start Focus Timer",
+                        onClick = onOpenTimer,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Chapter button if linked
                     if (uiState.chapter != null) {
-                        StudyOSButton(
+                        StudyOSOutlinedButton(
                             text = "Open Chapter",
                             onClick = { onOpenChapter(uiState.chapter!!.id) },
                             modifier = Modifier.fillMaxWidth()

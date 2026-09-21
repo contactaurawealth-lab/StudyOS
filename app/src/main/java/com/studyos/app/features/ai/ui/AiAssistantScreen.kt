@@ -74,7 +74,7 @@ fun AiAssistantScreen(
     // Auto-scroll to bottom when new messages arrive or when streaming
     LaunchedEffect(uiState.messages.size, uiState.isGenerating) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.lastIndex)
+            listState.animateScrollToItem(uiState.messages.size)
         }
     }
 

@@ -248,6 +248,84 @@ class SendAiMessageUseCase(
         }
     }
 
+    private fun generateLocalOfflineResponse(
+        lastUserMessage: String?,
+        context: StudyContext?
+    ): String {
+        val query = lastUserMessage?.lowercase() ?: ""
+        return when {
+            query.contains("what should i study") || query.contains("what to study") || query.contains("recommend") || query.contains("next topic") -> {
+                val subjectName = context?.subjectName ?: "Core Subject"
+                val chapterName = context?.chapterName ?: "Key Chapter"
+                val progress = context?.chapterProgress ?: 0
+                """### 🎯 Recommended Study Focus
+Based on your StudyOS learning intelligence:
+- **Target Subject:** $subjectName
+- **Priority Chapter:** $chapterName
+- **Current Progress:** $progress%
+
+**Action Plan:**
+1. **Learn:** Spend 15 minutes reviewing key theorems and definitions.
+2. **Recall:** Perform a quick 5-item active recall session to test retrieval.
+3. **Practice:** Solve 3-5 rapid problems and capture any errors in the Mistake Bank.
+"""
+            }
+            query.contains("weak") || query.contains("struggl") -> {
+                val weak = context?.weakTopics ?: emptyList()
+                """### 🔍 Weak Areas & Knowledge Gaps
+Based on your practice quizzes and active recall stability:
+${if (weak.isNotEmpty()) {
+    weak.joinToString("\n") { "- **$it**: Prioritize concept reconstruction and retrieval." }
+} else {
+    "- Topics with Active Recall retention under 60% are flagged in your **Smart Revision Queue**."
+}}
+
+**Recommended Intervention:**
+- Review the core formulas from first principles.
+- Use the **Mistake Bank** to retry past missed questions.
+"""
+            }
+            query.contains("plan") || query.contains("30-minute") || query.contains("schedule") -> {
+                val topic = context?.chapterName ?: context?.subjectName ?: "Focused Subject"
+                """### ⏱️ Focused 30-Minute Study Plan
+Here is your structured, high-yield study cycle for **$topic**:
+
+1. **Minutes 0–15:** Concept Learning & Deep Reading
+2. **Minutes 15–22:** Active Recall Retrieval (test memory without notes)
+3. **Minutes 22–27:** Rapid Practice Quiz & Mistake Logging
+4. **Minutes 27–30:** Reflection & Daily Intelligence Update
+
+*Tip: Use the **Study Timer** in the sidebar to run this session with zero distractions!*
+"""
+            }
+            query.contains("exam") || query.contains("readiness") -> {
+                """### 📊 Exam Readiness Intelligence
+Your readiness score is evaluated using 7 key dimensions:
+- **Syllabus Coverage:** Progression through chapters
+- **Understanding Score:** Concept mastery
+- **Active Recall Stability:** Spaced repetition retention
+- **Practice Accuracy:** Quiz scores
+- **Mistake Clearance:** Unreviewed error reduction
+- **Freshness:** Knowledge decay since last study session
+- **Exam Proximity:** Days remaining countdown
+
+Head to the **Exams** tab in the sidebar to view your full countdown dashboard and high-yield focus topics!
+"""
+            }
+            else -> {
+                val topic = context?.chapterName ?: context?.subjectName ?: "this concept"
+                """### 💡 Academic Tutor (Local Intelligence)
+*Offline local intelligence active. Configure an API key in AI Settings to enable cloud models.*
+
+**Key Principles for Mastering $topic:**
+- **First Principles:** Break the concept down into its fundamental definitions and axioms.
+- **Active Retrieval:** Do not passively re-read. Formulate self-test questions and explain the concept aloud.
+- **Error Analysis:** When a problem is missed, identify whether it was a *Concept Gap*, *Calculation Error*, or *Memory Gap* in the **Mistake Bank**.
+"""
+            }
+        }
+    }
+
     suspend fun cancelStreaming(assistantMessageId: String) {
         val existing = messageRepository.getMessageByIdOnce(assistantMessageId)
         if (existing != null && existing.status == AiMessageStatus.STREAMING) {

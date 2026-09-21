@@ -104,6 +104,19 @@ sealed class Screen(val route: String) {
             return "recall/runner?${params.joinToString("&")}"
         }
     }
+
+    // Study Timer
+    object StudyTimer : Screen("timer")
+
+    // AI Study Session
+    object AiStudySession : Screen("ai-study-session?subjectId={subjectId}&chapterId={chapterId}") {
+        fun createRoute(subjectId: String? = null, chapterId: String? = null): String {
+            val params = mutableListOf<String>()
+            if (!subjectId.isNullOrBlank()) params.add("subjectId=$subjectId")
+            if (!chapterId.isNullOrBlank()) params.add("chapterId=$chapterId")
+            return if (params.isEmpty()) "ai-study-session" else "ai-study-session?${params.joinToString("&")}"
+        }
+    }
 }
 
 data class TopLevelDestination(

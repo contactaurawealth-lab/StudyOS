@@ -28,11 +28,18 @@ import com.studyos.app.domain.model.Exam
 import com.studyos.app.domain.usecase.GetDueFlashcardsUseCase
 import com.studyos.app.domain.usecase.GetExamsUseCase
 
+import com.studyos.app.domain.model.RecallDashboardSummary
+import com.studyos.app.domain.model.SmartStudyRecommendation
+import com.studyos.app.domain.usecase.GetRecallDashboardUseCase
+import com.studyos.app.domain.usecase.GetSmartStudyRecommendationUseCase
+
 data class TodayUiState(
     val studentName: String? = null,
     val greeting: String = "Good day.",
     val dateHeader: String = "",
     val focusItem: FocusItem? = null,
+    val smartRecommendation: SmartStudyRecommendation? = null,
+    val recallDashboardSummary: RecallDashboardSummary? = null,
     val upcomingSessions: List<StudySessionItem> = emptyList(),
     val todayTasks: List<TaskItem> = emptyList(),
     val completedMinutesToday: Int = 0,
@@ -68,6 +75,8 @@ class TodayViewModel(
     private val toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase,
     private val getDueFlashcardsUseCase: GetDueFlashcardsUseCase? = null,
     private val getExamsUseCase: GetExamsUseCase? = null,
+    private val getSmartStudyRecommendationUseCase: GetSmartStudyRecommendationUseCase? = null,
+    private val getRecallDashboardUseCase: GetRecallDashboardUseCase? = null,
     private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null,
     private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null
 ) : ViewModel() {
@@ -146,6 +155,25 @@ class TodayViewModel(
                     val nextExam = exams.filter { it.targetDate >= now }.minByOrNull { it.targetDate }
                     _uiState.update { it.copy(upcomingExam = nextExam) }
                 }
+            }
+        }
+
+        getRecallDashboardUseCase?.let { useCase ->
+            viewModelScope.launch {
+                useCase.observeSummary().collect { summary ->
+                    _uiState.update { it.copy(recallDashboardSummary = summary) }
+                }
+            }
+        }
+
+        refreshSmartRecommendation()
+    }
+
+    fun refreshSmartRecommendation() {
+        getSmartStudyRecommendationUseCase?.let { useCase ->
+            viewModelScope.launch {
+                val recommendation = useCase()
+                _uiState.update { it.copy(smartRecommendation = recommendation) }
             }
         }
     }

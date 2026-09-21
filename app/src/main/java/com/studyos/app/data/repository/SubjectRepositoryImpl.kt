@@ -44,12 +44,21 @@ class SubjectRepositoryImpl(
                     ?: chapters.firstOrNull { it.progress < 100 }
                     ?: chapters.firstOrNull()
 
+                val strongCount = chapters.count { it.progress >= 75 || it.status == ChapterStatus.COMPLETED }
+                val weakCount = chapters.count { it.progress in 1..49 }
+                val now = System.currentTimeMillis()
+                val dueCount = chapters.count { it.status != ChapterStatus.COMPLETED && (now - (it.lastOpenedAt ?: 0L) > 3 * 86400000L) }
+
                 SubjectWithProgress(
                     subject = subject,
                     chapterCount = chapters.size,
                     completedChapterCount = completedCount,
                     progress = progress,
-                    currentChapterName = currentChapter?.name
+                    currentChapterName = currentChapter?.name,
+                    strongCount = strongCount,
+                    weakCount = weakCount,
+                    dueCount = dueCount,
+                    readinessScore = progress
                 )
             }
         }

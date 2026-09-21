@@ -58,6 +58,8 @@ import com.studyos.app.domain.model.ActiveRecallSessionType
 import com.studyos.app.domain.model.ChapterMastery
 import com.studyos.app.domain.model.ChapterMasteryLevel
 import com.studyos.app.domain.model.RevisionRecommendation
+import com.studyos.app.domain.engine.PriorityQueueItem
+import com.studyos.app.domain.engine.RevisionQueueReasonType
 import com.studyos.app.features.practice.viewmodel.RevisionDashboardViewModel
 import com.studyos.app.theme.StudyOSTheme
 
@@ -191,6 +193,25 @@ fun RevisionDashboardScreen(
                             onAction = {
                                 onStartRecallSession(ActiveRecallSessionType.DEEP_15, rec.chapterId)
                             }
+                        )
+                    }
+                }
+
+                // 4.5. Smart Revision Queue
+                if (uiState.priorityQueue.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Smart Revision Queue (${uiState.priorityQueue.size})",
+                            style = typography.subsectionTitle,
+                            color = colors.primaryText
+                        )
+                    }
+
+                    items(uiState.priorityQueue, key = { "queue_${it.id}" }) { queueItem ->
+                        PriorityQueueCard(
+                            item = queueItem,
+                            onRevise = { onStartRecallSession(ActiveRecallSessionType.DEEP_15, queueItem.chapterId) },
+                            onOpenChapter = { queueItem.chapterId?.let(onOpenChapter) }
                         )
                     }
                 }
@@ -671,3 +692,97 @@ private fun ChapterMasteryCard(
         }
     }
 }
+
+@Composable
+private fun PriorityQueueCard(
+    item: PriorityQueueItem,
+    onRevise: () -> Unit,
+    onOpenChapter: () -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val reasonColor = when (item.reasonType) {
+        RevisionQueueReasonType.EXAM_APPROACHING -> colors.warning
+        RevisionQueueReasonType.RECALL_OVERDUE -> colors.accent
+        RevisionQueueReasonType.HIGH_MISTAKE_RATE -> colors.critical
+        RevisionQueueReasonType.WEAK_CONCEPT_GAP -> colors.critical
+        RevisionQueueReasonType.NEGLECTED_TOPIC -> colors.mutedText
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.card)
+            .background(colors.cardBackground)
+            .border(1.dp, colors.border, shapes.card)
+            .clickable(onClick = onOpenChapter)
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.title,
+                        style = typography.body.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.primaryText
+                    )
+                    Text(
+                        text = item.subjectName,
+                        style = typography.caption,
+                        color = colors.mutedText,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, shapes.surface)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Score ${item.priorityScore}",
+                        style = typography.caption.copy(fontSize = 11.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = colors.accent
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(reasonColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = item.reason,
+                        style = typography.caption.copy(fontSize = 11.sp),
+                        fontWeight = FontWeight.Medium,
+                        color = reasonColor
+                    )
+                }
+
+                StudyOSButton(
+                    text = "Revise",
+                    onClick = onRevise
+                )
+            }
+        }
+    }
+}
+

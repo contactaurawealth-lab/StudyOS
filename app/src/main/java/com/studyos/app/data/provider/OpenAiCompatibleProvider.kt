@@ -188,6 +188,12 @@ class OpenAiCompatibleProvider : AiProvider {
                         hasReceivedContent = true
                         emit(AiStreamChunk.Content(deltaContent))
                     }
+                } else if (currentLine.startsWith("{") && !hasReceivedContent) {
+                    val fallbackContent = extractDeltaContent(currentLine)
+                    if (!fallbackContent.isNullOrEmpty()) {
+                        hasReceivedContent = true
+                        emit(AiStreamChunk.Content(fallbackContent))
+                    }
                 }
             }
 
@@ -223,9 +229,15 @@ class OpenAiCompatibleProvider : AiProvider {
                     "The connection to the AI provider timed out. Please try again."
                 )
             )
+        } catch (e: java.io.IOException) {
+            emit(
+                AiStreamChunk.Error(
+                    AiErrorType.NO_INTERNET,
+                    "Network error: ${e.localizedMessage ?: "Unable to access the internet. Please check your network connection."}"
+                )
+            )
         } catch (e: CancellationException) {
-            // User requested stop generation
-            emit(AiStreamChunk.Done)
+            // User requested stop generation - rethrow without emitting to respect cancellation
             throw e
         } catch (e: Exception) {
             emit(
@@ -240,7 +252,6 @@ class OpenAiCompatibleProvider : AiProvider {
             } catch (e: Exception) {
                 // Ignore
             }
-            connection?.disconnect()
         }
     }.flowOn(Dispatchers.IO)
 
@@ -250,12 +261,19 @@ class OpenAiCompatibleProvider : AiProvider {
             val choices = json.optJSONArray("choices") ?: return null
             if (choices.length() == 0) return null
             val choice = choices.getJSONObject(0)
-            val delta = choice.optJSONObject("delta") ?: return null
-            if (delta.has("content") && !delta.isNull("content")) {
-                delta.getString("content")
-            } else {
-                null
+            val delta = choice.optJSONObject("delta")
+            if (delta != null && delta.has("content") && !delta.isNull("content")) {
+                return delta.getString("content")
             }
+            val message = choice.optJSONObject("message")
+            if (message != null && message.has("content") && !message.isNull("content")) {
+                return message.getString("content")
+            }
+            val text = choice.optString("text")
+            if (text.isNotBlank()) {
+                return text
+            }
+            null
         } catch (e: Exception) {
             null
         }

@@ -82,26 +82,34 @@ class FlashcardStudyViewModel(
         _uiState.update { it.copy(isAnswerRevealed = true) }
     }
 
+    private var isRatingInProgress = false
+
     fun rateCard(rating: FlashcardRating) {
         val currentCard = _uiState.value.currentCard ?: return
+        if (isRatingInProgress || !_uiState.value.isAnswerRevealed) return
+        isRatingInProgress = true
 
         viewModelScope.launch {
-            reviewFlashcardUseCase(currentCard.id, rating)
+            try {
+                reviewFlashcardUseCase(currentCard.id, rating)
 
-            _uiState.update { state ->
-                val nextIdx = state.currentIndex + 1
-                val isDone = nextIdx >= state.cards.size
+                _uiState.update { state ->
+                    val nextIdx = state.currentIndex + 1
+                    val isDone = nextIdx >= state.cards.size
 
-                state.copy(
-                    currentIndex = nextIdx,
-                    isAnswerRevealed = false,
-                    isFinished = isDone,
-                    reviewedCount = state.reviewedCount + 1,
-                    againCount = state.againCount + if (rating == FlashcardRating.AGAIN) 1 else 0,
-                    hardCount = state.hardCount + if (rating == FlashcardRating.HARD) 1 else 0,
-                    goodCount = state.goodCount + if (rating == FlashcardRating.GOOD) 1 else 0,
-                    easyCount = state.easyCount + if (rating == FlashcardRating.EASY) 1 else 0
-                )
+                    state.copy(
+                        currentIndex = nextIdx,
+                        isAnswerRevealed = false,
+                        isFinished = isDone,
+                        reviewedCount = state.reviewedCount + 1,
+                        againCount = state.againCount + if (rating == FlashcardRating.AGAIN) 1 else 0,
+                        hardCount = state.hardCount + if (rating == FlashcardRating.HARD) 1 else 0,
+                        goodCount = state.goodCount + if (rating == FlashcardRating.GOOD) 1 else 0,
+                        easyCount = state.easyCount + if (rating == FlashcardRating.EASY) 1 else 0
+                    )
+                }
+            } finally {
+                isRatingInProgress = false
             }
         }
     }

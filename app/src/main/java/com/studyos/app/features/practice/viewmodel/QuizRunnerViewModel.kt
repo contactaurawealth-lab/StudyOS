@@ -132,10 +132,13 @@ class QuizRunnerViewModel(
         }
     }
 
+    private var persistJob: kotlinx.coroutines.Job? = null
+
     private fun persistActiveState() {
         val state = _uiState.value
         if (state.isCompleted || state.quiz == null) return
-        viewModelScope.launch {
+        persistJob?.cancel()
+        persistJob = viewModelScope.launch {
             saveActiveQuizStateUseCase(
                 ActiveQuizState(
                     quizId = quizId,

@@ -154,7 +154,35 @@ fun ProgressScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Consistency & Retention Momentum Card
+                            GlassCard(
+                                backgroundColor = colors.glassSurface,
+                                padding = 16.dp
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = "Consistency & Momentum",
+                                        style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                        color = colors.accent
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = if (progress.completedChapters > 0) "Active Learning Pace" else "Start Your Habit",
+                                        style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = colors.primaryText
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Non-punitive consistency: daily retrieval and incremental progress compound into long-term recall without penalty for missed days.",
+                                        style = typography.caption,
+                                        color = colors.secondaryText
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
 
                             // Subjects Breakdown Section Header
                             Text(

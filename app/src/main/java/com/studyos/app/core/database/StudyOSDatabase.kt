@@ -47,6 +47,9 @@ import com.studyos.app.core.database.entity.StudentEntity
 import com.studyos.app.core.database.entity.StudyPlanEntity
 import com.studyos.app.core.database.entity.StudyPreferencesEntity
 import com.studyos.app.core.database.entity.StudySessionEntity
+import com.studyos.app.core.database.dao.RecallDao
+import com.studyos.app.core.database.entity.RecallAttemptEntity
+import com.studyos.app.core.database.entity.RecallItemEntity
 import com.studyos.app.core.database.entity.SubjectEntity
 import com.studyos.app.core.database.entity.TaskEntity
 import com.studyos.app.core.database.entity.TestAttemptEntity
@@ -79,9 +82,11 @@ import com.studyos.app.core.database.entity.TestEntity
         AiConversationEntity::class,
         AiMessageEntity::class,
         RevisionScheduleEntity::class,
-        ActiveRecallLogEntity::class
+        ActiveRecallLogEntity::class,
+        RecallItemEntity::class,
+        RecallAttemptEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class StudyOSDatabase : RoomDatabase() {
@@ -105,6 +110,7 @@ abstract class StudyOSDatabase : RoomDatabase() {
     abstract fun testAttemptDao(): TestAttemptDao
     abstract fun studyPlanDao(): StudyPlanDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun recallDao(): RecallDao
 
     companion object {
         @Volatile
@@ -142,7 +148,11 @@ abstract class StudyOSDatabase : RoomDatabase() {
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE `chapters` ADD COLUMN `lastStudiedAt` INTEGER DEFAULT NULL")
+                try {
+                    db.execSQL("ALTER TABLE `chapters` ADD COLUMN `lastOpenedAt` INTEGER DEFAULT NULL")
+                } catch (e: Exception) {
+                    // Column might already exist
+                }
             }
         }
 
@@ -155,13 +165,11 @@ abstract class StudyOSDatabase : RoomDatabase() {
                         `description` TEXT,
                         `subjectId` TEXT,
                         `chapterId` TEXT,
-                        `dueDate` INTEGER,
+                        `dueAt` INTEGER,
                         `priority` TEXT NOT NULL,
                         `status` TEXT NOT NULL,
-                        `estimatedMinutes` INTEGER,
                         `createdAt` INTEGER NOT NULL,
                         `updatedAt` INTEGER NOT NULL,
-                        `completedAt` INTEGER,
                         PRIMARY KEY(`id`),
                         FOREIGN KEY(`subjectId`) REFERENCES `subjects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
                         FOREIGN KEY(`chapterId`) REFERENCES `chapters`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
@@ -170,15 +178,23 @@ abstract class StudyOSDatabase : RoomDatabase() {
 
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_subjectId` ON `tasks` (`subjectId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_chapterId` ON `tasks` (`chapterId`)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_dueDate` ON `tasks` (`dueDate`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_dueAt` ON `tasks` (`dueAt`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_status` ON `tasks` (`status`)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_priority` ON `tasks` (`priority`)")
 
-                db.execSQL("ALTER TABLE `study_sessions` ADD COLUMN `scheduledStartTime` INTEGER DEFAULT NULL")
-                db.execSQL("ALTER TABLE `study_sessions` ADD COLUMN `plannedDurationMinutes` INTEGER NOT NULL DEFAULT 45")
-                db.execSQL("ALTER TABLE `study_sessions` ADD COLUMN `isScheduled` INTEGER NOT NULL DEFAULT 0")
+                try {
+                    db.execSQL("ALTER TABLE `study_sessions` ADD COLUMN `scheduledStart` INTEGER DEFAULT NULL")
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `study_sessions` ADD COLUMN `scheduledEnd` INTEGER DEFAULT NULL")
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `study_sessions` ADD COLUMN `plannedMinutes` INTEGER NOT NULL DEFAULT 45")
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `study_sessions` ADD COLUMN `actualMinutes` INTEGER NOT NULL DEFAULT 0")
+                } catch (e: Exception) {}
 
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_study_sessions_scheduledStartTime` ON `study_sessions` (`scheduledStartTime`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_study_sessions_scheduledStart` ON `study_sessions` (`scheduledStart`)")
             }
         }
 
@@ -480,6 +496,57 @@ abstract class StudyOSDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `recall_items` (
+                        `id` TEXT NOT NULL,
+                        `chapterId` TEXT NOT NULL,
+                        `subjectId` TEXT NOT NULL,
+                        `questionType` TEXT NOT NULL,
+                        `prompt` TEXT NOT NULL,
+                        `expectedAnswer` TEXT NOT NULL,
+                        `explanation` TEXT NOT NULL,
+                        `optionsJson` TEXT NOT NULL,
+                        `recallState` TEXT NOT NULL,
+                        `lastStudiedTimestamp` INTEGER,
+                        `lastRecalledTimestamp` INTEGER,
+                        `recallAccuracy` INTEGER NOT NULL,
+                        `recallAttempts` INTEGER NOT NULL,
+                        `consecutiveCorrect` INTEGER NOT NULL,
+                        `consecutiveIncorrect` INTEGER NOT NULL,
+                        `confidence` REAL NOT NULL,
+                        `intervalDays` INTEGER NOT NULL,
+                        `nextReviewTimestamp` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`chapterId`) REFERENCES `chapters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`subjectId`) REFERENCES `subjects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recall_items_chapterId` ON `recall_items` (`chapterId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recall_items_subjectId` ON `recall_items` (`subjectId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recall_items_recallState` ON `recall_items` (`recallState`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recall_items_nextReviewTimestamp` ON `recall_items` (`nextReviewTimestamp`)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `recall_attempts` (
+                        `id` TEXT NOT NULL,
+                        `recallItemId` TEXT NOT NULL,
+                        `chapterId` TEXT NOT NULL,
+                        `userAnswer` TEXT NOT NULL,
+                        `wasCorrect` INTEGER NOT NULL,
+                        `confidenceRating` INTEGER NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`recallItemId`) REFERENCES `recall_items`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recall_attempts_recallItemId` ON `recall_attempts` (`recallItemId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recall_attempts_chapterId` ON `recall_attempts` (`chapterId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recall_attempts_timestamp` ON `recall_attempts` (`timestamp`)")
+            }
+        }
+
         fun getDatabase(context: Context): StudyOSDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -487,7 +554,7 @@ abstract class StudyOSDatabase : RoomDatabase() {
                     StudyOSDatabase::class.java,
                     "studyos_database.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

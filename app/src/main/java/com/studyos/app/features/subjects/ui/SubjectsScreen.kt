@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.GlassCard
 import com.studyos.app.core.ui.component.GlassDialog
 import com.studyos.app.core.ui.component.GlassIconButton
@@ -343,13 +344,71 @@ private fun SubjectRowItem(
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (!item.currentChapterName.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = "${item.currentChapterName} → Continue",
-                style = typography.caption.copy(fontWeight = FontWeight.Medium),
-                color = colors.accent
-            )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Chapter Health Badges
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (item.strongCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .clip(StudyOSTheme.shapes.surface)
+                        .background(colors.success.copy(alpha = 0.12f))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "${item.strongCount} Strong",
+                        style = typography.caption.copy(fontSize = 11.sp),
+                        color = colors.success,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            if (item.weakCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .clip(StudyOSTheme.shapes.surface)
+                        .background(colors.critical.copy(alpha = 0.12f))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "${item.weakCount} Weak",
+                        style = typography.caption.copy(fontSize = 11.sp),
+                        color = colors.critical,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            if (item.dueCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .clip(StudyOSTheme.shapes.surface)
+                        .background(colors.warning.copy(alpha = 0.12f))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "${item.dueCount} Due",
+                        style = typography.caption.copy(fontSize = 11.sp),
+                        color = colors.warning,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (!item.currentChapterName.isNullOrBlank()) {
+                Text(
+                    text = "${item.currentChapterName} →",
+                    style = typography.caption.copy(fontWeight = FontWeight.Medium),
+                    color = colors.accent
+                )
+            }
         }
     }
 }

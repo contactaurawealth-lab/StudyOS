@@ -243,6 +243,39 @@ fun MistakeBankScreen(
                     }
                 }
 
+                // Category Filter Chips
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val categories = listOf(
+                        Pair("Concept", "Concept Gap (${uiState.conceptCount})"),
+                        Pair("Memory", "Memory Gap (${uiState.memoryCount})"),
+                        Pair("Calculation", "Calculation (${uiState.calculationCount})"),
+                        Pair("Careless", "Careless (${uiState.carelessCount})")
+                    )
+                    categories.forEach { (catKey, catLabel) ->
+                        val isSelected = uiState.selectedCategory == catKey
+                        Box(
+                            modifier = Modifier
+                                .clip(shapes.button)
+                                .background(if (isSelected) colors.accent.copy(alpha = 0.15f) else colors.surface)
+                                .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
+                                .clickable { viewModel.setCategoryFilter(catKey) }
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = catLabel,
+                                style = typography.caption.copy(fontSize = 11.sp),
+                                color = if (isSelected) colors.accent else colors.secondaryText,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Mistakes List

@@ -29,6 +29,9 @@ interface FlashcardDao {
     @Query("SELECT * FROM flashcards WHERE id = :id LIMIT 1")
     suspend fun getFlashcardByIdOnce(id: String): FlashcardEntity?
 
+    @Query("SELECT * FROM flashcards WHERE chapterId = :chapterId ORDER BY nextReview ASC, createdAt ASC")
+    suspend fun getFlashcardsForChapterOnce(chapterId: String): List<FlashcardEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(flashcard: FlashcardEntity)
 

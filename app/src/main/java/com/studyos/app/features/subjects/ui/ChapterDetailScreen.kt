@@ -15,12 +15,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Psychology
+import com.studyos.app.core.ui.component.StudyOSDivider
+import com.studyos.app.domain.model.ActionableWeakConcept
+import com.studyos.app.domain.model.ChapterIntelligence
+import com.studyos.app.domain.model.IntelligentChapterStatus
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -233,6 +239,7 @@ fun ChapterDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = StudyOSTheme.spacing.screenHorizontal)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -268,6 +275,17 @@ fun ChapterDetailScreen(
                                 color = colors.secondaryText
                             )
                         }
+                    }
+
+                    // Chapter Intelligence: 4 Dimensions, Status Badge, Weak Concepts, Timeline
+                    uiState.intelligence?.let { intel ->
+                        Spacer(modifier = Modifier.height(16.dp))
+                        ChapterIntelligenceCard(
+                            intelligence = intel,
+                            onRecallConcept = { onOpenPractice(chapter.id) },
+                            onReviewConcept = { onAskAi(chapter.id) },
+                            onPracticeConcept = { onOpenPractice(chapter.id) }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -460,5 +478,316 @@ private fun StatusOptionChip(
             style = typography.caption,
             color = textCol
         )
+    }
+}
+
+@Composable
+private fun ChapterIntelligenceCard(
+    intelligence: ChapterIntelligence,
+    onRecallConcept: (concept: String) -> Unit,
+    onReviewConcept: (concept: String) -> Unit,
+    onPracticeConcept: (concept: String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val statusColor = when (intelligence.status) {
+        IntelligentChapterStatus.MASTERED -> colors.success
+        IntelligentChapterStatus.STRONG -> colors.accent
+        IntelligentChapterStatus.NEEDS_ATTENTION -> colors.critical
+        IntelligentChapterStatus.REVISION_DUE -> colors.warning
+        IntelligentChapterStatus.LEARNING -> colors.accent
+        IntelligentChapterStatus.NOT_STARTED -> colors.mutedText
+    }
+
+    GlassCard(
+        backgroundColor = colors.glassSurface,
+        padding = 18.dp,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header with Status Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Psychology,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "CHAPTER INTELLIGENCE",
+                        style = typography.caption,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.accent
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(statusColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = intelligence.status.label,
+                        style = typography.caption,
+                        fontWeight = FontWeight.SemiBold,
+                        color = statusColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 4 Quadrant Dimensions Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Understanding
+                DimensionMetricItem(
+                    label = "Understanding",
+                    percentage = intelligence.understandingPercentage,
+                    color = colors.accent,
+                    modifier = Modifier.weight(1f)
+                )
+                // Recall
+                DimensionMetricItem(
+                    label = "Recall",
+                    percentage = intelligence.recallPercentage,
+                    color = if (intelligence.recallPercentage < 60 && intelligence.completionPercentage > 60) colors.critical else colors.accent,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Practice
+                DimensionMetricItem(
+                    label = "Practice",
+                    percentage = intelligence.practicePercentage,
+                    color = colors.accent,
+                    modifier = Modifier.weight(1f)
+                )
+                // Completion
+                DimensionMetricItem(
+                    label = "Completion",
+                    percentage = intelligence.completionPercentage,
+                    color = if (intelligence.completionPercentage == 100) colors.success else colors.accent,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Disparity Warning
+            if (intelligence.status == IntelligentChapterStatus.NEEDS_ATTENTION) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shapes.surface)
+                        .background(colors.critical.copy(alpha = 0.10f))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "Attention: Syllabus completion is high, but recall accuracy is below 60%. Prioritize active recall to prevent memory decay.",
+                        style = typography.caption,
+                        color = colors.critical
+                    )
+                }
+            }
+
+            // Timeline
+            Spacer(modifier = Modifier.height(14.dp))
+            StudyOSDivider()
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Last studied: ${intelligence.lastStudiedText}",
+                        style = typography.caption,
+                        color = colors.secondaryText
+                    )
+                    Text(
+                        text = "Last recalled: ${intelligence.lastRecalledText}",
+                        style = typography.caption,
+                        color = colors.secondaryText
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(colors.surface)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Review: ${intelligence.nextReviewText}",
+                        style = typography.caption,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.accent
+                    )
+                }
+            }
+
+            // Actionable Weak Concepts
+            if (intelligence.actionableWeakConcepts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(14.dp))
+                StudyOSDivider()
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Weak Concepts Identified",
+                    style = typography.caption,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.secondaryText
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                for (conceptItem in intelligence.actionableWeakConcepts) {
+                    WeakConceptRow(
+                        item = conceptItem,
+                        onRecall = { onRecallConcept(conceptItem.concept) },
+                        onReview = { onReviewConcept(conceptItem.concept) },
+                        onPractice = { onPracticeConcept(conceptItem.concept) }
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DimensionMetricItem(
+    label: String,
+    percentage: Int,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    Box(
+        modifier = modifier
+            .clip(shapes.surface)
+            .background(colors.surface)
+            .padding(10.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = typography.caption,
+                    color = colors.secondaryText
+                )
+                Text(
+                    text = "$percentage%",
+                    style = typography.caption,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            StudyOSProgressBar(
+                progress = percentage,
+                height = 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeakConceptRow(
+    item: ActionableWeakConcept,
+    onRecall: () -> Unit,
+    onReview: () -> Unit,
+    onPractice: () -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.surface)
+            .background(colors.surface.copy(alpha = 0.6f))
+            .padding(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.concept,
+                    style = typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.primaryText,
+                    maxLines = 1
+                )
+                Text(
+                    text = "${item.missCount} mistakes logged",
+                    style = typography.caption,
+                    color = colors.critical
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(colors.accent.copy(alpha = 0.12f))
+                        .clickable(onClick = onRecall)
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Text("Recall", style = typography.caption, color = colors.accent, fontWeight = FontWeight.SemiBold)
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(colors.surface)
+                        .clickable(onClick = onReview)
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Text("Review", style = typography.caption, color = colors.secondaryText, fontWeight = FontWeight.SemiBold)
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.surface)
+                        .background(colors.surface)
+                        .clickable(onClick = onPractice)
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Text("Practice", style = typography.caption, color = colors.secondaryText, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
     }
 }

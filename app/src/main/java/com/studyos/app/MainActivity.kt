@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         container = appContainer,
                         isOnboardingCompleted = appState.isOnboardingCompleted,
                         initialRoute = pendingRoute.value,
+                        onRouteConsumed = { pendingRoute.value = null },
                         onExitApp = { finish() }
                     )
                 } else {

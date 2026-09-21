@@ -52,8 +52,10 @@ import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSLoadingState
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
 import com.studyos.app.core.ui.component.StudyOSProgressBar
+import com.studyos.app.core.ui.component.StudyOSTextField
 import com.studyos.app.domain.model.ActiveRecallItemType
 import com.studyos.app.domain.model.ActiveRecallSessionSummary
+import com.studyos.app.domain.model.RecallEvaluationStatus
 import com.studyos.app.features.practice.viewmodel.ActiveRecallRunnerViewModel
 import com.studyos.app.theme.StudyOSTheme
 
@@ -273,47 +275,129 @@ fun ActiveRecallRunnerScreen(
                                 }
                             }
 
-                            // Answer reveal block for Flashcard and Mistake Retry
-                            if (currentItem.type != ActiveRecallItemType.CONCEPT_QUIZ) {
-                                AnimatedVisibility(
-                                    visible = uiState.isAnswerRevealed,
-                                    enter = fadeIn(),
-                                    exit = fadeOut()
-                                ) {
-                                    Column {
-                                        StudyOSDivider(modifier = Modifier.padding(vertical = 12.dp))
+                            // Optional active typing before reveal
+                            if (!uiState.isAnswerRevealed && currentItem.type != ActiveRecallItemType.CONCEPT_QUIZ) {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                StudyOSTextField(
+                                    value = uiState.typedAnswer,
+                                    onValueChange = viewModel::updateTypedAnswer,
+                                    placeholder = "Type your answer to test active recall...",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
 
-                                        Text(
-                                            text = "Correct Answer:",
-                                            style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
-                                            color = colors.success
-                                        )
+                            // Answer reveal block & Evaluation Feedback
+                            AnimatedVisibility(
+                                visible = uiState.isAnswerRevealed,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    StudyOSDivider(modifier = Modifier.padding(vertical = 14.dp))
 
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                    val eval = uiState.evaluationResult
+                                    val resultLabel = when (eval?.status) {
+                                        RecallEvaluationStatus.CORRECT -> "Correct"
+                                        RecallEvaluationStatus.PARTIALLY_CORRECT -> "Partially Correct"
+                                        RecallEvaluationStatus.INCORRECT -> "Needs Review"
+                                        null -> if (uiState.selectedOption.equals(currentItem.answer, ignoreCase = true)) "Correct" else "Revealed"
+                                    }
+                                    val resultColor = when (eval?.status) {
+                                        RecallEvaluationStatus.CORRECT -> colors.success
+                                        RecallEvaluationStatus.PARTIALLY_CORRECT -> colors.warning
+                                        RecallEvaluationStatus.INCORRECT -> colors.critical
+                                        null -> colors.accent
+                                    }
 
-                                        Text(
-                                            text = currentItem.answer,
-                                            style = typography.body.copy(fontWeight = FontWeight.Medium),
-                                            color = colors.primaryText
-                                        )
+                                    // Evaluation Feedback Card
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(shapes.card)
+                                            .background(colors.surface.copy(alpha = 0.5f))
+                                            .border(1.dp, resultColor.copy(alpha = 0.4f), shapes.card)
+                                            .padding(14.dp)
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            // Result Header
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "RECALL EVALUATION",
+                                                    style = typography.caption,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.secondaryText
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(shapes.surface)
+                                                        .background(resultColor.copy(alpha = 0.14f))
+                                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = resultLabel,
+                                                        style = typography.caption,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = resultColor
+                                                    )
+                                                }
+                                            }
 
-                                        if (!currentItem.explanation.isNullOrBlank()) {
-                                            Spacer(modifier = Modifier.height(10.dp))
-                                            Text(
-                                                text = currentItem.explanation,
-                                                style = typography.caption,
-                                                color = colors.secondaryText
-                                            )
+                                            // Your Answer (if typed)
+                                            val studentAnswer = uiState.typedAnswer.ifBlank { uiState.selectedOption }
+                                            if (!studentAnswer.isNullOrBlank()) {
+                                                Column {
+                                                    Text(
+                                                        text = "Your answer:",
+                                                        style = typography.caption,
+                                                        color = colors.secondaryText
+                                                    )
+                                                    Text(
+                                                        text = studentAnswer,
+                                                        style = typography.body,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = colors.primaryText
+                                                    )
+                                                }
+                                            }
+
+                                            // Expected Answer
+                                            Column {
+                                                Text(
+                                                    text = "Expected answer:",
+                                                    style = typography.caption,
+                                                    color = colors.success
+                                                )
+                                                Text(
+                                                    text = currentItem.answer,
+                                                    style = typography.body,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = colors.primaryText
+                                                )
+                                            }
+
+                                            // Why
+                                            val whyText = currentItem.explanation?.ifBlank { null }
+                                                ?: eval?.whyExplanation?.ifBlank { null }
+                                                ?: "Core fundamental principle of this concept."
+                                            Column {
+                                                Text(
+                                                    text = "Why:",
+                                                    style = typography.caption,
+                                                    color = colors.accent
+                                                )
+                                                Text(
+                                                    text = whyText,
+                                                    style = typography.caption,
+                                                    color = colors.secondaryText
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            } else if (uiState.isAnswerRevealed && !currentItem.explanation.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Explanation: ${currentItem.explanation}",
-                                    style = typography.caption,
-                                    color = colors.secondaryText
-                                )
                             }
                         }
                     }

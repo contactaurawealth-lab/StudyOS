@@ -19,10 +19,13 @@ interface MistakeDao {
     @Query("SELECT * FROM mistakes ORDER BY isResolved ASC, lastMissedAt DESC")
     fun observeAllMistakes(): Flow<List<MistakeEntity>>
 
+    @Query("SELECT * FROM mistakes WHERE chapterId = :chapterId ORDER BY isResolved ASC, lastMissedAt DESC")
+    suspend fun getMistakesForChapterOnce(chapterId: String): List<MistakeEntity>
+
     @Query("SELECT * FROM mistakes WHERE id = :id LIMIT 1")
     suspend fun getMistakeById(id: String): MistakeEntity?
 
-    @Query("SELECT * FROM mistakes WHERE question = :question AND chapterId = :chapterId LIMIT 1")
+    @Query("SELECT * FROM mistakes WHERE question = :question AND ((:chapterId IS NULL AND chapterId IS NULL) OR chapterId = :chapterId) LIMIT 1")
     suspend fun findExistingMistake(question: String, chapterId: String?): MistakeEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

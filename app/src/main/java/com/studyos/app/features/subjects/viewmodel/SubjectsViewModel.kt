@@ -34,13 +34,16 @@ class SubjectsViewModel(
     private val _uiState = MutableStateFlow(SubjectsUiState())
     val uiState: StateFlow<SubjectsUiState> = _uiState.asStateFlow()
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     init {
         loadSubjects()
     }
 
     fun loadSubjects() {
+        loadJob?.cancel()
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             getSubjectsWithProgressUseCase()
                 .catch {
                     _uiState.update { state ->

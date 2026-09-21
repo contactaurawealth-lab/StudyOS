@@ -86,7 +86,7 @@ class AlarmScheduler(private val context: Context) {
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-            if (timeInMillis <= System.currentTimeMillis()) {
+            if (timeInMillis <= System.currentTimeMillis() + 60_000) {
                 add(Calendar.DAY_OF_YEAR, 1)
             }
         }

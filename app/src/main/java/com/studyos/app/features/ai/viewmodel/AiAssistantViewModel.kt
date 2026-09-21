@@ -312,10 +312,11 @@ class AiAssistantViewModel(
     fun stopGeneration() {
         streamJob?.cancel()
         streamJob = null
-        currentAssistantMessageId?.let { msgId ->
+        val msgId = currentAssistantMessageId
+        currentAssistantMessageId = null
+        msgId?.let { id ->
             viewModelScope.launch {
-                sendAiMessageUseCase.cancelStreaming(msgId)
-                currentAssistantMessageId = null
+                sendAiMessageUseCase.cancelStreaming(id)
             }
         }
         _uiState.update { it.copy(isGenerating = false) }

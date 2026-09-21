@@ -546,4 +546,45 @@ class StudyOSAppContainer(private val context: Context) {
     val aiStudyEngineUseCase: com.studyos.app.domain.usecase.AiStudyEngineUseCase by lazy {
         com.studyos.app.domain.usecase.AiStudyEngineUseCase(aiProvider, preferencesDataSource)
     }
+
+    // AI Recall Engine & Intelligence Upgrade
+    val recallRepository: com.studyos.app.domain.repository.RecallRepository by lazy {
+        com.studyos.app.data.repository.RecallRepositoryImpl(
+            recallDao = database.recallDao(),
+            flashcardDao = database.flashcardDao(),
+            mistakeDao = database.mistakeDao()
+        )
+    }
+
+    val getSmartStudyRecommendationUseCase: com.studyos.app.domain.usecase.GetSmartStudyRecommendationUseCase by lazy {
+        com.studyos.app.domain.usecase.GetSmartStudyRecommendationUseCase(
+            subjectRepository = subjectRepository,
+            chapterRepository = chapterRepository,
+            examRepository = examRepository,
+            recallRepository = recallRepository,
+            mistakeRepository = mistakeRepository,
+            quizRepository = quizRepository,
+            studyPreferencesRepository = studyPreferencesRepository
+        )
+    }
+
+    val getChapterIntelligenceUseCase: com.studyos.app.domain.usecase.GetChapterIntelligenceUseCase by lazy {
+        com.studyos.app.domain.usecase.GetChapterIntelligenceUseCase(
+            chapterRepository = chapterRepository,
+            subjectRepository = subjectRepository,
+            noteRepository = noteRepository,
+            flashcardRepository = flashcardRepository,
+            quizRepository = quizRepository,
+            mistakeRepository = mistakeRepository,
+            recallRepository = recallRepository
+        )
+    }
+
+    val getRecallDashboardUseCase: com.studyos.app.domain.usecase.GetRecallDashboardUseCase by lazy {
+        com.studyos.app.domain.usecase.GetRecallDashboardUseCase(recallRepository)
+    }
+
+    val submitRecallAnswerUseCase: com.studyos.app.domain.usecase.SubmitRecallAnswerUseCase by lazy {
+        com.studyos.app.domain.usecase.SubmitRecallAnswerUseCase(recallRepository)
+    }
 }

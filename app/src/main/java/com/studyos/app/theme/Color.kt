@@ -54,11 +54,13 @@ data class StudyOSColors(
     val error: Color,
     val success: Color,
     val isDark: Boolean,
+    val warning: Color = if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706),
     val glassSurface: Color = if (isDark) DarkGlassSurface else LightGlassSurface,
     val glassSurfaceSubtle: Color = if (isDark) DarkGlassSurfaceSubtle else LightGlassSurfaceSubtle,
     val glassBorder: Color = if (isDark) DarkGlassBorder else LightGlassBorder,
     val glassHighlight: Color = if (isDark) DarkGlassHighlight else LightGlassHighlight
 ) {
+    val critical: Color get() = error
     val cardBackground: Color get() = if (isDark) DarkCardBackground else LightCardBackground
     val buttonText: Color get() = if (isDark) Color(0xFF141413) else Color(0xFFFFFFFF)
 }

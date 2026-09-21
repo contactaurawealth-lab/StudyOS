@@ -15,11 +15,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.studyos.app.domain.engine.RecallAlgorithm
+import com.studyos.app.domain.model.RecallEvaluationResult
+import com.studyos.app.domain.model.RecallEvaluationStatus
+
 data class ActiveRecallRunnerUiState(
     val sessionType: ActiveRecallSessionType = ActiveRecallSessionType.DEEP_15,
     val items: List<ActiveRecallItem> = emptyList(),
     val currentIndex: Int = 0,
     val isAnswerRevealed: Boolean = false,
+    val typedAnswer: String = "",
+    val evaluationResult: RecallEvaluationResult? = null,
     val selectedOption: String? = null,
     val results: List<Pair<ActiveRecallItem, Boolean>> = emptyList(),
     val elapsedSeconds: Int = 0,
@@ -64,6 +70,8 @@ class ActiveRecallRunnerViewModel(
                     items = loadedItems,
                     currentIndex = 0,
                     isAnswerRevealed = false,
+                    typedAnswer = "",
+                    evaluationResult = null,
                     selectedOption = null,
                     results = emptyList(),
                     elapsedSeconds = 0,
@@ -86,17 +94,40 @@ class ActiveRecallRunnerViewModel(
         }
     }
 
+    fun updateTypedAnswer(text: String) {
+        _uiState.update { it.copy(typedAnswer = text) }
+    }
+
     fun revealAnswer() {
-        _uiState.update { it.copy(isAnswerRevealed = true) }
+        val current = _uiState.value.currentItem
+        val eval = if (current != null) {
+            RecallAlgorithm.evaluateAnswer(
+                userAnswer = _uiState.value.typedAnswer,
+                expectedAnswer = current.answer,
+                explanation = current.explanation ?: ""
+            )
+        } else null
+
+        _uiState.update {
+            it.copy(
+                isAnswerRevealed = true,
+                evaluationResult = eval
+            )
+        }
     }
 
     fun selectOption(option: String) {
         val current = _uiState.value.currentItem ?: return
-        val isCorrect = option.equals(current.answer, ignoreCase = true)
+        val eval = RecallAlgorithm.evaluateAnswer(
+            userAnswer = option,
+            expectedAnswer = current.answer,
+            explanation = current.explanation ?: ""
+        )
         _uiState.update {
             it.copy(
                 selectedOption = option,
-                isAnswerRevealed = true
+                isAnswerRevealed = true,
+                evaluationResult = eval
             )
         }
     }
@@ -113,6 +144,8 @@ class ActiveRecallRunnerViewModel(
                 it.copy(
                     currentIndex = nextIdx,
                     isAnswerRevealed = false,
+                    typedAnswer = "",
+                    evaluationResult = null,
                     selectedOption = null,
                     results = updatedResults
                 )

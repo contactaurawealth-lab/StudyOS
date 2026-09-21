@@ -19,9 +19,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.studyos.app.domain.model.ChapterIntelligence
+import com.studyos.app.domain.usecase.GetChapterIntelligenceUseCase
+
 data class ChapterUiState(
     val chapter: Chapter? = null,
     val subject: Subject? = null,
+    val intelligence: ChapterIntelligence? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val actionMessage: String? = null,
@@ -36,7 +40,8 @@ class ChapterViewModel(
     private val updateChapterProgressUseCase: UpdateChapterProgressUseCase,
     private val updateChapterStatusUseCase: UpdateChapterStatusUseCase,
     private val deleteChapterUseCase: DeleteChapterUseCase,
-    private val recordChapterOpenedUseCase: RecordChapterOpenedUseCase
+    private val recordChapterOpenedUseCase: RecordChapterOpenedUseCase,
+    private val getChapterIntelligenceUseCase: GetChapterIntelligenceUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChapterUiState())
@@ -58,16 +63,27 @@ class ChapterViewModel(
                 }
                 if (chapter != null) {
                     val subject = getSubjectByIdUseCase.getOnce(chapter.subjectId)
+                    val intel = getChapterIntelligenceUseCase?.invoke(chapterId)
                     _uiState.update {
                         it.copy(
                             chapter = chapter,
                             subject = subject,
+                            intelligence = intel,
                             isLoading = false
                         )
                     }
                 } else {
                     _uiState.update { it.copy(isLoading = false) }
                 }
+            }
+        }
+    }
+
+    fun refreshIntelligence() {
+        getChapterIntelligenceUseCase?.let { useCase ->
+            viewModelScope.launch {
+                val intel = useCase(chapterId)
+                _uiState.update { it.copy(intelligence = intel) }
             }
         }
     }
