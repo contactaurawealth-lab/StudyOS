@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Features & Architecture — StudyOS</title>
+  <meta name="description" content="Explore the 11 core systems of StudyOS: AI Study Sessions, Sidebar Countdown Timer, Mock & Tuition Tests, Mistake Bank, Exam Readiness Engine, and 100% Offline SQLite storage.">
+  
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- Ambient Glow Effects -->
+  <div class="ambient-mesh">
+    <div class="ambient-orb ambient-orb-1"></div>
+    <div class="ambient-orb ambient-orb-2"></div>
+    <div class="ambient-orb ambient-orb-3"></div>
+  </div>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-announcement">
+    <span class="announcement-badge">v1.1.0 Released</span>
+    <span>StudyOS v1.1.0 is live with AI Study Sessions, Mock & Tuition Tests, Mistake Bank & Countdown Timer.</span>
+    <a href="download.html">Download APK &rarr;</a>
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="nav-wrapper">
+    <header class="navbar">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <span>StudyOS</span>
+        <span class="brand-tag">v1.1.0</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="features.html" class="nav-link active">Features</a></li>
+          <li><a href="mock-tests.html" class="nav-link">Mock Tests <span class="nav-badge-new">New</span></a></li>
+          <li><a href="download.html" class="nav-link">Download</a></li>
+          <li><a href="docs.html" class="nav-link">Guide</a></li>
+          <li><a href="privacy.html" class="nav-link">Privacy</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="download.html" class="btn-nav-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Get APK</span>
+        </a>
+        <button class="mobile-toggle" aria-label="Open Navigation Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+  </div>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-drawer">
+    <div class="drawer-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <span>StudyOS</span>
+      </div>
+      <button class="drawer-close" style="background:transparent;border:none;color:#fff;cursor:pointer;padding:8px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <ul class="drawer-links">
+      <li><a href="index.html" class="drawer-link">Home <span>&rarr;</span></a></li>
+      <li><a href="features.html" class="drawer-link active">Features <span>&rarr;</span></a></li>
+      <li><a href="mock-tests.html" class="drawer-link">Mock &amp; Tuition Tests <span>&rarr;</span></a></li>
+      <li><a href="download.html" class="drawer-link">Download APK v1.1.0 <span>&rarr;</span></a></li>
+      <li><a href="docs.html" class="drawer-link">Student Guide &amp; FAQ <span>&rarr;</span></a></li>
+      <li><a href="privacy.html" class="drawer-link">100% Offline Manifesto <span>&rarr;</span></a></li>
+    </ul>
+  </div>
+
+  <!-- Page Header -->
+  <section class="section" style="padding-top:60px; padding-bottom:40px; text-align:center;">
+    <div class="container">
+      <span class="section-eyebrow">Engine Deep Dive</span>
+      <h1 class="hero-title" style="font-size:3.2rem;">
+        11 Integrated Systems. <br>
+        <span class="text-gradient-gold">Zero Distraction.</span>
+      </h1>
+      <p class="hero-subtitle">
+        Every algorithm, timer, and database query in StudyOS is built to solve one specific friction in student cognition.
+      </p>
+    </div>
+  </section>
+
+  <!-- Features Detailed Section -->
+  <section class="section" style="padding-top:20px;">
+    <div class="container">
+      <div class="grid-2">
+
+        <!-- 1. AI Study Session -->
+        <div class="spotlight-card reveal" id="study-session">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+          <h3 class="card-title">1. Distraction-Free AI Study Session</h3>
+          <p class="card-desc">
+            A guided 25-minute cycle based on cognitive science:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li><strong>Step 1: Learn</strong> &mdash; Deep concept immersion without notifications.</li>
+            <li><strong>Step 2: Recall</strong> &mdash; Active retrieval prompt test before checking notes.</li>
+            <li><strong>Step 3: Practice</strong> &mdash; Timed problem solving on scratchpad.</li>
+            <li><strong>Step 4: Evaluate</strong> &mdash; Honest difficulty &amp; confidence rating.</li>
+            <li><strong>Step 5: Complete</strong> &mdash; Automatic room database persistence.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: features/practice/ui/AiStudySessionScreen.kt
+          </div>
+        </div>
+
+        <!-- 2. Countdown Timer & Stopwatch -->
+        <div class="spotlight-card reveal" id="countdown-timer">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3 class="card-title">2. Sidebar Study Countdown Timer &amp; Stopwatch</h3>
+          <p class="card-desc">
+            Always accessible from the sidebar. Features:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li>Circular animated SVG ring with high-contrast monospace time.</li>
+            <li>Presets: 25m Pomodoro, 45m Deep Work, 60m Marathon, and count-up stopwatch.</li>
+            <li>Direct link to active Subject &amp; Chapter to credit focus hours.</li>
+            <li>Native Android <code>AlarmManager</code> with wake-locks for 100% reliable background alerts when the timer hits zero.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: features/timer/ui/StudyTimerScreen.kt
+          </div>
+        </div>
+
+        <!-- 3. Mock & Tuition Test Column -->
+        <div class="spotlight-card reveal" id="mock-tests">
+          <div class="card-icon-badge" style="background:rgba(6, 182, 212, 0.1); border-color:rgba(6, 182, 212, 0.25); color:#06B6D4;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <h3 class="card-title">3. Dedicated Mock &amp; Tuition Tests Column</h3>
+          <p class="card-desc">
+            Coaching quizzes and weekly tuition tests no longer clutter your major board exam list:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li>Dedicated filter pill: <strong>All</strong>, <strong>Major Exams</strong>, <strong>Mock &amp; Tuition</strong>.</li>
+            <li>Subject tagging selector: links test directly to your syllabus.</li>
+            <li>Exact Date &amp; native <code>TimePickerDialog</code> (HH:mm) for accurate scheduling.</li>
+            <li>Cyan-badged cards with upcoming countdown and mock score weighting.</li>
+          </ul>
+          <a href="mock-tests.html" class="card-link">View Full Mock Tests Page &rarr;</a>
+        </div>
+
+        <!-- 4. Mistake Bank -->
+        <div class="spotlight-card reveal" id="mistake-bank">
+          <div class="card-icon-badge" style="background:rgba(239, 68, 68, 0.1); border-color:rgba(239, 68, 68, 0.25); color:var(--error);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          </div>
+          <h3 class="card-title">4. Mistake Bank &amp; Error Taxonomy</h3>
+          <p class="card-desc">
+            Every wrong answer has a specific root cause. StudyOS classifies mistakes into 5 cognitive categories:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li><strong>Concept gap:</strong> Fundamental theory misunderstood.</li>
+            <li><strong>Memory gap:</strong> Formula or fact decayed from memory.</li>
+            <li><strong>Calculation error:</strong> Arithmetic or algebraic slip.</li>
+            <li><strong>Misread question:</strong> Target variable or condition missed.</li>
+            <li><strong>Careless mistake:</strong> Fatigue or rush error.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: features/practice/ui/MistakeBankScreen.kt
+          </div>
+        </div>
+
+        <!-- 5. Exam Readiness Engine -->
+        <div class="spotlight-card reveal" id="readiness">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          </div>
+          <h3 class="card-title">5. 7-Dimension Exam Readiness Engine</h3>
+          <p class="card-desc">
+            Stop guessing if you're prepared. The engine evaluates:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li>1. Syllabus completion %</li>
+            <li>2. Chapter understanding depth</li>
+            <li>3. Active recall prompt accuracy</li>
+            <li>4. Practice session frequency &amp; speed</li>
+            <li>5. Mistake penalty (unresolved error count)</li>
+            <li>6. Forgetting curve decay score</li>
+            <li>7. Exam proximity weight (urgency curve)</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: domain/engine/ExamReadinessEngine.kt
+          </div>
+        </div>
+
+        <!-- 6. Smart Dynamic Revision Queue -->
+        <div class="spotlight-card reveal" id="revision-queue">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          </div>
+          <h3 class="card-title">6. Smart Dynamic Revision Queue</h3>
+          <p class="card-desc">
+            Dynamically prioritizes what you should revise today. Computes an urgency priority index based on:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li>Days elapsed since last studied chapter.</li>
+            <li>Historical recall stability score.</li>
+            <li>Proximity of linked major or mock tests.</li>
+            <li>Auto-elevates topics with high unreviewed mistake count.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: domain/engine/SmartRevisionQueueEngine.kt
+          </div>
+        </div>
+
+        <!-- 7. Subject Intelligence & Badges -->
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          </div>
+          <h3 class="card-title">7. Subject Intelligence &amp; Chapter Badges</h3>
+          <p class="card-desc">
+            Instantly view chapter health across all enrolled subjects:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li>Status pills: <strong>X Strong</strong> (retention &gt;80%), <strong>Y Weak</strong>, <strong>Z Due</strong>.</li>
+            <li>Color-coded progress bar reflecting verified mastery.</li>
+            <li>Direct launch into targeted 25m AI study session from any subject card.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: features/subjects/ui/SubjectsScreen.kt
+          </div>
+        </div>
+
+        <!-- 8. Instant Global Offline Search -->
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <h3 class="card-title">8. Instant Global Offline Search</h3>
+          <p class="card-desc">
+            Unified sub-second search across your entire academic universe:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li>Search across Subjects, Chapters, Notes, Flashcards, Mistakes, and Prompts.</li>
+            <li>Categorized search results with direct deep links.</li>
+            <li>100% offline Room SQLite query with instant keyboard debouncing.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: features/search/ui/SearchScreen.kt
+          </div>
+        </div>
+
+        <!-- 9. Dual AI Assistant -->
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+          </div>
+          <h3 class="card-title">9. Dual AI Study Assistant</h3>
+          <p class="card-desc">
+            Reliable offline assistance + optional cloud AI power:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li><strong>Offline Mode:</strong> Grounded heuristic study assistant that breaks down difficult formulas and study schedules without internet.</li>
+            <li><strong>Cloud Streaming (Optional):</strong> Bring your own OpenAI or Gemini API key for live step-by-step Socratic problem solving.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: domain/usecase/AiUseCases.kt
+          </div>
+        </div>
+
+        <!-- 10. Non-Punitive Progress & Momentum -->
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+          <h3 class="card-title">10. Non-Punitive Progress &amp; Momentum</h3>
+          <p class="card-desc">
+            Traditional streak counters create anxiety when life happens. StudyOS uses positive momentum:
+          </p>
+          <ul class="timer-checklist" style="margin-bottom:16px;">
+            <li>Tracks cumulative focus minutes and problems mastered.</li>
+            <li>No guilt notifications or streak breakage punishment.</li>
+            <li>Celebrates real cognitive retention over vanity app opening.</li>
+          </ul>
+          <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent);">
+            File: features/progress/ui/ProgressScreen.kt
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 11. Full-Width 100% Offline Architecture Card -->
+      <div class="spotlight-card reveal" style="margin-top:32px; border-color:var(--border-accent);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="card-icon-badge" style="background:rgba(16, 185, 129, 0.15); border-color:var(--success); color:var(--success); margin-bottom:0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div>
+              <h3 style="font-size:1.4rem;">11. 100% Offline-First Room Architecture</h3>
+              <p style="color:var(--text-muted); font-size:0.88rem;">Zero cloud lock-in &bull; Zero subscription paywalls &bull; Complete student data sovereignty</p>
+            </div>
+          </div>
+          <a href="privacy.html" class="btn-secondary-hero" style="padding:10px 20px; font-size:0.9rem;">Read Offline Manifesto &rarr;</a>
+        </div>
+        <p style="color:var(--text-secondary); font-size:0.98rem; line-height:1.65;">
+          Unlike SaaS study apps that hold your study notes hostage behind monthly credit card paywalls, StudyOS is 100% local. Your data lives in an SQLite database on your device. It loads in milliseconds, never fails when Wi-Fi drops, and protects your exam preparations from corporate tracking.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Download Prompt -->
+  <section class="section" style="text-align:center;">
+    <div class="container container-narrow">
+      <div class="spotlight-card reveal" style="padding:48px 32px;">
+        <h2 style="font-size:2.2rem; margin-bottom:16px;">Ready to Upgrade Your Study Workflow?</h2>
+        <p style="color:var(--text-secondary); margin-bottom:28px;">
+          Experience all 11 features on your Android device today. Free, open-source, and verified clean.
+        </p>
+        <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+          <a href="downloads/StudyOS-v1.1.0.apk" class="btn-primary-hero">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download StudyOS v1.1.0 APK</span>
+          </a>
+          <a href="download.html" class="btn-secondary-hero">
+            <span>Verify Checksum &amp; Details</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            </div>
+            <span>StudyOS</span>
+          </div>
+          <p>The distraction-free Android study workspace for top scorers.</p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="features.html">Features</a></li>
+            <li><a href="mock-tests.html">Mock Tests</a></li>
+            <li><a href="download.html">Download</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="docs.html">User Guide</a></li>
+            <li><a href="docs.html#algorithms">Algorithms</a></li>
+            <li><a href="privacy.html">Privacy Manifesto</a></li>
+            <li><a href="download.html#changelog">Changelog</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Open Source</h5>
+          <ul>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" rel="noopener">GitHub Repo</a></li>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS/releases" target="_blank" rel="noopener">Releases</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 StudyOS. Distraction-Free Academic Intelligence.</div>
+        <div><a href="privacy.html" style="color:var(--text-muted); text-decoration:none;">100% Offline</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

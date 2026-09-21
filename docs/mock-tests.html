@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mock & Tuition Tests — StudyOS</title>
+  <meta name="description" content="Dedicated column and scheduling for weekly tuition tests, coaching test series, and chapter mock exams with subject selection, exact date and time, and mistake analysis.">
+  
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- Ambient Glow Effects -->
+  <div class="ambient-mesh">
+    <div class="ambient-orb ambient-orb-1"></div>
+    <div class="ambient-orb ambient-orb-2"></div>
+    <div class="ambient-orb ambient-orb-3"></div>
+  </div>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-announcement">
+    <span class="announcement-badge">New Feature</span>
+    <span>Dedicated Mock &amp; Tuition Tests Column is now live in StudyOS v1.1.0!</span>
+    <a href="download.html">Download APK &rarr;</a>
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="nav-wrapper">
+    <header class="navbar">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <span>StudyOS</span>
+        <span class="brand-tag">v1.1.0</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="features.html" class="nav-link">Features</a></li>
+          <li><a href="mock-tests.html" class="nav-link active">Mock Tests <span class="nav-badge-new">New</span></a></li>
+          <li><a href="download.html" class="nav-link">Download</a></li>
+          <li><a href="docs.html" class="nav-link">Guide</a></li>
+          <li><a href="privacy.html" class="nav-link">Privacy</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="download.html" class="btn-nav-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Get APK</span>
+        </a>
+        <button class="mobile-toggle" aria-label="Open Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+  </div>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-drawer">
+    <div class="drawer-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <span>StudyOS</span>
+      </div>
+      <button class="drawer-close" style="background:transparent;border:none;color:#fff;cursor:pointer;padding:8px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <ul class="drawer-links">
+      <li><a href="index.html" class="drawer-link">Home <span>&rarr;</span></a></li>
+      <li><a href="features.html" class="drawer-link">Features <span>&rarr;</span></a></li>
+      <li><a href="mock-tests.html" class="drawer-link active">Mock &amp; Tuition Tests <span>&rarr;</span></a></li>
+      <li><a href="download.html" class="drawer-link">Download APK v1.1.0 <span>&rarr;</span></a></li>
+      <li><a href="docs.html" class="drawer-link">Student Guide &amp; FAQ <span>&rarr;</span></a></li>
+      <li><a href="privacy.html" class="drawer-link">100% Offline Manifesto <span>&rarr;</span></a></li>
+    </ul>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="section" style="padding-top:60px; padding-bottom:40px; text-align:center;">
+    <div class="container">
+      <span class="section-eyebrow" style="background:rgba(6, 182, 212, 0.1); border-color:rgba(6, 182, 212, 0.3); color:#06B6D4;">
+        Dedicated Architecture
+      </span>
+      <h1 class="hero-title" style="font-size:3.2rem;">
+        Tuition &amp; Mock Tests <br>
+        <span class="text-gradient-gold">Deserve Their Own Space</span>
+      </h1>
+      <p class="hero-subtitle">
+        Weekly coaching tests, tuition quizzes, and full-length practice papers are not major terminal exams. StudyOS separates them with distinct badges, subject tagging, exact hour/minute time pickers, and targeted mistake loops.
+      </p>
+    </div>
+  </section>
+
+  <!-- Interactive Mock Test Generator Simulator -->
+  <section class="section" style="padding-top:10px;">
+    <div class="container">
+      <div class="spotlight-card reveal" style="padding:36px; border-color:rgba(6, 182, 212, 0.35);">
+        <div style="text-align:center; max-width:650px; margin:0 auto 32px auto;">
+          <h2 style="font-size:1.8rem; margin-bottom:8px;">Live Mock Test Scheduler Preview</h2>
+          <p style="color:var(--text-secondary); font-size:0.95rem;">
+            See how creating a mock or tuition test works inside StudyOS. Change the inputs below to see the live rendered exam card:
+          </p>
+        </div>
+
+        <div class="simulator-grid">
+          <!-- Form Simulator -->
+          <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px;">
+            <div style="margin-bottom:16px;">
+              <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--text-secondary);">Test Type</label>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="preset-chip active" id="typeMockBtn" style="flex:1;">Mock Exam</button>
+                <button type="button" class="preset-chip" id="typeTuitionBtn" style="flex:1;">Tuition Test</button>
+                <button type="button" class="preset-chip" id="typeQuizBtn" style="flex:1;">Class Quiz</button>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--text-secondary);">Subject</label>
+              <select id="mockSubjectSelect" style="width:100%; background:var(--surface-1); border:1px solid var(--border); color:var(--text-primary); padding:10px 14px; border-radius:var(--radius-sm); outline:none; font-family:var(--font-sans);">
+                <option value="Physics — Mechanics & Optics">Physics — Mechanics & Optics</option>
+                <option value="Chemistry — Organic Reaction Mechanisms">Chemistry — Organic Reaction Mechanisms</option>
+                <option value="Mathematics — Integral Calculus">Mathematics — Integral Calculus</option>
+                <option value="Computer Science — Algorithms & Data Structures">Computer Science — Algorithms & Data Structures</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--text-secondary);">Test Title / Institute</label>
+              <input type="text" id="mockTitleInput" value="Rotational Dynamics & Torque Coaching Test" style="width:100%; background:var(--surface-1); border:1px solid var(--border); color:var(--text-primary); padding:10px 14px; border-radius:var(--radius-sm); outline:none; font-family:var(--font-sans);">
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--text-secondary);">Date</label>
+                <input type="date" id="mockDateInput" value="2026-09-24" style="width:100%; background:var(--surface-1); border:1px solid var(--border); color:var(--text-primary); padding:10px 14px; border-radius:var(--radius-sm); outline:none; font-family:var(--font-sans);">
+              </div>
+              <div>
+                <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--text-secondary);">Time (Exact HH:mm)</label>
+                <input type="time" id="mockTimeInput" value="16:30" style="width:100%; background:var(--surface-1); border:1px solid var(--border); color:var(--text-primary); padding:10px 14px; border-radius:var(--radius-sm); outline:none; font-family:var(--font-sans);">
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Card Output -->
+          <div>
+            <div style="font-size:0.82rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Rendered In-App Card Preview</div>
+            <div style="background:var(--surface-1); border:1px solid var(--border-accent-subtle); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-md); position:relative; overflow:hidden;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span id="previewBadge" style="font-size:0.75rem; font-weight:700; text-transform:uppercase; padding:3px 10px; border-radius:999px; background:rgba(6, 182, 212, 0.15); color:#06B6D4; border:1px solid rgba(6, 182, 212, 0.3);">
+                  MOCK &amp; TUITION
+                </span>
+                <span id="previewTime" style="font-family:var(--font-mono); font-size:0.88rem; color:var(--accent);">
+                  Sep 24 &middot; 04:30 PM
+                </span>
+              </div>
+
+              <h3 id="previewTitle" style="font-size:1.3rem; font-weight:700; margin-bottom:6px; color:var(--text-primary);">
+                Rotational Dynamics &amp; Torque Coaching Test
+              </h3>
+
+              <div id="previewSubject" style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:18px; display:flex; align-items:center; gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <span>Physics — Mechanics & Optics</span>
+              </div>
+
+              <div style="background:var(--surface-2); border-radius:var(--radius-sm); padding:12px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Status</div>
+                  <div style="font-size:0.85rem; font-weight:700; color:#34D399;">Scheduled &bull; In 3 Days</div>
+                </div>
+                <div>
+                  <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Weight</div>
+                  <div style="font-size:0.85rem; font-weight:700; color:var(--accent);">Practice Multiplier</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 Core Pillars of Mock & Tuition Architecture -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-eyebrow">Key Advantages</span>
+        <h2 class="section-title">Why Separate Mock Tests Matter</h2>
+        <p class="section-description">
+          When major annual board exams and weekly tuition tests are mixed together, priorities get distorted.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge" style="background:rgba(6, 182, 212, 0.1); border-color:rgba(6, 182, 212, 0.3); color:#06B6D4;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3 class="card-title">Exact Hour &amp; Minute Timing</h3>
+          <p class="card-desc">
+            Board exams only need a date. Tuition classes and mock test series occur at specific slots (e.g. 04:30 PM). StudyOS integrates Android's native <code>TimePickerDialog</code> for accurate countdowns.
+          </p>
+        </div>
+
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge" style="background:rgba(245, 158, 11, 0.1); border-color:rgba(245, 158, 11, 0.3); color:var(--accent);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          </div>
+          <h3 class="card-title">Subject &amp; Syllabus Linking</h3>
+          <p class="card-desc">
+            Select the exact enrolled subject. The test automatically connects to that subject's chapter list and active recall progress, giving you targeted revision ahead of test day.
+          </p>
+        </div>
+
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge" style="background:rgba(239, 68, 68, 0.1); border-color:rgba(239, 68, 68, 0.3); color:var(--error);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          </div>
+          <h3 class="card-title">Direct-to-Mistake-Bank Flow</h3>
+          <p class="card-desc">
+            The moment your tuition test is graded, click into the test to log every lost mark into the 5 error categories (Concept, Memory, Calculation, Misread, Careless) for immediate recovery.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download CTA -->
+  <section class="section" style="text-align:center;">
+    <div class="container container-narrow">
+      <div class="spotlight-card reveal" style="padding:48px 32px;">
+        <h2 style="font-size:2.2rem; margin-bottom:16px;">Try the New Mock Tests Column</h2>
+        <p style="color:var(--text-secondary); margin-bottom:28px;">
+          Available now in StudyOS v1.1.0 for all Android devices. Free, private, and 100% offline.
+        </p>
+        <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+          <a href="downloads/StudyOS-v1.1.0.apk" class="btn-primary-hero">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download APK (12.4 MB)</span>
+          </a>
+          <a href="features.html" class="btn-secondary-hero">
+            <span>Explore Other Systems</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            </div>
+            <span>StudyOS</span>
+          </div>
+          <p>The distraction-free Android study workspace for top scorers.</p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="features.html">Features</a></li>
+            <li><a href="mock-tests.html">Mock Tests</a></li>
+            <li><a href="download.html">Download</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="docs.html">User Guide</a></li>
+            <li><a href="docs.html#algorithms">Algorithms</a></li>
+            <li><a href="privacy.html">Privacy Manifesto</a></li>
+            <li><a href="download.html#changelog">Changelog</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Open Source</h5>
+          <ul>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" rel="noopener">GitHub Repo</a></li>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS/releases" target="_blank" rel="noopener">Releases</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 StudyOS. Built for serious exam preparation.</div>
+        <div><a href="privacy.html" style="color:var(--text-muted); text-decoration:none;">100% Offline</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/main.js"></script>
+  <script>
+    // Live mock test simulator script
+    document.addEventListener('DOMContentLoaded', () => {
+      const subjectSelect = document.getElementById('mockSubjectSelect');
+      const titleInput = document.getElementById('mockTitleInput');
+      const dateInput = document.getElementById('mockDateInput');
+      const timeInput = document.getElementById('mockTimeInput');
+      const previewTitle = document.getElementById('previewTitle');
+      const previewSubject = document.getElementById('previewSubject');
+      const previewTime = document.getElementById('previewTime');
+      const previewBadge = document.getElementById('previewBadge');
+
+      const mockBtn = document.getElementById('typeMockBtn');
+      const tuitionBtn = document.getElementById('typeTuitionBtn');
+      const quizBtn = document.getElementById('typeQuizBtn');
+
+      function updatePreview() {
+        if (titleInput && previewTitle) {
+          previewTitle.textContent = titleInput.value || 'Untitled Mock Test';
+        }
+        if (subjectSelect && previewSubject) {
+          previewSubject.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> <span>${subjectSelect.value}</span>`;
+        }
+        if (dateInput && timeInput && previewTime) {
+          previewTime.textContent = `${dateInput.value} \u00B7 ${timeInput.value}`;
+        }
+      }
+
+      [titleInput, dateInput, timeInput, subjectSelect].forEach(el => {
+        if (el) el.addEventListener('input', updatePreview);
+      });
+
+      if (mockBtn && tuitionBtn && quizBtn) {
+        [mockBtn, tuitionBtn, quizBtn].forEach(b => {
+          b.addEventListener('click', () => {
+            [mockBtn, tuitionBtn, quizBtn].forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            previewBadge.textContent = b.textContent.toUpperCase();
+          });
+        });
+      }
+
+      updatePreview();
+    });
+  </script>
+</body>
+</html>
