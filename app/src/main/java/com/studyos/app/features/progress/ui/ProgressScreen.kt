@@ -26,12 +26,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import com.studyos.app.core.ui.component.GlassCard
 import com.studyos.app.core.ui.component.GlassTopBar
 import com.studyos.app.core.ui.component.ShimmerPlaceholder
 import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSProgressBar
 import com.studyos.app.domain.usecase.SubjectProgressBreakdown
+import com.studyos.app.features.progress.viewmodel.ProgressTimeWindow
 import com.studyos.app.features.progress.viewmodel.ProgressViewModel
 import com.studyos.app.theme.StudyOSTheme
 
@@ -100,7 +106,39 @@ fun ProgressScreen(
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.Start
                     ) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // 1. Time Window Filter Chips
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ProgressTimeWindow.values().forEach { window ->
+                                val isSelected = uiState.selectedTimeWindow == window
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(shapes.statusPill)
+                                        .background(if (isSelected) colors.primaryText else colors.surface)
+                                        .border(1.dp, if (isSelected) colors.primaryText else colors.border, shapes.statusPill)
+                                        .clickable { viewModel.setTimeWindowFilter(window) }
+                                        .padding(vertical = 6.dp)
+                                        .semantics { this.role = Role.Tab },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = window.label,
+                                        style = typography.caption.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 12.sp
+                                        ),
+                                        color = if (isSelected) colors.buttonText else colors.secondaryText
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         if (progress.totalChapters == 0) {
                             Spacer(modifier = Modifier.height(32.dp))
@@ -109,6 +147,107 @@ fun ProgressScreen(
                                 description = "Add chapters and update their progress to see your study coverage."
                             )
                         } else {
+                            // 2. Cognitive Readiness Index Card
+                            val readiness = uiState.cognitiveReadiness
+                            GlassCard(
+                                backgroundColor = colors.glassSurface,
+                                padding = 18.dp
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "COGNITIVE READINESS",
+                                            style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                            color = colors.accent,
+                                            letterSpacing = 1.sp
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(shapes.statusPill)
+                                                .background(colors.accent.copy(alpha = 0.15f))
+                                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = readiness.readinessTier,
+                                                style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                color = colors.accent
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Bottom
+                                    ) {
+                                        Text(
+                                            text = "${readiness.overallIndex}%",
+                                            style = typography.screenTitle,
+                                            color = colors.primaryText
+                                        )
+
+                                        val hours = uiState.filteredStudyMinutes / 60
+                                        val mins = uiState.filteredStudyMinutes % 60
+                                        val timeStr = if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+                                        Text(
+                                            text = "$timeStr • ${uiState.activeDaysCount} active days",
+                                            style = typography.caption,
+                                            color = colors.secondaryText
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    StudyOSProgressBar(
+                                        progress = readiness.overallIndex,
+                                        height = 6.dp,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Spacer(modifier = Modifier.height(14.dp))
+
+                                    // 4 Breakdown Quadrants
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        ReadinessMetricTile(
+                                            label = "Syllabus",
+                                            value = "${readiness.syllabusCompletionPct}%",
+                                            weight = "35%",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        ReadinessMetricTile(
+                                            label = "Retention",
+                                            value = "${readiness.recallRetentionPct}%",
+                                            weight = "25%",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        ReadinessMetricTile(
+                                            label = "Accuracy",
+                                            value = "${readiness.quizAccuracyPct}%",
+                                            weight = "20%",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        ReadinessMetricTile(
+                                            label = "Habit",
+                                            value = "${readiness.consistencyPct}%",
+                                            weight = "20%",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
                             // Animated overall progress percentage (400-600ms)
                             val animatedProgress by animateIntAsState(
                                 targetValue = progress.overallProgress,
@@ -366,5 +505,44 @@ private fun SubjectProgressRow(
             height = 4.dp,
             modifier = Modifier.fillMaxWidth()
         )
+    }
+}
+
+@Composable
+private fun ReadinessMetricTile(
+    label: String,
+    value: String,
+    weight: String,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    Box(
+        modifier = modifier
+            .clip(shapes.small)
+            .background(colors.surface.copy(alpha = 0.6f))
+            .padding(vertical = 8.dp, horizontal = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = value,
+                style = typography.caption.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                color = colors.primaryText
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = label,
+                style = typography.caption.copy(fontSize = 10.sp),
+                color = colors.secondaryText
+            )
+            Text(
+                text = weight,
+                style = typography.caption.copy(fontSize = 9.sp),
+                color = colors.mutedText
+            )
+        }
     }
 }

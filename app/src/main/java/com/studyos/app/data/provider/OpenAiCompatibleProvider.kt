@@ -170,26 +170,33 @@ class OpenAiCompatibleProvider : AiProvider {
             reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
             var hasReceivedContent = false
             var line: String?
+            val sseDataBuffer = StringBuilder()
 
             while (reader.readLine().also { line = it } != null) {
-                val currentLine = line?.trim() ?: continue
-                if (currentLine.isEmpty() || currentLine.startsWith(":")) {
+                val currentLine = line ?: continue
+                val trimmedLine = currentLine.trim()
+                if (trimmedLine.isEmpty() || trimmedLine.startsWith(":")) {
                     continue // SSE comment or empty keep-alive line
                 }
 
-                if (currentLine.startsWith("data:")) {
-                    val data = currentLine.removePrefix("data:").trim()
-                    if (data == "[DONE]") {
+                if (trimmedLine.startsWith("data:")) {
+                    val rawData = trimmedLine.removePrefix("data:").trim()
+                    if (rawData == "[DONE]") {
                         break
                     }
-
-                    val deltaContent = extractDeltaContent(data)
+                    sseDataBuffer.append(rawData)
+                    val jsonStr = sseDataBuffer.toString()
+                    val deltaContent = extractDeltaContent(jsonStr)
                     if (!deltaContent.isNullOrEmpty()) {
                         hasReceivedContent = true
                         emit(AiStreamChunk.Content(deltaContent))
+                        sseDataBuffer.clear()
+                    } else if (jsonStr.startsWith("{") && jsonStr.endsWith("}")) {
+                        // Complete JSON was parsed but produced no text, clear buffer
+                        sseDataBuffer.clear()
                     }
-                } else if (currentLine.startsWith("{") && !hasReceivedContent) {
-                    val fallbackContent = extractDeltaContent(currentLine)
+                } else if (trimmedLine.startsWith("{") && !hasReceivedContent) {
+                    val fallbackContent = extractDeltaContent(trimmedLine)
                     if (!fallbackContent.isNullOrEmpty()) {
                         hasReceivedContent = true
                         emit(AiStreamChunk.Content(fallbackContent))
@@ -258,21 +265,44 @@ class OpenAiCompatibleProvider : AiProvider {
     private fun extractDeltaContent(jsonString: String): String? {
         return try {
             val json = JSONObject(jsonString)
-            val choices = json.optJSONArray("choices") ?: return null
-            if (choices.length() == 0) return null
-            val choice = choices.getJSONObject(0)
-            val delta = choice.optJSONObject("delta")
-            if (delta != null && delta.has("content") && !delta.isNull("content")) {
-                return delta.getString("content")
+
+            // 1. OpenAI format choices
+            val choices = json.optJSONArray("choices")
+            if (choices != null && choices.length() > 0) {
+                val choice = choices.getJSONObject(0)
+                val delta = choice.optJSONObject("delta")
+                if (delta != null) {
+                    if (delta.has("content") && !delta.isNull("content")) {
+                        return delta.getString("content")
+                    }
+                    if (delta.has("reasoning_content") && !delta.isNull("reasoning_content")) {
+                        return delta.getString("reasoning_content")
+                    }
+                }
+                val message = choice.optJSONObject("message")
+                if (message != null && message.has("content") && !message.isNull("content")) {
+                    return message.getString("content")
+                }
+                val text = choice.optString("text")
+                if (text.isNotBlank()) {
+                    return text
+                }
             }
-            val message = choice.optJSONObject("message")
-            if (message != null && message.has("content") && !message.isNull("content")) {
-                return message.getString("content")
+
+            // 2. Gemini native candidates format
+            val candidates = json.optJSONArray("candidates")
+            if (candidates != null && candidates.length() > 0) {
+                val candidate = candidates.getJSONObject(0)
+                val contentObj = candidate.optJSONObject("content")
+                val parts = contentObj?.optJSONArray("parts")
+                if (parts != null && parts.length() > 0) {
+                    val partText = parts.getJSONObject(0).optString("text")
+                    if (partText.isNotBlank()) {
+                        return partText
+                    }
+                }
             }
-            val text = choice.optString("text")
-            if (text.isNotBlank()) {
-                return text
-            }
+
             null
         } catch (e: Exception) {
             null

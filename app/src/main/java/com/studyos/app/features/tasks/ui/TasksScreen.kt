@@ -38,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,12 +55,14 @@ import com.studyos.app.core.ui.component.StudyOSTextField
 import com.studyos.app.domain.model.TaskFilter
 import com.studyos.app.features.tasks.viewmodel.TasksViewModel
 import com.studyos.app.theme.StudyOSTheme
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
     viewModel: TasksViewModel,
     onBack: (() -> Unit)? = null,
+    onStartTimer: ((subjectId: String?, title: String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -67,6 +70,7 @@ fun TasksScreen(
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     var quickTaskTitle by remember { mutableStateOf("") }
 
@@ -273,10 +277,26 @@ fun TasksScreen(
                         itemsIndexed(uiState.tasks, key = { _, item -> item.task.id }) { index, taskItem ->
                             TaskItemRow(
                                 taskItem = taskItem,
-                                onToggleCompletion = viewModel::toggleTaskCompletion,
+                                onToggleCompletion = { taskId ->
+                                    val wasCompleted = taskItem.task.status == com.studyos.app.domain.model.TaskStatus.COMPLETED
+                                    viewModel.toggleTaskCompletion(taskId)
+                                    if (!wasCompleted) {
+                                        coroutineScope.launch {
+                                            val result = snackbarHostState.showSnackbar(
+                                                message = "Task completed ✓",
+                                                actionLabel = "Undo",
+                                                duration = androidx.compose.material3.SnackbarDuration.Short
+                                            )
+                                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                                viewModel.toggleTaskCompletion(taskId)
+                                            }
+                                        }
+                                    }
+                                },
                                 onClick = {
                                     viewModel.openEditTask(taskItem.task)
-                                }
+                                },
+                                onStartTimer = onStartTimer
                             )
 
                             if (index < uiState.tasks.lastIndex) {

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,7 @@ fun TaskItemRow(
     taskItem: TaskItem,
     onToggleCompletion: (taskId: String) -> Unit,
     onClick: (taskId: String) -> Unit,
+    onStartTimer: ((subjectId: String?, title: String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val task = taskItem.task
@@ -162,6 +164,24 @@ fun TaskItemRow(
                         color = colors.accent
                     )
                 }
+            }
+        }
+
+        if (!isCompleted && onStartTimer != null) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(shapes.statusPill)
+                    .clickable { onStartTimer(task.subjectId, task.title) }
+                    .padding(6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Timer,
+                    contentDescription = "Start Timer for this task",
+                    tint = colors.accent,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

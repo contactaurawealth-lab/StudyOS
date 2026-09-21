@@ -311,6 +311,53 @@ class AlarmScheduler(private val context: Context) {
         setAlarm(triggerTime, pendingIntent)
     }
 
+    fun scheduleTaskReminder(
+        taskId: String,
+        taskTitle: String,
+        dueAt: Long
+    ) {
+        if (dueAt <= System.currentTimeMillis()) return
+        val title = "⚡ Task Due: $taskTitle"
+        val message = "Tap to view and complete your task."
+        val route = Screen.Tasks.route
+        val requestCode = getTaskRequestCode(taskId)
+
+        val intent = Intent(context, StudyOSAlarmReceiver::class.java).apply {
+            action = ACTION_STUDY_REMINDER
+            putExtra(EXTRA_NOTIFICATION_ID, requestCode)
+            putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_MESSAGE, message)
+            putExtra(EXTRA_ROUTE, route)
+            putExtra(EXTRA_IS_DAILY, false)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        setAlarm(dueAt, pendingIntent)
+    }
+
+    fun cancelTaskReminder(taskId: String) {
+        val requestCode = getTaskRequestCode(taskId)
+        val intent = Intent(context, StudyOSAlarmReceiver::class.java).apply {
+            action = ACTION_STUDY_REMINDER
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager?.cancel(pendingIntent)
+            pendingIntent.cancel()
+        }
+    }
+
     private fun getSessionRequestCode(sessionId: String): Int {
         return (sessionId.hashCode() and 0x7FFFFFFF) % 1_000_000
     }
@@ -322,6 +369,10 @@ class AlarmScheduler(private val context: Context) {
     private fun getExamRequestCode(examId: String, isOneHour: Boolean): Int {
         val base = (examId.hashCode() and 0x7FFFFFFF) % 1_000_000
         return if (isOneHour) base + 3_000_000 else base + 2_000_000
+    }
+
+    private fun getTaskRequestCode(taskId: String): Int {
+        return ((taskId.hashCode() and 0x7FFFFFFF) % 1_000_000) + 4_000_000
     }
 
     companion object {

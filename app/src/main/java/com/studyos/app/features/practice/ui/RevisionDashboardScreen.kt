@@ -60,6 +60,7 @@ import com.studyos.app.domain.model.ChapterMasteryLevel
 import com.studyos.app.domain.model.RevisionRecommendation
 import com.studyos.app.domain.engine.PriorityQueueItem
 import com.studyos.app.domain.engine.RevisionQueueReasonType
+import com.studyos.app.features.practice.viewmodel.LeitnerBoxState
 import com.studyos.app.features.practice.viewmodel.RevisionDashboardViewModel
 import com.studyos.app.theme.StudyOSTheme
 
@@ -132,6 +133,20 @@ fun RevisionDashboardScreen(
                         isTargetCompleted = data.isDailyTargetCompleted,
                         onSetTargetMinutes = viewModel::setDailyTargetMinutes
                     )
+                }
+
+                // 1.5. Leitner 5-Box Memory Pipeline
+                if (uiState.leitnerBoxes.isNotEmpty()) {
+                    item {
+                        LeitnerBoxesSection(
+                            boxes = uiState.leitnerBoxes,
+                            selectedBoxIndex = uiState.selectedBoxIndex,
+                            onSelectBox = viewModel::selectLeitnerBox,
+                            onStudyBox = {
+                                onStartRecallSession(ActiveRecallSessionType.FOCUSED_10, null)
+                            }
+                        )
+                    }
                 }
 
                 // 2. Active Recall Quick Launchers
@@ -781,6 +796,215 @@ private fun PriorityQueueCard(
                     text = "Revise",
                     onClick = onRevise
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LeitnerBoxesSection(
+    boxes: List<LeitnerBoxState>,
+    selectedBoxIndex: Int?,
+    onSelectBox: (Int?) -> Unit,
+    onStudyBox: () -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val selectedBox = boxes.find { it.boxNumber == selectedBoxIndex }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Leitner Memory Pipeline",
+                    style = typography.subsectionTitle,
+                    color = colors.primaryText
+                )
+                Text(
+                    text = "Spaced repetition cohorts (1d → 30d+)",
+                    style = typography.caption,
+                    color = colors.secondaryText
+                )
+            }
+
+            if (selectedBoxIndex != null) {
+                Text(
+                    text = "Clear Filter",
+                    style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                    color = colors.accent,
+                    modifier = Modifier.clickable { onSelectBox(null) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Horizontal row of 5 boxes
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            boxes.forEach { box ->
+                val isSelected = box.boxNumber == selectedBoxIndex
+                val borderColor = if (isSelected) colors.accent else colors.border
+                val bgColor = if (isSelected) colors.accent.copy(alpha = 0.12f) else colors.cardBackground
+
+                Box(
+                    modifier = Modifier
+                        .width(110.dp)
+                        .clip(shapes.card)
+                        .background(bgColor)
+                        .border(if (isSelected) 1.5.dp else 1.dp, borderColor, shapes.card)
+                        .clickable { onSelectBox(box.boxNumber) }
+                        .padding(12.dp)
+                        .semantics { this.role = Role.Button }
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = box.title,
+                                style = typography.caption.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
+                                ),
+                                color = if (isSelected) colors.accent else colors.primaryText
+                            )
+
+                            // Status pill with interval
+                            Box(
+                                modifier = Modifier
+                                    .clip(shapes.statusPill)
+                                    .background(colors.surface)
+                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = box.intervalDaysLabel,
+                                    style = typography.caption.copy(fontSize = 10.sp),
+                                    color = colors.mutedText
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = "${box.cardCount}",
+                            style = typography.sectionTitle.copy(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = if (box.cardCount > 0) colors.primaryText else colors.mutedText
+                        )
+
+                        Text(
+                            text = if (box.cardCount == 1) "card" else "cards",
+                            style = typography.caption.copy(fontSize = 11.sp),
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+            }
+        }
+
+        // Expanded view when a box is selected
+        if (selectedBox != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shapes.card)
+                    .background(colors.cardBackground)
+                    .border(1.dp, colors.accent.copy(alpha = 0.4f), shapes.card)
+                    .padding(16.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "${selectedBox.title} (${selectedBox.intervalDaysLabel})",
+                                style = typography.body.copy(fontWeight = FontWeight.SemiBold),
+                                color = colors.accent
+                            )
+                            Text(
+                                text = "${selectedBox.description} • ${selectedBox.cardCount} cards in this cohort",
+                                style = typography.caption,
+                                color = colors.secondaryText
+                            )
+                        }
+
+                        if (selectedBox.cardCount > 0) {
+                            StudyOSButton(
+                                text = "Study Box",
+                                onClick = onStudyBox
+                            )
+                        }
+                    }
+
+                    if (selectedBox.cardCount == 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No cards currently in this interval cohort. Cards graduate to higher boxes upon successful active recall.",
+                            style = typography.caption,
+                            color = colors.mutedText
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        StudyOSDivider()
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Preview first 3 cards in this box
+                        selectedBox.cards.take(3).forEach { card ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = card.question.take(60) + if (card.question.length > 60) "..." else "",
+                                    style = typography.caption.copy(fontWeight = FontWeight.Medium),
+                                    color = colors.primaryText,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "${card.reviewCount} reviews",
+                                    style = typography.caption.copy(fontSize = 10.sp),
+                                    color = colors.mutedText
+                                )
+                            }
+                        }
+
+                        if (selectedBox.cardCount > 3) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "+ ${selectedBox.cardCount - 3} more cards",
+                                style = typography.caption.copy(fontSize = 11.sp),
+                                color = colors.secondaryText
+                            )
+                        }
+                    }
+                }
             }
         }
     }

@@ -18,6 +18,10 @@ import com.studyos.app.domain.usecase.GetMessagesUseCase
 import com.studyos.app.domain.usecase.GetStudyContextUseCase
 import com.studyos.app.domain.usecase.SaveAiConfigUseCase
 import com.studyos.app.domain.usecase.SendAiMessageUseCase
+import com.studyos.app.core.database.dao.FlashcardDao
+import com.studyos.app.core.database.dao.NoteDao
+import com.studyos.app.core.database.entity.FlashcardEntity
+import com.studyos.app.core.database.entity.NoteEntity
 import com.studyos.app.domain.model.AiTutorMode
 import com.studyos.app.domain.model.ChapterAiContext
 import com.studyos.app.domain.model.PracticeDifficulty
@@ -61,6 +65,8 @@ class AiAssistantViewModel(
     private val saveAiConfigUseCase: SaveAiConfigUseCase,
     private val getChapterAiContextUseCase: GetChapterAiContextUseCase? = null,
     private val aiStudyEngineUseCase: AiStudyEngineUseCase? = null,
+    private val noteDao: NoteDao? = null,
+    private val flashcardDao: FlashcardDao? = null,
     private val initialConversationId: String? = null,
     private val initialSubjectId: String? = null,
     private val initialChapterId: String? = null
@@ -416,5 +422,42 @@ class AiAssistantViewModel(
 
     fun clearInfoMessage() {
         _uiState.update { it.copy(infoMessage = null) }
+    }
+
+    fun saveMessageAsNote(content: String, title: String? = null) {
+        viewModelScope.launch {
+            val chapterId = _uiState.value.studyContext.chapterId
+            val subjectId = _uiState.value.studyContext.subjectId
+            val noteTitle = title?.ifBlank { null }
+                ?: _uiState.value.currentConversation?.title?.take(40)
+                ?: "AI Study Insight"
+            val entity = NoteEntity(
+                title = noteTitle,
+                content = content.trim(),
+                subjectId = subjectId,
+                chapterId = chapterId
+            )
+            noteDao?.insert(entity)
+            _uiState.update { it.copy(infoMessage = "Saved to Chapter Notes 📝") }
+        }
+    }
+
+    fun saveMessageAsFlashcard(question: String, answer: String) {
+        viewModelScope.launch {
+            val chapterId = _uiState.value.studyContext.chapterId
+            val subjectId = _uiState.value.studyContext.subjectId
+            if (chapterId == null) {
+                _uiState.update { it.copy(infoMessage = "Attach a chapter to create a flashcard") }
+                return@launch
+            }
+            val card = FlashcardEntity(
+                chapterId = chapterId,
+                subjectId = subjectId ?: "",
+                question = question.trim(),
+                answer = answer.trim()
+            )
+            flashcardDao?.insert(card)
+            _uiState.update { it.copy(infoMessage = "Flashcard created ⚡") }
+        }
     }
 }

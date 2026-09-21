@@ -31,6 +31,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.studyos.app.domain.model.PlannerViewMode
 import com.studyos.app.features.planner.viewmodel.PlannerViewModel
 import com.studyos.app.theme.StudyOSTheme
@@ -50,6 +52,13 @@ fun PlannerScreen(
         uiState.errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbarMessage()
         }
     }
 
@@ -175,7 +184,64 @@ fun PlannerScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Auto-Schedule Reviews & iCal Export Action Bar
+            val context = androidx.compose.ui.platform.LocalContext.current
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Auto-schedule button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.button)
+                        .background(colors.accent.copy(alpha = 0.12f))
+                        .border(1.dp, colors.accent.copy(alpha = 0.4f), shapes.button)
+                        .clickable { viewModel.autoScheduleDueReviews() }
+                        .padding(vertical = 8.dp, horizontal = 10.dp)
+                        .semantics { this.role = Role.Button },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⚡ Auto-Schedule Due",
+                        style = typography.caption.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                        color = colors.accent
+                    )
+                }
+
+                // Export iCal (.ics) button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.button)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, shapes.button)
+                        .clickable {
+                            val icsData = viewModel.exportIcsCalendar()
+                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/calendar"
+                                putExtra(android.content.Intent.EXTRA_TITLE, "studyos_schedule.ics")
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, "StudyOS Schedule Export")
+                                putExtra(android.content.Intent.EXTRA_TEXT, icsData)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(sendIntent, "Export Calendar (.ics)"))
+                        }
+                        .padding(vertical = 8.dp, horizontal = 10.dp)
+                        .semantics { this.role = Role.Button },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "📅 Export .ics",
+                        style = typography.caption.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp),
+                        color = colors.primaryText
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             when (uiState.viewMode) {
                 PlannerViewMode.WEEK, PlannerViewMode.DAY -> {

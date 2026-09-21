@@ -22,19 +22,24 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -42,6 +47,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSDivider
 import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSLoadingState
@@ -63,6 +69,7 @@ fun AiAssistantScreen(
     val shapes = StudyOSTheme.shapes
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
+    var flashcardPromptContent by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(uiState.infoMessage) {
         uiState.infoMessage?.let {
@@ -96,6 +103,52 @@ fun AiAssistantScreen(
             currentConfig = uiState.aiConfig,
             onSaveConfig = viewModel::saveAiConfig,
             onDismissRequest = viewModel::closeSettingsSheet
+        )
+    }
+
+    // Quick Flashcard Creation Dialog
+    flashcardPromptContent?.let { raw ->
+        val firstLine = raw.lines().firstOrNull { it.isNotBlank() }?.trim()?.removePrefix("#")?.trim() ?: "Key Concept"
+        val remaining = raw.lines().drop(1).joinToString("\n").trim().ifBlank { raw }
+        var questionText by remember(raw) { mutableStateOf(firstLine) }
+        var answerText by remember(raw) { mutableStateOf(remaining) }
+
+        AlertDialog(
+            onDismissRequest = { flashcardPromptContent = null },
+            title = { Text("Create Flashcard from AI Insight", style = typography.subsectionTitle, color = colors.primaryText) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = questionText,
+                        onValueChange = { questionText = it },
+                        label = { Text("Question / Concept") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = answerText,
+                        onValueChange = { answerText = it },
+                        label = { Text("Answer / Explanation") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 6
+                    )
+                }
+            },
+            confirmButton = {
+                StudyOSButton(
+                    text = "Save Flashcard",
+                    enabled = questionText.isNotBlank() && answerText.isNotBlank(),
+                    onClick = {
+                        viewModel.saveMessageAsFlashcard(questionText, answerText)
+                        flashcardPromptContent = null
+                    }
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { flashcardPromptContent = null }) {
+                    Text("Cancel", color = colors.secondaryText)
+                }
+            },
+            containerColor = colors.surface
         )
     }
 
@@ -300,7 +353,9 @@ fun AiAssistantScreen(
                             message = message,
                             onRetry = { viewModel.retryMessage(message.id) },
                             onRegenerate = { viewModel.regenerateMessage(message.id) },
-                            onOpenSettings = viewModel::openSettingsSheet
+                            onOpenSettings = viewModel::openSettingsSheet,
+                            onSaveAsNote = { content -> viewModel.saveMessageAsNote(content) },
+                            onCreateFlashcard = { content -> flashcardPromptContent = content }
                         )
 
                         if (index < uiState.messages.lastIndex) {

@@ -3,6 +3,7 @@ package com.studyos.app.features.planner.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studyos.app.domain.model.Chapter
+import com.studyos.app.domain.model.ChapterStatus
 import com.studyos.app.domain.model.PlannerViewMode
 import com.studyos.app.domain.model.StudyPreferences
 import com.studyos.app.domain.model.StudySession
@@ -39,7 +40,8 @@ data class PlannerUiState(
     val editingSession: StudySession? = null,
     val isCreateSessionSheetOpen: Boolean = false,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val snackbarMessage: String? = null
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,7 +56,8 @@ class PlannerViewModel(
     private val getChaptersForSubjectUseCase: GetChaptersForSubjectUseCase,
     private val getStudyPreferencesUseCase: GetStudyPreferencesUseCase,
     private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null,
-    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null
+    private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null,
+    private val chapterRepository: com.studyos.app.domain.repository.ChapterRepository? = null
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -62,6 +65,7 @@ class PlannerViewModel(
     private val _editingSession = MutableStateFlow<StudySession?>(null)
     private val _isCreateSessionSheetOpen = MutableStateFlow(false)
     private val _errorMessage = MutableStateFlow<String?>(null)
+    private val _snackbarMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<PlannerUiState> = combine(
         _selectedDate.flatMapLatest { date -> getWeekScheduleUseCase(date) },
@@ -71,7 +75,8 @@ class PlannerViewModel(
         getStudyPreferencesUseCase(),
         _editingSession,
         _isCreateSessionSheetOpen,
-        _errorMessage
+        _errorMessage,
+        _snackbarMessage
     ) { args: Array<Any?> ->
         @Suppress("UNCHECKED_CAST")
         val weekSchedule = args[0] as? WeekScheduleData
@@ -84,6 +89,7 @@ class PlannerViewModel(
         val editing = args[5] as? StudySession
         val isCreateOpen = (args[6] as? Boolean) ?: false
         val error = args[7] as? String
+        val snackbar = args[8] as? String
 
         PlannerUiState(
             selectedDate = weekSchedule?.selectedDate ?: _selectedDate.value,
@@ -95,7 +101,8 @@ class PlannerViewModel(
             editingSession = editing,
             isCreateSessionSheetOpen = isCreateOpen,
             isLoading = false,
-            errorMessage = error
+            errorMessage = error,
+            snackbarMessage = snackbar
         )
     }.stateIn(
         scope = viewModelScope,
@@ -204,7 +211,120 @@ class PlannerViewModel(
         return getChaptersForSubjectUseCase.getOnce(subjectId)
     }
 
+    fun autoScheduleDueReviews(durationMinutes: Int = 25) {
+        viewModelScope.launch {
+            try {
+                val chapters = chapterRepository?.observeAllChapters()?.firstOrNull() ?: emptyList()
+                if (chapters.isEmpty()) {
+                    _snackbarMessage.value = "No chapters found to schedule reviews for."
+                    return@launch
+                }
+
+                // Prioritize completed or lowest progress chapters
+                val candidateChapters = chapters
+                    .sortedWith(compareBy({ it.status != ChapterStatus.COMPLETED }, { it.progress }, { it.lastOpenedAt ?: 0L }))
+                    .take(3)
+
+                val today = LocalDate.now()
+                var scheduledCount = 0
+                val candidateHours = listOf(10, 14, 16, 19, 21)
+
+                for (chapter in candidateChapters) {
+                    for (hour in candidateHours) {
+                        val startLdt = today.atTime(hour, 0)
+                        val startMillis = startLdt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val endMillis = startMillis + (durationMinutes * 60 * 1000L)
+
+                        if (startMillis <= System.currentTimeMillis()) continue
+
+                        val hasOverlap = checkSessionOverlapUseCase(startMillis, endMillis, null)
+                        if (!hasOverlap) {
+                            val session = savePlannerSessionUseCase(
+                                sessionId = null,
+                                subjectId = chapter.subjectId,
+                                chapterId = chapter.id,
+                                title = "Due Review: ${chapter.name}",
+                                scheduledStart = startMillis,
+                                plannedMinutes = durationMinutes
+                            )
+                            val remindersEnabled = preferencesDataSource?.studyRemindersEnabled?.firstOrNull() ?: true
+                            if (remindersEnabled && alarmScheduler != null) {
+                                val subjectName = uiState.value.subjects.find { it.id == chapter.subjectId }?.name
+                                alarmScheduler.scheduleSessionReminder(session, subjectName, chapter.name)
+                            }
+                            scheduledCount++
+                            break
+                        }
+                    }
+                }
+
+                if (scheduledCount > 0) {
+                    _snackbarMessage.value = "Auto-scheduled $scheduledCount revision session(s) for today!"
+                } else {
+                    _snackbarMessage.value = "All review slots for today are filled or in the past."
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Couldn't auto-schedule reviews: ${e.message}"
+            }
+        }
+    }
+
+    fun exportIcsCalendar(): String {
+        val state = uiState.value
+        val allSessions = mutableListOf<StudySession>()
+
+        state.weekSchedule?.sessionsForSelectedDate?.forEach { item ->
+            allSessions.add(item.session)
+        }
+        state.upcomingGroups.forEach { group ->
+            group.sessions.forEach { item ->
+                allSessions.add(item.session)
+            }
+        }
+
+        val uniqueSessions = allSessions.distinctBy { it.id }
+
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
+            .withZone(java.time.ZoneOffset.UTC)
+
+        val sb = StringBuilder()
+        sb.appendLine("BEGIN:VCALENDAR")
+        sb.appendLine("VERSION:2.0")
+        sb.appendLine("PRODID:-//StudyOS//Personal Learning OS//EN")
+        sb.appendLine("CALSCALE:GREGORIAN")
+        sb.appendLine("METHOD:PUBLISH")
+
+        val nowStr = formatter.format(java.time.Instant.now())
+
+        for (session in uniqueSessions) {
+            val startMillis = session.scheduledStart ?: continue
+            val startInstant = java.time.Instant.ofEpochMilli(startMillis)
+            val endInstant = session.scheduledEnd?.let { java.time.Instant.ofEpochMilli(it) }
+                ?: startInstant.plusMillis(session.plannedMinutes * 60 * 1000L)
+
+            val subjectName = state.subjects.find { it.id == session.subjectId }?.name ?: "Study"
+            val title = session.title.ifBlank { "$subjectName Session" }
+
+            sb.appendLine("BEGIN:VEVENT")
+            sb.appendLine("UID:${session.id}@studyos.app")
+            sb.appendLine("DTSTAMP:$nowStr")
+            sb.appendLine("DTSTART:${formatter.format(startInstant)}")
+            sb.appendLine("DTEND:${formatter.format(endInstant)}")
+            sb.appendLine("SUMMARY:$title")
+            sb.appendLine("DESCRIPTION:Scheduled with StudyOS ($subjectName)")
+            sb.appendLine("STATUS:CONFIRMED")
+            sb.appendLine("END:VEVENT")
+        }
+
+        sb.appendLine("END:VCALENDAR")
+        return sb.toString()
+    }
+
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun clearSnackbarMessage() {
+        _snackbarMessage.value = null
     }
 }

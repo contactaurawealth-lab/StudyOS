@@ -46,7 +46,8 @@ class TasksViewModel(
     private val toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
     private val getSubjectsUseCase: GetSubjectsUseCase,
-    private val getChaptersForSubjectUseCase: GetChaptersForSubjectUseCase
+    private val getChaptersForSubjectUseCase: GetChaptersForSubjectUseCase,
+    private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null
 ) : ViewModel() {
 
     private val _filter = MutableStateFlow(TaskFilter.ALL)
@@ -111,10 +112,13 @@ class TasksViewModel(
         viewModelScope.launch {
             try {
                 val dueToday = DateTimeUtils.getEndOfDay(LocalDate.now())
-                createTaskUseCase(
+                val created = createTaskUseCase(
                     title = title,
                     dueAt = dueToday
                 )
+                if (created.dueAt != null) {
+                    alarmScheduler?.scheduleTaskReminder(created.id, created.title, created.dueAt)
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "Couldn't save this task."
             }
@@ -131,7 +135,7 @@ class TasksViewModel(
     ) {
         viewModelScope.launch {
             try {
-                createTaskUseCase(
+                val created = createTaskUseCase(
                     title = title,
                     description = description,
                     subjectId = subjectId,
@@ -139,6 +143,9 @@ class TasksViewModel(
                     dueAt = dueAt,
                     priority = priority
                 )
+                if (created.dueAt != null) {
+                    alarmScheduler?.scheduleTaskReminder(created.id, created.title, created.dueAt)
+                }
                 _isAddTaskSheetOpen.value = false
             } catch (e: Exception) {
                 _errorMessage.value = "Couldn't save this task."
@@ -150,6 +157,11 @@ class TasksViewModel(
         viewModelScope.launch {
             try {
                 updateTaskUseCase(task)
+                if (task.dueAt != null && task.status != com.studyos.app.domain.model.TaskStatus.COMPLETED) {
+                    alarmScheduler?.scheduleTaskReminder(task.id, task.title, task.dueAt)
+                } else {
+                    alarmScheduler?.cancelTaskReminder(task.id)
+                }
                 _editingTask.value = null
             } catch (e: Exception) {
                 _errorMessage.value = "Couldn't update this task."
@@ -170,6 +182,7 @@ class TasksViewModel(
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
             try {
+                alarmScheduler?.cancelTaskReminder(taskId)
                 deleteTaskUseCase(taskId)
                 _editingTask.value = null
             } catch (e: Exception) {

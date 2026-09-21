@@ -23,9 +23,23 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.studyos.app.domain.model.Flashcard
+import com.studyos.app.domain.repository.FlashcardRepository
+
+data class LeitnerBoxState(
+    val boxNumber: Int,
+    val title: String,
+    val intervalDaysLabel: String,
+    val description: String,
+    val cardCount: Int,
+    val cards: List<Flashcard> = emptyList()
+)
+
 data class RevisionDashboardUiState(
     val dashboardData: DueRevisionDashboardData = DueRevisionDashboardData(),
     val priorityQueue: List<PriorityQueueItem> = emptyList(),
+    val leitnerBoxes: List<LeitnerBoxState> = emptyList(),
+    val selectedBoxIndex: Int? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )
@@ -37,7 +51,8 @@ class RevisionDashboardViewModel(
     private val subjectRepository: SubjectRepository? = null,
     private val mistakeRepository: MistakeRepository? = null,
     private val recallRepository: RecallRepository? = null,
-    private val examRepository: ExamRepository? = null
+    private val examRepository: ExamRepository? = null,
+    private val flashcardRepository: FlashcardRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RevisionDashboardUiState())
@@ -45,10 +60,12 @@ class RevisionDashboardViewModel(
 
     private var loadJob: Job? = null
     private var queueJob: Job? = null
+    private var flashcardJob: Job? = null
 
     init {
         loadDashboard()
         loadPriorityQueue()
+        loadLeitnerBoxes()
     }
 
     fun loadDashboard() {
@@ -119,6 +136,42 @@ class RevisionDashboardViewModel(
     fun setDailyTargetMinutes(minutes: Int) {
         viewModelScope.launch {
             revisionRepository.setDailyRevisionTargetMinutes(minutes)
+        }
+    }
+
+    fun selectLeitnerBox(boxNumber: Int?) {
+        _uiState.update { current ->
+            if (current.selectedBoxIndex == boxNumber) {
+                current.copy(selectedBoxIndex = null)
+            } else {
+                current.copy(selectedBoxIndex = boxNumber)
+            }
+        }
+    }
+
+    fun loadLeitnerBoxes() {
+        val repo = flashcardRepository ?: return
+        flashcardJob?.cancel()
+        flashcardJob = viewModelScope.launch {
+            repo.observeAllFlashcards()
+                .catch { }
+                .collect { allCards ->
+                    val box1Cards = allCards.filter { it.intervalDays <= 1 || it.reviewCount == 0 }
+                    val box2Cards = allCards.filter { it.reviewCount > 0 && it.intervalDays in 2..3 }
+                    val box3Cards = allCards.filter { it.reviewCount > 0 && it.intervalDays in 4..7 }
+                    val box4Cards = allCards.filter { it.reviewCount > 0 && it.intervalDays in 8..14 }
+                    val box5Cards = allCards.filter { it.reviewCount > 0 && it.intervalDays > 14 }
+
+                    val boxes = listOf(
+                        LeitnerBoxState(1, "Box 1", "1 Day", "Daily Recall", box1Cards.size, box1Cards),
+                        LeitnerBoxState(2, "Box 2", "3 Days", "3-Day Gap", box2Cards.size, box2Cards),
+                        LeitnerBoxState(3, "Box 3", "1 Week", "Weekly Review", box3Cards.size, box3Cards),
+                        LeitnerBoxState(4, "Box 4", "2 Weeks", "Bi-Weekly", box4Cards.size, box4Cards),
+                        LeitnerBoxState(5, "Box 5", "Mastered", "Long-Term", box5Cards.size, box5Cards)
+                    )
+
+                    _uiState.update { it.copy(leitnerBoxes = boxes) }
+                }
         }
     }
 }

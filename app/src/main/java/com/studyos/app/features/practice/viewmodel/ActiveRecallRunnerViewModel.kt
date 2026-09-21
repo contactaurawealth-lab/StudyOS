@@ -31,13 +31,25 @@ data class ActiveRecallRunnerUiState(
     val elapsedSeconds: Int = 0,
     val isFinished: Boolean = false,
     val summary: ActiveRecallSessionSummary? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isFeynmanMode: Boolean = false,
+    val feynmanRemainingSeconds: Int = 180,
+    val feynmanRubricSimple: Boolean = false,
+    val feynmanRubricAccurate: Boolean = false,
+    val feynmanRubricGapsIdentified: Boolean = false
 ) {
     val currentItem: ActiveRecallItem?
         get() = items.getOrNull(currentIndex)
 
     val progressFraction: Float
         get() = if (items.isNotEmpty()) (currentIndex.toFloat() / items.size.toFloat()) else 0f
+
+    val feynmanTimerString: String
+        get() {
+            val mins = feynmanRemainingSeconds / 60
+            val secs = feynmanRemainingSeconds % 60
+            return String.format("%02d:%02d", mins, secs)
+        }
 }
 
 class ActiveRecallRunnerViewModel(
@@ -75,6 +87,10 @@ class ActiveRecallRunnerViewModel(
                     selectedOption = null,
                     results = emptyList(),
                     elapsedSeconds = 0,
+                    feynmanRemainingSeconds = 180,
+                    feynmanRubricSimple = false,
+                    feynmanRubricAccurate = false,
+                    feynmanRubricGapsIdentified = false,
                     isFinished = false,
                     summary = null,
                     isLoading = false
@@ -89,7 +105,41 @@ class ActiveRecallRunnerViewModel(
         timerJob = viewModelScope.launch {
             while (true) {
                 delay(1000)
-                _uiState.update { it.copy(elapsedSeconds = it.elapsedSeconds + 1) }
+                _uiState.update { current ->
+                    val newElapsed = current.elapsedSeconds + 1
+                    val newFeynman = if (current.isFeynmanMode && !current.isAnswerRevealed) {
+                        (current.feynmanRemainingSeconds - 1).coerceAtLeast(0)
+                    } else {
+                        current.feynmanRemainingSeconds
+                    }
+                    current.copy(
+                        elapsedSeconds = newElapsed,
+                        feynmanRemainingSeconds = newFeynman
+                    )
+                }
+            }
+        }
+    }
+
+    fun toggleFeynmanMode() {
+        _uiState.update { current ->
+            current.copy(
+                isFeynmanMode = !current.isFeynmanMode,
+                feynmanRemainingSeconds = 180,
+                feynmanRubricSimple = false,
+                feynmanRubricAccurate = false,
+                feynmanRubricGapsIdentified = false
+            )
+        }
+    }
+
+    fun toggleFeynmanRubric(criterion: String) {
+        _uiState.update { state ->
+            when (criterion) {
+                "simple" -> state.copy(feynmanRubricSimple = !state.feynmanRubricSimple)
+                "accurate" -> state.copy(feynmanRubricAccurate = !state.feynmanRubricAccurate)
+                "gaps" -> state.copy(feynmanRubricGapsIdentified = !state.feynmanRubricGapsIdentified)
+                else -> state
             }
         }
     }
@@ -147,6 +197,10 @@ class ActiveRecallRunnerViewModel(
                     typedAnswer = "",
                     evaluationResult = null,
                     selectedOption = null,
+                    feynmanRemainingSeconds = 180,
+                    feynmanRubricSimple = false,
+                    feynmanRubricAccurate = false,
+                    feynmanRubricGapsIdentified = false,
                     results = updatedResults
                 )
             }

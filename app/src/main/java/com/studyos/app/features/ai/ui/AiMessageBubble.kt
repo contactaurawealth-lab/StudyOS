@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
@@ -58,6 +60,8 @@ fun AiMessageBubble(
     onRetry: () -> Unit,
     onRegenerate: () -> Unit,
     onOpenSettings: () -> Unit,
+    onSaveAsNote: ((String) -> Unit)? = null,
+    onCreateFlashcard: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     when (message.role) {
@@ -67,6 +71,8 @@ fun AiMessageBubble(
             onRetry = onRetry,
             onRegenerate = onRegenerate,
             onOpenSettings = onOpenSettings,
+            onSaveAsNote = onSaveAsNote,
+            onCreateFlashcard = onCreateFlashcard,
             modifier = modifier
         )
         AiMessageRole.SYSTEM -> {
@@ -124,6 +130,8 @@ private fun AssistantMessageView(
     onRetry: () -> Unit,
     onRegenerate: () -> Unit,
     onOpenSettings: () -> Unit,
+    onSaveAsNote: ((String) -> Unit)? = null,
+    onCreateFlashcard: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = StudyOSTheme.colors
@@ -256,10 +264,10 @@ private fun AssistantMessageView(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Action Bar (Copy & Regenerate)
+                // Action Bar (Copy, Save to Note, Create Flashcard, Regenerate)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Copy
@@ -291,7 +299,53 @@ private fun AssistantMessageView(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    // Save to Note
+                    if (onSaveAsNote != null && message.content.isNotBlank()) {
+                        Row(
+                            modifier = Modifier
+                                .clip(shapes.statusPill)
+                                .clickable { onSaveAsNote(message.content) }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.EditNote,
+                                contentDescription = "Save to Notes",
+                                tint = colors.mutedText,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Save Note",
+                                style = typography.caption,
+                                color = colors.mutedText
+                            )
+                        }
+                    }
+
+                    // Create Flashcard
+                    if (onCreateFlashcard != null && message.content.isNotBlank()) {
+                        Row(
+                            modifier = Modifier
+                                .clip(shapes.statusPill)
+                                .clickable { onCreateFlashcard(message.content) }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Bolt,
+                                contentDescription = "Create Flashcard",
+                                tint = colors.accent,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Flashcard",
+                                style = typography.caption,
+                                color = colors.accent
+                            )
+                        }
+                    }
 
                     // Regenerate
                     Row(

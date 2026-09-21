@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Psychology
@@ -353,6 +354,7 @@ private val PhoneBottomNavItems = listOf(
 private val PrimaryDrawerItems = listOf(
     DrawerNavigationItem("Today", Screen.Today.route, Icons.Outlined.Today),
     DrawerNavigationItem("Subjects", Screen.Subjects.route, Icons.Outlined.MenuBook),
+    DrawerNavigationItem("Library", Screen.Library.route, Icons.Outlined.Folder),
     DrawerNavigationItem("Study Timer", Screen.StudyTimer.route, Icons.Outlined.Timer),
     DrawerNavigationItem("Progress", Screen.Progress.route, Icons.Outlined.ShowChart),
     DrawerNavigationItem("Calendar", Screen.Planner.route, Icons.Outlined.CalendarMonth),
@@ -553,12 +555,28 @@ private fun StudyOSNavGraph(
             val tasksViewModel = rememberTasksViewModel(container)
             TasksScreen(
                 viewModel = tasksViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onStartTimer = { _, _ ->
+                    navController.navigate(Screen.StudyTimer.route)
+                }
             )
         }
 
         composable(Screen.Library.route) {
-            LibraryScreen()
+            val libraryViewModel = rememberLibraryViewModel(container)
+            LibraryScreen(
+                viewModel = libraryViewModel,
+                onOpenNote = { noteId, subjectId, chapterId ->
+                    navController.navigate(Screen.NoteEditor.createRoute(noteId, subjectId, chapterId))
+                },
+                onStudyDeck = { chapterId ->
+                    navController.navigate(Screen.FlashcardStudy.createRoute(chapterId))
+                },
+                onOpenSubject = { subjectId ->
+                    navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                },
+                onOpenDrawer = onOpenDrawer
+            )
         }
 
         composable(Screen.Progress.route) {
@@ -886,6 +904,21 @@ private fun rememberNotificationCenterViewModel(
 }
 
 @Composable
+private fun rememberLibraryViewModel(
+    container: StudyOSAppContainer
+): com.studyos.app.features.library.viewmodel.LibraryViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        com.studyos.app.features.library.viewmodel.LibraryViewModel(
+            noteDao = container.database.noteDao(),
+            flashcardDao = container.database.flashcardDao(),
+            resourceDao = container.database.resourceDao(),
+            subjectDao = container.database.subjectDao(),
+            chapterDao = container.database.chapterDao()
+        )
+    }
+}
+
+@Composable
 private fun rememberPlannerViewModel(container: StudyOSAppContainer): PlannerViewModel {
     return androidx.lifecycle.viewmodel.compose.viewModel {
         PlannerViewModel(
@@ -899,7 +932,8 @@ private fun rememberPlannerViewModel(container: StudyOSAppContainer): PlannerVie
             getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase,
             getStudyPreferencesUseCase = container.getStudyPreferencesUseCase,
             alarmScheduler = container.alarmScheduler,
-            preferencesDataSource = container.preferencesDataSource
+            preferencesDataSource = container.preferencesDataSource,
+            chapterRepository = container.chapterRepository
         )
     }
 }
@@ -914,7 +948,8 @@ private fun rememberTasksViewModel(container: StudyOSAppContainer): TasksViewMod
             toggleTaskCompletionUseCase = container.toggleTaskCompletionUseCase,
             deleteTaskUseCase = container.deleteTaskUseCase,
             getSubjectsUseCase = container.getSubjectsUseCase,
-            getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase
+            getChaptersForSubjectUseCase = container.getChaptersForSubjectUseCase,
+            alarmScheduler = container.alarmScheduler
         )
     }
 }
@@ -992,7 +1027,9 @@ private fun rememberProgressViewModel(container: StudyOSAppContainer): ProgressV
             getAcademicProgressUseCase = container.getAcademicProgressUseCase,
             studySessionRepository = container.studySessionRepository,
             subjectRepository = container.subjectRepository,
-            mistakeRepository = container.mistakeRepository
+            mistakeRepository = container.mistakeRepository,
+            recallRepository = container.recallRepository,
+            quizRepository = container.quizRepository
         )
     }
 }
@@ -1053,7 +1090,9 @@ private fun rememberAiAssistantViewModel(
             saveAiConfigUseCase = container.saveAiConfigUseCase,
             getAiConfigUseCase = container.getAiConfigUseCase,
             getChapterAiContextUseCase = container.getChapterAiContextUseCase,
-            aiStudyEngineUseCase = container.aiStudyEngineUseCase
+            aiStudyEngineUseCase = container.aiStudyEngineUseCase,
+            noteDao = container.database.noteDao(),
+            flashcardDao = container.database.flashcardDao()
         )
     }
 }
@@ -1191,7 +1230,8 @@ private fun rememberRevisionDashboardViewModel(
             subjectRepository = container.subjectRepository,
             mistakeRepository = container.mistakeRepository,
             recallRepository = container.recallRepository,
-            examRepository = container.examRepository
+            examRepository = container.examRepository,
+            flashcardRepository = container.flashcardRepository
         )
     }
 }

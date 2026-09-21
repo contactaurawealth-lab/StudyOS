@@ -107,6 +107,36 @@ fun ActiveRecallRunnerScreen(
                         )
                     }
                 },
+                actions = {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clip(shapes.statusPill)
+                            .background(if (uiState.isFeynmanMode) colors.accent.copy(alpha = 0.18f) else colors.surface)
+                            .border(1.dp, if (uiState.isFeynmanMode) colors.accent else colors.border, shapes.statusPill)
+                            .clickable { viewModel.toggleFeynmanMode() }
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .semantics { this.role = Role.Button }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.Psychology,
+                                contentDescription = null,
+                                tint = if (uiState.isFeynmanMode) colors.accent else colors.secondaryText,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (uiState.isFeynmanMode) "Feynman 3m" else "Feynman Mode",
+                                style = typography.caption.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = if (uiState.isFeynmanMode) FontWeight.Bold else FontWeight.Medium
+                                ),
+                                color = if (uiState.isFeynmanMode) colors.accent else colors.secondaryText
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colors.background,
                     titleContentColor = colors.primaryText
@@ -275,13 +305,55 @@ fun ActiveRecallRunnerScreen(
                                 }
                             }
 
+                            if (uiState.isFeynmanMode) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(shapes.card)
+                                        .background(colors.accent.copy(alpha = 0.08f))
+                                        .border(1.dp, colors.accent.copy(alpha = 0.3f), shapes.card)
+                                        .padding(12.dp)
+                                ) {
+                                    Column {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Feynman Free-Recall (3 min)",
+                                                style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                color = colors.accent
+                                            )
+                                            val timerColor = if (uiState.feynmanRemainingSeconds <= 30) colors.critical else colors.accent
+                                            Text(
+                                                text = uiState.feynmanTimerString,
+                                                style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                color = timerColor
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Explain this concept from scratch in plain English. No memorized jargon without simple analogies. Stumbling highlights your exact knowledge gap.",
+                                            style = typography.caption,
+                                            color = colors.secondaryText
+                                        )
+                                    }
+                                }
+                            }
+
                             // Optional active typing before reveal
                             if (!uiState.isAnswerRevealed && currentItem.type != ActiveRecallItemType.CONCEPT_QUIZ) {
                                 Spacer(modifier = Modifier.height(14.dp))
                                 StudyOSTextField(
                                     value = uiState.typedAnswer,
                                     onValueChange = viewModel::updateTypedAnswer,
-                                    placeholder = "Type your answer to test active recall...",
+                                    placeholder = if (uiState.isFeynmanMode) {
+                                        "Write your plain-English breakdown here... What happens? Why? Step by step..."
+                                    } else {
+                                        "Type your answer to test active recall..."
+                                    },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -296,17 +368,19 @@ fun ActiveRecallRunnerScreen(
                                     StudyOSDivider(modifier = Modifier.padding(vertical = 14.dp))
 
                                     val eval = uiState.evaluationResult
-                                    val resultLabel = when (eval?.status) {
-                                        RecallEvaluationStatus.CORRECT -> "Correct"
-                                        RecallEvaluationStatus.PARTIALLY_CORRECT -> "Partially Correct"
-                                        RecallEvaluationStatus.INCORRECT -> "Needs Review"
-                                        null -> if (uiState.selectedOption.equals(currentItem.answer, ignoreCase = true)) "Correct" else "Revealed"
+                                    val resultLabel = when {
+                                        uiState.isFeynmanMode -> "Feynman Comparative Analysis"
+                                        eval?.status == RecallEvaluationStatus.CORRECT -> "Correct"
+                                        eval?.status == RecallEvaluationStatus.PARTIALLY_CORRECT -> "Partially Correct"
+                                        eval?.status == RecallEvaluationStatus.INCORRECT -> "Needs Review"
+                                        else -> if (uiState.selectedOption.equals(currentItem.answer, ignoreCase = true)) "Correct" else "Revealed"
                                     }
-                                    val resultColor = when (eval?.status) {
-                                        RecallEvaluationStatus.CORRECT -> colors.success
-                                        RecallEvaluationStatus.PARTIALLY_CORRECT -> colors.warning
-                                        RecallEvaluationStatus.INCORRECT -> colors.critical
-                                        null -> colors.accent
+                                    val resultColor = when {
+                                        uiState.isFeynmanMode -> colors.accent
+                                        eval?.status == RecallEvaluationStatus.CORRECT -> colors.success
+                                        eval?.status == RecallEvaluationStatus.PARTIALLY_CORRECT -> colors.warning
+                                        eval?.status == RecallEvaluationStatus.INCORRECT -> colors.critical
+                                        else -> colors.accent
                                     }
 
                                     // Evaluation Feedback Card
@@ -326,7 +400,7 @@ fun ActiveRecallRunnerScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "RECALL EVALUATION",
+                                                    text = if (uiState.isFeynmanMode) "FEYNMAN SIDE-BY-SIDE" else "RECALL EVALUATION",
                                                     style = typography.caption,
                                                     fontWeight = FontWeight.Bold,
                                                     color = colors.secondaryText
@@ -351,7 +425,7 @@ fun ActiveRecallRunnerScreen(
                                             if (!studentAnswer.isNullOrBlank()) {
                                                 Column {
                                                     Text(
-                                                        text = "Your answer:",
+                                                        text = if (uiState.isFeynmanMode) "Your Free-Recall Explanation:" else "Your answer:",
                                                         style = typography.caption,
                                                         color = colors.secondaryText
                                                     )
@@ -367,7 +441,7 @@ fun ActiveRecallRunnerScreen(
                                             // Expected Answer
                                             Column {
                                                 Text(
-                                                    text = "Expected answer:",
+                                                    text = if (uiState.isFeynmanMode) "Reference Answer & Mechanism:" else "Expected answer:",
                                                     style = typography.caption,
                                                     color = colors.success
                                                 )
@@ -379,13 +453,13 @@ fun ActiveRecallRunnerScreen(
                                                 )
                                             }
 
-                                            // Why
+                                            // Why / Reference Notes
                                             val whyText = currentItem.explanation?.ifBlank { null }
                                                 ?: eval?.whyExplanation?.ifBlank { null }
                                                 ?: "Core fundamental principle of this concept."
                                             Column {
                                                 Text(
-                                                    text = "Why:",
+                                                    text = if (uiState.isFeynmanMode) "Reference Concept / Notes:" else "Why:",
                                                     style = typography.caption,
                                                     color = colors.accent
                                                 )
@@ -394,6 +468,57 @@ fun ActiveRecallRunnerScreen(
                                                     style = typography.caption,
                                                     color = colors.secondaryText
                                                 )
+                                            }
+
+                                            // Feynman Self-Scoring Rubric (when in Feynman Mode)
+                                            if (uiState.isFeynmanMode) {
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                StudyOSDivider()
+                                                Spacer(modifier = Modifier.height(4.dp))
+
+                                                Text(
+                                                    text = "Feynman Self-Scoring Rubric:",
+                                                    style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                    color = colors.accent
+                                                )
+
+                                                listOf(
+                                                    Triple("simple", "Plain English (no unexplained jargon)", uiState.feynmanRubricSimple),
+                                                    Triple("accurate", "Mechanism Accurate (cause & effect sound)", uiState.feynmanRubricAccurate),
+                                                    Triple("gaps", "Gaps Identified (spotted fuzzy points)", uiState.feynmanRubricGapsIdentified)
+                                                ).forEach { (id, label, isChecked) ->
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .clickable { viewModel.toggleFeynmanRubric(id) }
+                                                            .padding(vertical = 3.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(16.dp)
+                                                                .clip(shapes.small)
+                                                                .background(if (isChecked) colors.success else colors.surface)
+                                                                .border(1.dp, if (isChecked) colors.success else colors.border, shapes.small),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            if (isChecked) {
+                                                                Icon(
+                                                                    imageVector = Icons.Outlined.CheckCircle,
+                                                                    contentDescription = null,
+                                                                    tint = colors.cardBackground,
+                                                                    modifier = Modifier.size(12.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text(
+                                                            text = label,
+                                                            style = typography.caption,
+                                                            color = if (isChecked) colors.primaryText else colors.secondaryText
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -408,7 +533,7 @@ fun ActiveRecallRunnerScreen(
                     if (!uiState.isAnswerRevealed) {
                         if (currentItem.type != ActiveRecallItemType.CONCEPT_QUIZ) {
                             StudyOSButton(
-                                text = "Reveal Answer",
+                                text = if (uiState.isFeynmanMode) "Compare & Self-Score (Feynman)" else "Reveal Answer",
                                 onClick = viewModel::revealAnswer,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -434,13 +559,13 @@ fun ActiveRecallRunnerScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 StudyOSOutlinedButton(
-                                    text = "Need Review",
+                                    text = if (uiState.isFeynmanMode) "Needs Work (Gap)" else "Need Review",
                                     onClick = { viewModel.recordResult(wasCorrect = false) },
                                     modifier = Modifier.weight(1f)
                                 )
 
                                 StudyOSButton(
-                                    text = "Got It!",
+                                    text = if (uiState.isFeynmanMode) "Mastered (Clear)" else "Got It!",
                                     onClick = { viewModel.recordResult(wasCorrect = true) },
                                     modifier = Modifier.weight(1f)
                                 )
