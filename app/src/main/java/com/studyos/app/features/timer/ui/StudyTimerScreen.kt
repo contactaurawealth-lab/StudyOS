@@ -39,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +83,15 @@ fun StudyTimerScreen(
 
     var subjectMenuExpanded by remember { mutableStateOf(false) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
+    var isZenMode by remember { mutableStateOf(false) }
+    var showMorePresets by remember { mutableStateOf(false) }
+
+    // Auto-exit Zen mode when timer completes or is idle
+    LaunchedEffect(uiState.status) {
+        if (uiState.status == TimerStatus.IDLE || uiState.status == TimerStatus.COMPLETED) {
+            isZenMode = false
+        }
+    }
 
     // Keep screen awake (Desk Mode) when timer is running
     val view = LocalView.current
@@ -104,40 +114,46 @@ fun StudyTimerScreen(
                 .widthIn(max = 680.dp)
         ) {
             // Header Top Bar
-            GlassTopBar(
-                title = "Study Timer",
-                subtitle = when (uiState.mode) {
-                    TimerMode.COUNTDOWN -> "Deep Work Focus Block"
-                    TimerMode.COUNT_UP -> "Open Study Stopwatch"
-                    TimerMode.POMODORO -> "Pomodoro Technique • ${uiState.pomodoroPhase.label}"
-                },
-                navigationIcon = {
-                    GlassIconButton(
-                        onClick = onOpenDrawer,
-                        contentDescription = "Open Drawer"
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = null,
-                            tint = colors.primaryText,
-                            modifier = Modifier.size(20.dp)
-                        )
+            AnimatedVisibility(
+                visible = !isZenMode,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                GlassTopBar(
+                    title = "Study Timer",
+                    subtitle = when (uiState.mode) {
+                        TimerMode.COUNTDOWN -> "Deep Work Focus Block"
+                        TimerMode.COUNT_UP -> "Open Study Stopwatch"
+                        TimerMode.POMODORO -> "Pomodoro Technique • ${uiState.pomodoroPhase.label}"
+                    },
+                    navigationIcon = {
+                        GlassIconButton(
+                            onClick = onOpenDrawer,
+                            contentDescription = "Open Drawer"
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = null,
+                                tint = colors.primaryText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
+                    actions = {
+                        GlassIconButton(
+                            onClick = onBack,
+                            contentDescription = "Back"
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = null,
+                                tint = colors.secondaryText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
-                },
-                actions = {
-                    GlassIconButton(
-                        onClick = onBack,
-                        contentDescription = "Back"
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = null,
-                            tint = colors.secondaryText,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            )
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -146,12 +162,22 @@ fun StudyTimerScreen(
                     .padding(horizontal = 24.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Preset Duration & Mode Selector Chips
+                AnimatedVisibility(
+                    visible = !isZenMode,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Preset Duration & Mode Selector Chips (Streamlined)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     TimerPresetChip(
                         label = "25m Focus",
@@ -163,38 +189,12 @@ fun StudyTimerScreen(
                         }
                     )
                     TimerPresetChip(
-                        label = "45m Deep",
-                        selected = uiState.mode == TimerMode.COUNTDOWN && uiState.totalDurationSeconds == 45 * 60,
+                        label = "50m Deep",
+                        selected = uiState.mode == TimerMode.COUNTDOWN && uiState.totalDurationSeconds == 50 * 60,
                         enabled = uiState.status != TimerStatus.RUNNING,
                         onClick = {
                             viewModel.setTimerMode(TimerMode.COUNTDOWN)
-                            viewModel.setPresetMinutes(45)
-                        }
-                    )
-                    TimerPresetChip(
-                        label = "60m Block",
-                        selected = uiState.mode == TimerMode.COUNTDOWN && uiState.totalDurationSeconds == 60 * 60,
-                        enabled = uiState.status != TimerStatus.RUNNING,
-                        onClick = {
-                            viewModel.setTimerMode(TimerMode.COUNTDOWN)
-                            viewModel.setPresetMinutes(60)
-                        }
-                    )
-                    TimerPresetChip(
-                        label = "90m Exam",
-                        selected = uiState.mode == TimerMode.COUNTDOWN && uiState.totalDurationSeconds == 90 * 60,
-                        enabled = uiState.status != TimerStatus.RUNNING,
-                        onClick = {
-                            viewModel.setTimerMode(TimerMode.COUNTDOWN)
-                            viewModel.setPresetMinutes(90)
-                        }
-                    )
-                    TimerPresetChip(
-                        label = "+ Custom",
-                        selected = uiState.mode == TimerMode.COUNTDOWN && !listOf(25, 45, 60, 90).contains(uiState.totalDurationSeconds / 60),
-                        enabled = uiState.status != TimerStatus.RUNNING,
-                        onClick = {
-                            viewModel.showCustomDurationDialog(true)
+                            viewModel.setPresetMinutes(50)
                         }
                     )
                     TimerPresetChip(
@@ -206,13 +206,59 @@ fun StudyTimerScreen(
                         }
                     )
                     TimerPresetChip(
-                        label = "🍅 Pomodoro",
-                        selected = uiState.mode == TimerMode.POMODORO,
+                        label = if (showMorePresets) "− Less" else "+ More",
+                        selected = showMorePresets || (uiState.mode == TimerMode.POMODORO) || (uiState.totalDurationSeconds !in listOf(25 * 60, 50 * 60) && uiState.mode == TimerMode.COUNTDOWN),
                         enabled = uiState.status != TimerStatus.RUNNING,
                         onClick = {
-                            viewModel.setTimerMode(TimerMode.POMODORO)
+                            showMorePresets = !showMorePresets
                         }
                     )
+                }
+
+                if (showMorePresets) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TimerPresetChip(
+                            label = "🍅 Pomodoro",
+                            selected = uiState.mode == TimerMode.POMODORO,
+                            enabled = uiState.status != TimerStatus.RUNNING,
+                            onClick = {
+                                viewModel.setTimerMode(TimerMode.POMODORO)
+                            }
+                        )
+                        TimerPresetChip(
+                            label = "60m Block",
+                            selected = uiState.mode == TimerMode.COUNTDOWN && uiState.totalDurationSeconds == 60 * 60,
+                            enabled = uiState.status != TimerStatus.RUNNING,
+                            onClick = {
+                                viewModel.setTimerMode(TimerMode.COUNTDOWN)
+                                viewModel.setPresetMinutes(60)
+                            }
+                        )
+                        TimerPresetChip(
+                            label = "90m Exam",
+                            selected = uiState.mode == TimerMode.COUNTDOWN && uiState.totalDurationSeconds == 90 * 60,
+                            enabled = uiState.status != TimerStatus.RUNNING,
+                            onClick = {
+                                viewModel.setTimerMode(TimerMode.COUNTDOWN)
+                                viewModel.setPresetMinutes(90)
+                            }
+                        )
+                        TimerPresetChip(
+                            label = "Custom",
+                            selected = uiState.mode == TimerMode.COUNTDOWN && !listOf(25, 50, 60, 90).contains(uiState.totalDurationSeconds / 60),
+                            enabled = uiState.status != TimerStatus.RUNNING,
+                            onClick = {
+                                viewModel.showCustomDurationDialog(true)
+                            }
+                        )
+                    }
                 }
 
                 if (uiState.mode == TimerMode.POMODORO) {
@@ -530,8 +576,10 @@ fun StudyTimerScreen(
                         }
                     }
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(if (isZenMode) 40.dp else 24.dp))
 
                 // Big Circular Timer Display
                 val progress = when {
@@ -554,7 +602,11 @@ fun StudyTimerScreen(
 
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(260.dp)
+                    modifier = Modifier
+                        .size(if (isZenMode) 290.dp else 260.dp)
+                        .clickable(enabled = uiState.status == TimerStatus.RUNNING || uiState.status == TimerStatus.PAUSED) {
+                            isZenMode = !isZenMode
+                        }
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize().padding(12.dp)) {
                         val strokeWidth = 14.dp.toPx()
@@ -659,6 +711,15 @@ fun StudyTimerScreen(
                             style = typography.caption,
                             color = colors.secondaryText
                         )
+
+                        if (uiState.status == TimerStatus.RUNNING || uiState.status == TimerStatus.PAUSED) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (isZenMode) "Tap ring to exit Zen" else "Tap ring for Zen mode",
+                                style = typography.caption.copy(fontSize = 10.sp),
+                                color = colors.mutedText.copy(alpha = 0.5f)
+                            )
+                        }
                     }
                 }
 

@@ -26,12 +26,14 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -143,6 +145,41 @@ fun TodayScreen(
                     }
                 },
                 actions = {
+                    // Mini Daily Goal Habit Ring
+                    val habitProgress = (uiState.completedMinutesToday.toFloat() / uiState.dailyGoalMinutes.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(colors.cardBackground.copy(alpha = 0.5f))
+                            .border(0.5.dp, colors.border.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            progress = { habitProgress },
+                            modifier = Modifier.size(24.dp),
+                            color = colors.accent,
+                            trackColor = colors.border.copy(alpha = 0.2f),
+                            strokeWidth = 2.dp
+                        )
+                        if (uiState.isDailyGoalReached) {
+                            Icon(
+                                imageVector = Icons.Outlined.Check,
+                                contentDescription = "Daily goal reached",
+                                tint = colors.accent,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "${uiState.completedMinutesToday}",
+                                style = typography.caption.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                color = colors.primaryText
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     GlassIconButton(
                         onClick = onOpenNotifications,
                         contentDescription = "Notifications"
@@ -361,9 +398,27 @@ fun TodayScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // 3. Daily AI Plan with Time Budget Chips
+                        // 3. Hero Focus Card (The North Star)
                         StudyOSSectionHeader(
-                            title = "Daily AI Plan"
+                            title = "Focus now"
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        UnifiedHeroFocusCard(
+                            recommendation = uiState.smartRecommendation,
+                            focusItem = uiState.focusItem,
+                            onStartAiSession = { subId, chapId -> onStartAiSession(subId, chapId) },
+                            onOpenTimer = onOpenTimer,
+                            onOpenChapter = onOpenChapter,
+                            onOpenSession = onOpenSession,
+                            onPlanSession = viewModel::openPlanSessionSheet
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // 4. Daily AI Plan with Time Budget Chips
+                        StudyOSSectionHeader(
+                            title = "Daily study blocks"
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -415,39 +470,6 @@ fun TodayScreen(
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 4. Hero Focus Card (Consolidated)
-                        StudyOSSectionHeader(
-                            title = "Hero focus"
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        UnifiedHeroFocusCard(
-                            recommendation = uiState.smartRecommendation,
-                            focusItem = uiState.focusItem,
-                            onStartAiSession = { subId, chapId -> onStartAiSession(subId, chapId) },
-                            onOpenTimer = onOpenTimer,
-                            onOpenChapter = onOpenChapter,
-                            onOpenSession = onOpenSession,
-                            onPlanSession = viewModel::openPlanSessionSheet
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 5. Today's Progress
-                        StudyOSSectionHeader(
-                            title = "Today's progress"
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        TodayProgressCard(
-                            completedMinutes = uiState.completedMinutesToday,
-                            goalMinutes = uiState.dailyGoalMinutes,
-                            progressPercentage = uiState.dailyProgressPercentage,
-                            isGoalReached = uiState.isDailyGoalReached
-                        )
 
                         // 6. Next up sessions (if any)
                         if (uiState.upcomingSessions.isNotEmpty()) {

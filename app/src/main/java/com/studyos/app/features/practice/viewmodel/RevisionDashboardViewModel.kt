@@ -35,11 +35,25 @@ data class LeitnerBoxState(
     val cards: List<Flashcard> = emptyList()
 )
 
+enum class RevisionTab {
+    DUE_QUEUE,
+    PRACTICE_LAB
+}
+
+enum class RevisionFilter {
+    ALL,
+    CHAPTERS,
+    FLASHCARDS,
+    WEAK_TOPICS
+}
+
 data class RevisionDashboardUiState(
     val dashboardData: DueRevisionDashboardData = DueRevisionDashboardData(),
     val priorityQueue: List<PriorityQueueItem> = emptyList(),
     val leitnerBoxes: List<LeitnerBoxState> = emptyList(),
     val selectedBoxIndex: Int? = null,
+    val selectedTab: RevisionTab = RevisionTab.DUE_QUEUE,
+    val selectedFilter: RevisionFilter = RevisionFilter.ALL,
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )
@@ -137,6 +151,14 @@ class RevisionDashboardViewModel(
         viewModelScope.launch {
             revisionRepository.setDailyRevisionTargetMinutes(minutes)
         }
+    }
+
+    fun selectTab(tab: RevisionTab) {
+        _uiState.update { it.copy(selectedTab = tab) }
+    }
+
+    fun selectFilter(filter: RevisionFilter) {
+        _uiState.update { it.copy(selectedFilter = filter) }
     }
 
     fun selectLeitnerBox(boxNumber: Int?) {

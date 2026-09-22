@@ -120,7 +120,7 @@ fun ProgressScreen(
                                         .weight(1f)
                                         .clip(shapes.statusPill)
                                         .background(if (isSelected) colors.primaryText else colors.surface)
-                                        .border(1.dp, if (isSelected) colors.primaryText else colors.border, shapes.statusPill)
+                                        .border(0.5.dp, if (isSelected) colors.primaryText else colors.border.copy(alpha = 0.3f), shapes.statusPill)
                                         .clickable { viewModel.setTimeWindowFilter(window) }
                                         .padding(vertical = 6.dp)
                                         .semantics { this.role = Role.Tab },

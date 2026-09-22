@@ -290,7 +290,7 @@ private fun LibraryTabPill(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(if (isSelected) colors.accent else colors.surface)
-            .border(1.dp, if (isSelected) colors.accent else colors.border, RoundedCornerShape(20.dp))
+            .border(0.5.dp, if (isSelected) colors.accent else colors.border.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
@@ -315,7 +315,7 @@ private fun SubjectFilterChip(
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
             .background(if (isSelected) colors.accent.copy(alpha = 0.15f) else colors.surface.copy(alpha = 0.5f))
-            .border(1.dp, if (isSelected) colors.accent else colors.border.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+            .border(0.5.dp, if (isSelected) colors.accent else colors.border.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {

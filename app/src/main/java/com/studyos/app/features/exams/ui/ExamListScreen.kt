@@ -268,7 +268,7 @@ private fun ExamCardItem(
             .fillMaxWidth()
             .clip(shapes.surface)
             .background(colors.surface)
-            .border(1.dp, colors.border, shapes.surface)
+            .border(0.5.dp, colors.border.copy(alpha = 0.3f), shapes.surface)
             .clickable(onClick = onClick)
             .padding(18.dp)
     ) {
@@ -294,7 +294,7 @@ private fun ExamCardItem(
                             modifier = Modifier
                                 .clip(shapes.surface)
                                 .background(if (isMock) colors.accent.copy(alpha = 0.15f) else colors.cardBackground)
-                                .border(1.dp, if (isMock) colors.accent else colors.border, shapes.surface)
+                                .border(0.5.dp, if (isMock) colors.accent.copy(alpha = 0.4f) else colors.border.copy(alpha = 0.3f), shapes.surface)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
@@ -320,7 +320,7 @@ private fun ExamCardItem(
                         modifier = Modifier
                             .clip(shapes.button)
                             .background(colors.cardBackground)
-                            .border(1.dp, colors.accent, shapes.button)
+                            .border(0.5.dp, colors.accent, shapes.button)
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text(

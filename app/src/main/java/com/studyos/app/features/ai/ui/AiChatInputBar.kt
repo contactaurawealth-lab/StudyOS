@@ -66,8 +66,8 @@ fun AiChatInputBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shapes.surface)
-                .background(colors.surface)
-                .border(1.dp, colors.border, shapes.surface)
+                .background(colors.cardBackground.copy(alpha = 0.7f))
+                .border(0.5.dp, colors.border.copy(alpha = 0.3f), shapes.surface)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

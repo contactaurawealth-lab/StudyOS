@@ -43,8 +43,8 @@ fun QuickActionChips(
             Box(
                 modifier = Modifier
                     .clip(shapes.statusPill)
-                    .background(colors.surface)
-                    .border(1.dp, colors.border, shapes.statusPill)
+                    .background(colors.cardBackground.copy(alpha = 0.6f))
+                    .border(0.5.dp, colors.border.copy(alpha = 0.3f), shapes.statusPill)
                     .clickable(enabled = enabled) { onActionClick(action) }
                     .padding(horizontal = 12.dp, vertical = 6.dp)
                     .semantics { this.role = Role.Button },
