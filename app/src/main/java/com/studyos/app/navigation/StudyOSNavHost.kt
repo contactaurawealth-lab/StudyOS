@@ -447,6 +447,14 @@ private fun StudyOSNavGraph(
                 },
                 onOpenNotifications = {
                     navController.navigate(Screen.NotificationCenter.route)
+                },
+                onOpenSubjects = {
+                    navController.navigate(Screen.Subjects.route)
+                },
+                onResetComplete = {
+                    navController.navigate(Screen.OnboardingWelcome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }
@@ -664,7 +672,12 @@ private fun StudyOSNavGraph(
                 onNavigateToProfile = { navController.navigate(Screen.SettingsProfile.route) },
                 onNavigateToSubjects = { navController.navigate(Screen.SettingsSubjects.route) },
                 onNavigateToPreferences = { navController.navigate(Screen.SettingsPreferences.route) },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onResetComplete = {
+                    navController.navigate(Screen.OnboardingWelcome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -887,7 +900,8 @@ private fun rememberTodayViewModel(container: StudyOSAppContainer): TodayViewMod
             getOverallExamReadinessUseCase = container.getOverallExamReadinessUseCase,
             alarmScheduler = container.alarmScheduler,
             preferencesDataSource = container.preferencesDataSource,
-            notificationDao = container.database.notificationDao()
+            notificationDao = container.database.notificationDao(),
+            database = container.database
         )
     }
 }

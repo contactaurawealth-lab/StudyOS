@@ -29,7 +29,7 @@ data class OnboardingUiState(
     // Subject Selection
     val suggestedSubjects: List<String> = defaultSuggestedSubjects,
     val customSubjects: List<String> = emptyList(),
-    val selectedSubjects: Set<String> = setOf("Mathematics", "Science", "English"),
+    val selectedSubjects: Set<String> = emptySet(),
     val subjectsError: String? = null,
     val customSubjectError: String? = null,
 

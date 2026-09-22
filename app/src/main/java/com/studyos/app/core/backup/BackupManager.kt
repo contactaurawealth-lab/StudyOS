@@ -26,6 +26,7 @@ object BackupManager {
         "tasks",
         "study_sessions",
         "notes",
+        "resources",
         "flashcards",
         "flashcard_reviews",
         "quizzes",
@@ -34,8 +35,11 @@ object BackupManager {
         "question_results",
         "active_quiz_states",
         "mistakes",
+        "tests",
+        "test_attempts",
         "exams",
         "exam_subjects",
+        "study_plans",
         "revision_schedules",
         "active_recall_logs",
         "recall_items",
@@ -177,5 +181,35 @@ object BackupManager {
                 message = "Restore failed: ${e.localizedMessage ?: "Malformed JSON"}"
             )
         }
+    }
+
+    suspend fun clearAllData(database: StudyOSDatabase): Boolean = withContext(Dispatchers.IO) {
+        try {
+            database.clearAllTables()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun exportAndResetApp(
+        context: Context,
+        database: StudyOSDatabase
+    ): BackupResult = withContext(Dispatchers.IO) {
+        val exportResult = exportBackup(context, database)
+        try {
+            database.clearAllTables()
+        } catch (e: Exception) {
+            return@withContext BackupResult(
+                success = false,
+                message = "Export completed, but failed to wipe database: ${e.localizedMessage}",
+                exportedFile = exportResult.exportedFile
+            )
+        }
+        BackupResult(
+            success = true,
+            message = "Backup exported and StudyOS reset completely.",
+            exportedFile = exportResult.exportedFile
+        )
     }
 }

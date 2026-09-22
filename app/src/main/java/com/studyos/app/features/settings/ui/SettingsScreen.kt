@@ -71,6 +71,7 @@ fun SettingsScreen(
     onNavigateToSubjects: () -> Unit,
     onNavigateToPreferences: () -> Unit,
     onBack: (() -> Unit)? = null,
+    onResetComplete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -83,6 +84,7 @@ fun SettingsScreen(
 
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var showRestoreConfirmDialog by remember { mutableStateOf(false) }
+    var showResetConfirmDialog by remember { mutableStateOf(false) }
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -479,6 +481,22 @@ fun SettingsScreen(
                             )
                         }
                     )
+
+                    StudyOSDivider()
+
+                    StudyOSListItem(
+                        title = "Export & Reset StudyOS",
+                        subtitle = "Save an offline backup to files, wipe all data, and reset completely",
+                        onClick = { showResetConfirmDialog = true },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    )
                 }
             }
 
@@ -628,6 +646,44 @@ fun SettingsScreen(
                 showRestoreConfirmDialog = false
                 pendingRestoreJson = null
             }
+        )
+    }
+
+    if (showResetConfirmDialog) {
+        StudyOSDialog(
+            onDismissRequest = { showResetConfirmDialog = false },
+            title = "Export & Reset StudyOS?",
+            text = "Your current data will be exported first as an offline JSON backup so you can save a copy to your files. Then, all local database tables, subjects, chapters, notes, flashcards, exams, and settings will be permanently wiped.\n\nStudyOS will reset completely to a clean slate.",
+            confirmButtonText = "Export & Reset",
+            onConfirm = {
+                showResetConfirmDialog = false
+                viewModel.exportAndResetApp(
+                    context = context,
+                    onReadyToShare = { file ->
+                        if (file != null) {
+                            try {
+                                val fileUri = androidx.core.content.FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.fileprovider",
+                                    file
+                                )
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "application/json"
+                                    putExtra(Intent.EXTRA_STREAM, fileUri)
+                                    putExtra(Intent.EXTRA_SUBJECT, "StudyOS Data Backup")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Save or Share StudyOS Backup"))
+                            } catch (e: Exception) {
+                                // Handled gracefully
+                            }
+                        }
+                    },
+                    onResetComplete = onResetComplete
+                )
+            },
+            dismissButtonText = "Cancel",
+            onDismiss = { showResetConfirmDialog = false }
         )
     }
 }

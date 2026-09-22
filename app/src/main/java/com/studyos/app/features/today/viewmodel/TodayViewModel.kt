@@ -87,7 +87,8 @@ class TodayViewModel(
     private val getOverallExamReadinessUseCase: GetOverallExamReadinessUseCase? = null,
     private val alarmScheduler: com.studyos.app.core.notification.AlarmScheduler? = null,
     private val preferencesDataSource: com.studyos.app.core.datastore.PreferencesDataSource? = null,
-    private val notificationDao: com.studyos.app.core.database.dao.NotificationDao? = null
+    private val notificationDao: com.studyos.app.core.database.dao.NotificationDao? = null,
+    private val database: com.studyos.app.core.database.StudyOSDatabase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TodayUiState())
@@ -294,5 +295,20 @@ class TodayViewModel(
 
     fun clearInfoMessage() {
         _uiState.update { it.copy(infoMessage = null) }
+    }
+
+    fun exportAndResetApp(
+        context: android.content.Context,
+        onReadyToShare: (java.io.File?) -> Unit,
+        onResetComplete: () -> Unit
+    ) {
+        val db = database ?: return
+        viewModelScope.launch {
+            val result = com.studyos.app.core.backup.BackupManager.exportAndResetApp(context, db)
+            alarmScheduler?.cancelDailyReminder()
+            preferencesDataSource?.resetAll()
+            onReadyToShare(result.exportedFile)
+            onResetComplete()
+        }
     }
 }

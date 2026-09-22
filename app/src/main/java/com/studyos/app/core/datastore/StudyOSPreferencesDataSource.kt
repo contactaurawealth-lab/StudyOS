@@ -35,6 +35,7 @@ interface PreferencesDataSource {
     suspend fun setThemePreference(theme: AppTheme)
     suspend fun setOnboardingCompleted(completed: Boolean)
     suspend fun resetOnboarding()
+    suspend fun resetAll()
     suspend fun saveAiConfig(config: AiConfig)
     suspend fun updateRevisionStreak(todayEpochDay: Long): Int
     suspend fun setDailyRevisionTargetMinutes(minutes: Int)
@@ -135,6 +136,12 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
     override suspend fun resetOnboarding() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.ONBOARDING_COMPLETED] = false
+        }
+    }
+
+    override suspend fun resetAll() {
+        context.dataStore.edit { preferences ->
+            preferences.clear()
         }
     }
 

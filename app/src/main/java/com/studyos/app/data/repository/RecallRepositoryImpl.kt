@@ -199,76 +199,8 @@ class RecallRepositoryImpl(
             }
         }
 
-        // 3. Synthesize foundational recall questions if needed
-        if (seededList.size < 4) {
-            val synthesis = createFoundationalQuestionsForChapter(chapterId, subjectId, chapterName)
-            seededList.addAll(synthesis)
-        }
-
         if (seededList.isNotEmpty()) {
             recallDao.insertAll(seededList.map { it.toEntity() })
         }
-    }
-
-    private fun createFoundationalQuestionsForChapter(
-        chapterId: String,
-        subjectId: String,
-        chapterName: String
-    ): List<RecallItem> {
-        val now = System.currentTimeMillis()
-        return listOf(
-            RecallItem(
-                id = UUID.randomUUID().toString(),
-                chapterId = chapterId,
-                subjectId = subjectId,
-                questionType = RecallQuestionType.CONCEPT_EXPLANATION,
-                prompt = "What is the primary governing mechanism or core principle of $chapterName?",
-                expectedAnswer = "The core fundamental concept that establishes how $chapterName functions and produces outcomes.",
-                explanation = "A complete understanding begins with defining the fundamental governing principle without relying on rote memorization.",
-                options = emptyList(),
-                recallState = RecallState.NEW,
-                intervalDays = 1,
-                nextReviewTimestamp = now
-            ),
-            RecallItem(
-                id = UUID.randomUUID().toString(),
-                chapterId = chapterId,
-                subjectId = subjectId,
-                questionType = RecallQuestionType.DIAGNOSTIC_QUESTION,
-                prompt = "What are the key prerequisites or assumptions required when analyzing $chapterName?",
-                expectedAnswer = "Key boundary conditions, fundamental variables, and initial assumptions.",
-                explanation = "Identifying conditions under which $chapterName holds true prevents misapplication on complex exam problems.",
-                options = emptyList(),
-                recallState = RecallState.NEW,
-                intervalDays = 1,
-                nextReviewTimestamp = now
-            ),
-            RecallItem(
-                id = UUID.randomUUID().toString(),
-                chapterId = chapterId,
-                subjectId = subjectId,
-                questionType = RecallQuestionType.CONCEPT_LINKING,
-                prompt = "How does $chapterName connect to or influence preceding topics in this subject?",
-                expectedAnswer = "It integrates preceding foundations to form higher-order models and practical applications.",
-                explanation = "Concept linking reinforces memory retention by attaching new knowledge to existing cognitive frameworks.",
-                options = emptyList(),
-                recallState = RecallState.NEW,
-                intervalDays = 1,
-                nextReviewTimestamp = now
-            ),
-            RecallItem(
-                id = UUID.randomUUID().toString(),
-                chapterId = chapterId,
-                subjectId = subjectId,
-                questionType = RecallQuestionType.FILL_IN_THE_BLANK,
-                prompt = "In $chapterName, when input parameters double under steady-state conditions, the resulting change directly reflects _______ proportionality.",
-                expectedAnswer = "direct",
-                explanation = "Proportionality relationships are fundamental to rapid quantitative intuition.",
-                options = listOf("direct", "inverse", "exponential", "logarithmic"),
-                recallState = RecallState.NEW,
-                intervalDays = 1,
-                nextReviewTimestamp = now
-            )
-        )
     }
 }

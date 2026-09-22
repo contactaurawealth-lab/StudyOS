@@ -162,22 +162,10 @@ fun SubjectsScreen(
                     ) {
                         StudyOSEmptyState(
                             title = "No subjects yet",
-                            description = "Add your first subject to start building your study plan.",
+                            description = "Add your first subject to start building your focused study system.",
                             actionButtonText = "Add Subject",
                             onActionClick = { showAddSheet = true }
                         )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            StudyOSTextButton(
-                                text = "Load sample subjects & chapters",
-                                onClick = { viewModel.loadSampleData() }
-                            )
-                        }
                     }
                 } else {
                     Column(

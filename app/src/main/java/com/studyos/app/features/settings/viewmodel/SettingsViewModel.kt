@@ -279,6 +279,28 @@ class SettingsViewModel(
         }
     }
 
+    fun exportAndResetApp(
+        context: android.content.Context,
+        onReadyToShare: (java.io.File?) -> Unit,
+        onResetComplete: () -> Unit
+    ) {
+        val db = database ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = com.studyos.app.core.backup.BackupManager.exportAndResetApp(context, db)
+            alarmScheduler?.cancelDailyReminder()
+            preferencesDataSource.resetAll()
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    notificationMessage = "StudyOS has been reset completely."
+                )
+            }
+            onReadyToShare(result.exportedFile)
+            onResetComplete()
+        }
+    }
+
     fun exportBackup(context: android.content.Context, onReadyToShare: (java.io.File?) -> Unit) {
         val db = database ?: return
         viewModelScope.launch {
