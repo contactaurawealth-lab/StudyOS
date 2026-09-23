@@ -17,17 +17,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.FormatListBulleted
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -50,12 +60,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSLoadingState
+import com.studyos.app.core.ui.component.StudyOSOutlinedButton
 import com.studyos.app.core.ui.component.StudyOSTextField
 import com.studyos.app.domain.model.Exam
 import com.studyos.app.domain.model.Subject
@@ -70,8 +82,13 @@ import kotlin.math.max
 enum class TestListFilter(val label: String) {
     ALL("All"),
     MAJOR_EXAMS("Major Exams"),
-    MOCK_TUITION("Mock & Tuition"),
+    MOCK_TUITION("Mock Tests"),
     COMPLETED("Completed")
+}
+
+enum class ExamViewMode {
+    LIST,
+    CALENDAR
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +106,12 @@ fun ExamListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedFilter by remember { mutableStateOf(TestListFilter.ALL) }
+    var viewMode by remember { mutableStateOf(ExamViewMode.LIST) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var createExamDefaultIsMock by remember { mutableStateOf(false) }
+    var createExamInitialDate by remember { mutableStateOf<Long?>(null) }
+    var calendarYearMonth by remember { mutableStateOf(java.time.YearMonth.now()) }
+    var selectedCalendarDate by remember { mutableStateOf(java.time.LocalDate.now()) }
 
     LaunchedEffect(uiState.infoMessage) {
         uiState.infoMessage?.let {
@@ -116,7 +139,10 @@ fun ExamListScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         StudyOSIconButton(
                             onClick = onBack,
                             contentDescription = "Back"
@@ -129,100 +155,223 @@ fun ExamListScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         Column {
                             Text(
                                 text = "Exams & Mock Tests",
                                 style = typography.screenTitle,
-                                color = colors.primaryText
+                                color = colors.primaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Targeted countdowns & mock test preparation",
+                                text = if (viewMode == ExamViewMode.CALENDAR) "Monthly interactive schedule" else "Targeted countdowns & preparation",
                                 style = typography.caption,
-                                color = colors.secondaryText
+                                color = colors.secondaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
-                    StudyOSButton(
-                        text = "+ Schedule",
-                        onClick = { viewModel.openCreateExamSheet() }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Segmented Filter Chips: All, Major Exams, Mock & Tuition Tests, Completed
-                val completedExams = uiState.exams.filter { it.isCompleted || it.actualScore != null }
-                val activeExams = uiState.exams.filter { !it.isCompleted && it.actualScore == null }
-                val isMockExam: (com.studyos.app.domain.model.Exam) -> Boolean = { it.notes?.contains("[MOCK_TEST]") == true }
-                val mockCount = activeExams.count(isMockExam)
-                val majorCount = activeExams.size - mockCount
-                val completedCount = completedExams.size
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TestListFilter.values().forEach { filter ->
-                        val isSelected = selectedFilter == filter
-                        val count = when (filter) {
-                            TestListFilter.ALL -> activeExams.size
-                            TestListFilter.MAJOR_EXAMS -> majorCount
-                            TestListFilter.MOCK_TUITION -> mockCount
-                            TestListFilter.COMPLETED -> completedCount
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(shapes.button)
-                                .background(if (isSelected) colors.cardBackground else colors.surface)
-                                .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
-                                .clickable { selectedFilter = filter }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Toggle View Button (List <-> Calendar)
+                        StudyOSIconButton(
+                            onClick = {
+                                viewMode = if (viewMode == ExamViewMode.LIST) ExamViewMode.CALENDAR else ExamViewMode.LIST
+                            },
+                            contentDescription = if (viewMode == ExamViewMode.LIST) "Calendar View" else "List View"
                         ) {
-                            Text(
-                                text = "${filter.label} ($count)",
-                                style = typography.caption,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) colors.primaryText else colors.secondaryText
+                            Icon(
+                                imageVector = if (viewMode == ExamViewMode.LIST) Icons.Outlined.CalendarMonth else Icons.Outlined.FormatListBulleted,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
+
+                        // 3-Dot Overflow Menu
+                        Box {
+                            StudyOSIconButton(
+                                onClick = { menuExpanded = true },
+                                contentDescription = "More Options"
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreVert,
+                                    contentDescription = null,
+                                    tint = colors.primaryText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                                modifier = Modifier.background(colors.surface)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("+ Add Major Exam", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        createExamDefaultIsMock = false
+                                        createExamInitialDate = null
+                                        viewModel.openCreateExamSheet()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.School, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("+ Add Mock / Tuition Test", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        createExamDefaultIsMock = true
+                                        createExamInitialDate = null
+                                        viewModel.openCreateExamSheet()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.CalendarToday, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (viewMode == ExamViewMode.LIST) "Switch to Calendar View" else "Switch to List View",
+                                            style = typography.body,
+                                            color = colors.primaryText
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewMode = if (viewMode == ExamViewMode.LIST) ExamViewMode.CALENDAR else ExamViewMode.LIST
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (viewMode == ExamViewMode.LIST) Icons.Outlined.CalendarMonth else Icons.Outlined.FormatListBulleted,
+                                            null,
+                                            tint = colors.secondaryText,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        StudyOSButton(
+                            text = "+ Schedule",
+                            onClick = {
+                                createExamDefaultIsMock = selectedFilter == TestListFilter.MOCK_TUITION
+                                createExamInitialDate = null
+                                viewModel.openCreateExamSheet()
+                            }
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val filteredExams = when (selectedFilter) {
-                    TestListFilter.ALL -> activeExams
-                    TestListFilter.MAJOR_EXAMS -> activeExams.filter { !isMockExam(it) }
-                    TestListFilter.MOCK_TUITION -> activeExams.filter(isMockExam)
-                    TestListFilter.COMPLETED -> completedExams
-                }
-
-                if (filteredExams.isEmpty()) {
-                    StudyOSEmptyState(
-                        title = when (selectedFilter) {
-                            TestListFilter.MOCK_TUITION -> "No mock / tuition tests scheduled"
-                            TestListFilter.MAJOR_EXAMS -> "No major exams scheduled"
-                            TestListFilter.COMPLETED -> "No completed tests or exams yet"
-                            TestListFilter.ALL -> "No upcoming tests or exams"
+                if (viewMode == ExamViewMode.CALENDAR) {
+                    // Full Interactive Month Calendar View
+                    ExamCalendarView(
+                        exams = uiState.exams,
+                        subjects = uiState.subjects,
+                        currentMonth = calendarYearMonth,
+                        selectedDate = selectedCalendarDate,
+                        onMonthChange = { calendarYearMonth = it },
+                        onSelectDate = { selectedCalendarDate = it },
+                        onOpenExamDetail = onOpenExamDetail,
+                        onScheduleOnDate = { date ->
+                            val millis = date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                            createExamInitialDate = millis
+                            createExamDefaultIsMock = false
+                            viewModel.openCreateExamSheet()
                         },
-                        description = "Schedule upcoming tuition quizzes, coaching mock tests, or major exams with subject selection and date/time.",
-                        actionButtonText = "+ Schedule Test / Exam",
-                        onActionClick = { viewModel.openCreateExamSheet() }
+                        modifier = Modifier.weight(1f)
                     )
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    // Segmented Filter Chips: All, Major Exams, Mock Tests, Completed
+                    val completedExams = uiState.exams.filter { it.isCompleted || it.actualScore != null }
+                    val activeExams = uiState.exams.filter { !it.isCompleted && it.actualScore == null }
+                    val isMockExam: (com.studyos.app.domain.model.Exam) -> Boolean = { it.notes?.contains("[MOCK_TEST]") == true }
+                    val mockCount = activeExams.count(isMockExam)
+                    val majorCount = activeExams.size - mockCount
+                    val completedCount = completedExams.size
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(filteredExams, key = { it.id }) { exam ->
-                            ExamCardItem(
-                                exam = exam,
-                                subjects = uiState.subjects.filter { exam.subjectIds.contains(it.id) },
-                                onClick = { onOpenExamDetail(exam.id) }
-                            )
+                        TestListFilter.values().forEach { filter ->
+                            val isSelected = selectedFilter == filter
+                            val count = when (filter) {
+                                TestListFilter.ALL -> activeExams.size
+                                TestListFilter.MAJOR_EXAMS -> majorCount
+                                TestListFilter.MOCK_TUITION -> mockCount
+                                TestListFilter.COMPLETED -> completedCount
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .wrapContentWidth()
+                                    .clip(shapes.button)
+                                    .background(if (isSelected) colors.cardBackground else colors.surface)
+                                    .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
+                                    .clickable { selectedFilter = filter }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "${filter.label} ($count)",
+                                    style = typography.caption,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isSelected) colors.primaryText else colors.secondaryText,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val filteredExams = when (selectedFilter) {
+                        TestListFilter.ALL -> activeExams
+                        TestListFilter.MAJOR_EXAMS -> activeExams.filter { !isMockExam(it) }
+                        TestListFilter.MOCK_TUITION -> activeExams.filter(isMockExam)
+                        TestListFilter.COMPLETED -> completedExams
+                    }
+
+                    if (filteredExams.isEmpty()) {
+                        StudyOSEmptyState(
+                            title = when (selectedFilter) {
+                                TestListFilter.MOCK_TUITION -> "No mock / tuition tests scheduled"
+                                TestListFilter.MAJOR_EXAMS -> "No major exams scheduled"
+                                TestListFilter.COMPLETED -> "No completed tests or exams yet"
+                                TestListFilter.ALL -> "No upcoming tests or exams"
+                            },
+                            description = "Schedule upcoming tuition quizzes, coaching mock tests, or major exams with subject selection and date/time.",
+                            actionButtonText = "+ Schedule Test / Exam",
+                            onActionClick = {
+                                createExamDefaultIsMock = selectedFilter == TestListFilter.MOCK_TUITION
+                                createExamInitialDate = null
+                                viewModel.openCreateExamSheet()
+                            }
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            items(filteredExams, key = { it.id }) { exam ->
+                                ExamCardItem(
+                                    exam = exam,
+                                    subjects = uiState.subjects.filter { exam.subjectIds.contains(it.id) },
+                                    onClick = { onOpenExamDetail(exam.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -234,10 +383,15 @@ fun ExamListScreen(
             CreateExamBottomSheet(
                 subjects = uiState.subjects,
                 editingExam = uiState.editingExam,
-                defaultIsMock = selectedFilter == TestListFilter.MOCK_TUITION,
-                onDismiss = { viewModel.closeExamSheet() },
+                defaultIsMock = if (uiState.editingExam != null) false else createExamDefaultIsMock,
+                initialTargetDate = createExamInitialDate,
+                onDismiss = {
+                    viewModel.closeExamSheet()
+                    createExamInitialDate = null
+                },
                 onSave = { name, targetDate, subjectIds, targetScore, notes ->
                     viewModel.saveExam(name, targetDate, subjectIds, targetScore, notes)
+                    createExamInitialDate = null
                 }
             )
         }
@@ -287,22 +441,28 @@ private fun ExamCardItem(
                         Text(
                             text = exam.name,
                             style = typography.sectionTitle,
-                            color = colors.primaryText
+                            color = colors.primaryText,
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
 
                         // Distinct Type Badge
                         Box(
                             modifier = Modifier
+                                .wrapContentWidth()
                                 .clip(shapes.surface)
                                 .background(if (isMock) colors.accent.copy(alpha = 0.15f) else colors.cardBackground)
                                 .border(0.5.dp, if (isMock) colors.accent.copy(alpha = 0.4f) else colors.border.copy(alpha = 0.3f), shapes.surface)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (isMock) "Mock / Tuition" else "Major Exam",
+                                text = if (isMock) "Mock Test" else "Major Exam",
                                 style = typography.caption.copy(fontSize = 10.sp),
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isMock) colors.accent else colors.secondaryText
+                                color = if (isMock) colors.accent else colors.secondaryText,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -458,6 +618,7 @@ fun CreateExamBottomSheet(
     subjects: List<Subject>,
     editingExam: Exam?,
     defaultIsMock: Boolean = false,
+    initialTargetDate: Long? = null,
     onDismiss: () -> Unit,
     onSave: (name: String, targetDate: Long, subjectIds: List<String>, targetScore: Int?, notes: String?) -> Unit
 ) {
@@ -472,7 +633,7 @@ fun CreateExamBottomSheet(
     var isMockTest by remember { mutableStateOf(initialIsMock) }
     var name by remember { mutableStateOf(editingExam?.name ?: "") }
     var targetDate by remember {
-        mutableStateOf(editingExam?.targetDate ?: (System.currentTimeMillis() + 7 * 86_400_000L))
+        mutableStateOf(editingExam?.targetDate ?: initialTargetDate ?: (System.currentTimeMillis() + 7 * 86_400_000L))
     }
     var targetScoreText by remember { mutableStateOf(editingExam?.targetScore?.toString() ?: "") }
     var rawNotes by remember {
@@ -780,5 +941,356 @@ fun CreateExamBottomSheet(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+}
+
+@Composable
+private fun ExamCalendarView(
+    exams: List<Exam>,
+    subjects: List<Subject>,
+    currentMonth: java.time.YearMonth,
+    selectedDate: java.time.LocalDate,
+    onMonthChange: (java.time.YearMonth) -> Unit,
+    onSelectDate: (java.time.LocalDate) -> Unit,
+    onOpenExamDetail: (examId: String) -> Unit,
+    onScheduleOnDate: (java.time.LocalDate) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+    val zone = java.time.ZoneId.systemDefault()
+    val today = java.time.LocalDate.now(zone)
+
+    // Precompute exams by date
+    val examsByDate = remember(exams) {
+        exams.groupBy { exam ->
+            java.time.Instant.ofEpochMilli(exam.targetDate).atZone(zone).toLocalDate()
+        }
+    }
+
+    val selectedDateExams = remember(selectedDate, examsByDate) {
+        examsByDate[selectedDate] ?: emptyList()
+    }
+
+    val monthFormatter = remember { java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()) }
+    val selectedDateFormatter = remember { java.time.format.DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault()) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Month Navigation Header Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shapes.card)
+                .background(colors.surface)
+                .border(0.5.dp, colors.border.copy(alpha = 0.4f), shapes.card)
+                .padding(16.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = currentMonth.format(monthFormatter),
+                            style = typography.sectionTitle.copy(fontSize = 18.sp),
+                            color = colors.primaryText,
+                            fontWeight = FontWeight.Bold
+                        )
+                        val totalInMonth = exams.count { exam ->
+                            val dt = java.time.Instant.ofEpochMilli(exam.targetDate).atZone(zone).toLocalDate()
+                            java.time.YearMonth.from(dt) == currentMonth
+                        }
+                        Text(
+                            text = if (totalInMonth == 1) "1 scheduled exam event" else "$totalInMonth scheduled exam events",
+                            style = typography.caption,
+                            color = colors.secondaryText
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (currentMonth != java.time.YearMonth.from(today) || selectedDate != today) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(shapes.button)
+                                    .background(colors.cardBackground)
+                                    .border(1.dp, colors.accent.copy(alpha = 0.4f), shapes.button)
+                                    .clickable {
+                                        onMonthChange(java.time.YearMonth.from(today))
+                                        onSelectDate(today)
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "Today",
+                                    style = typography.caption,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.accent
+                                )
+                            }
+                        }
+
+                        StudyOSIconButton(
+                            onClick = { onMonthChange(currentMonth.minusMonths(1)) },
+                            contentDescription = "Previous Month"
+                        ) {
+                            Icon(Icons.Outlined.ChevronLeft, null, tint = colors.primaryText, modifier = Modifier.size(20.dp))
+                        }
+
+                        StudyOSIconButton(
+                            onClick = { onMonthChange(currentMonth.plusMonths(1)) },
+                            contentDescription = "Next Month"
+                        ) {
+                            Icon(Icons.Outlined.ChevronRight, null, tint = colors.primaryText, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Days of week header (Mon - Sun)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val daysOfWeek = listOf(
+                        java.time.DayOfWeek.MONDAY,
+                        java.time.DayOfWeek.TUESDAY,
+                        java.time.DayOfWeek.WEDNESDAY,
+                        java.time.DayOfWeek.THURSDAY,
+                        java.time.DayOfWeek.FRIDAY,
+                        java.time.DayOfWeek.SATURDAY,
+                        java.time.DayOfWeek.SUNDAY
+                    )
+                    daysOfWeek.forEach { dow ->
+                        Text(
+                            text = dow.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault()),
+                            style = typography.caption.copy(fontSize = 11.sp),
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.mutedText,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Month Calendar Grid
+                val firstDayOfMonth = currentMonth.atDay(1)
+                val leadingBlanks = (firstDayOfMonth.dayOfWeek.value - 1) // 0 for Mon, 6 for Sun
+                val daysInMonth = currentMonth.lengthOfMonth()
+                val totalCells = ((leadingBlanks + daysInMonth + 6) / 7) * 7
+
+                for (weekIndex in 0 until (totalCells / 7)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        for (colIndex in 0 until 7) {
+                            val cellIndex = weekIndex * 7 + colIndex
+                            val dayNumber = cellIndex - leadingBlanks + 1
+
+                            if (dayNumber in 1..daysInMonth) {
+                                val cellDate = currentMonth.atDay(dayNumber)
+                                val isSelected = cellDate == selectedDate
+                                val isCellToday = cellDate == today
+                                val dayExamsList = examsByDate[cellDate] ?: emptyList()
+                                val hasMajorExam = dayExamsList.any { it.notes?.contains("[MOCK_TEST]") != true && !it.isCompleted }
+                                val hasMockTest = dayExamsList.any { it.notes?.contains("[MOCK_TEST]") == true && !it.isCompleted }
+                                val hasCompleted = dayExamsList.any { it.isCompleted || it.actualScore != null }
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .clip(shapes.button)
+                                        .background(
+                                            when {
+                                                isSelected -> colors.accent
+                                                else -> androidx.compose.ui.graphics.Color.Transparent
+                                            }
+                                        )
+                                        .border(
+                                            width = if (isCellToday && !isSelected) 1.dp else 0.dp,
+                                            color = if (isCellToday && !isSelected) colors.accent else androidx.compose.ui.graphics.Color.Transparent,
+                                            shape = shapes.button
+                                        )
+                                        .clickable { onSelectDate(cellDate) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = "$dayNumber",
+                                            style = typography.body.copy(fontSize = 13.sp),
+                                            fontWeight = if (isSelected || isCellToday) FontWeight.Bold else FontWeight.Normal,
+                                            color = when {
+                                                isSelected -> colors.background
+                                                isCellToday -> colors.accent
+                                                else -> colors.primaryText
+                                            }
+                                        )
+
+                                        // Event Indicator Dots
+                                        if (dayExamsList.isNotEmpty()) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
+                                                if (hasMajorExam) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(4.dp)
+                                                            .clip(androidx.compose.foundation.shape.CircleShape)
+                                                            .background(if (isSelected) colors.background else colors.accent)
+                                                    )
+                                                }
+                                                if (hasMockTest) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(4.dp)
+                                                            .clip(androidx.compose.foundation.shape.CircleShape)
+                                                            .background(if (isSelected) colors.background else androidx.compose.ui.graphics.Color(0xFFE5A038))
+                                                    )
+                                                }
+                                                if (hasCompleted && !hasMajorExam && !hasMockTest) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(4.dp)
+                                                            .clip(androidx.compose.foundation.shape.CircleShape)
+                                                            .background(if (isSelected) colors.background else colors.mutedText)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Legend row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(colors.accent))
+                        Text("Major Exam", style = typography.caption.copy(fontSize = 10.sp), color = colors.secondaryText)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0xFFE5A038)))
+                        Text("Mock Test", style = typography.caption.copy(fontSize = 10.sp), color = colors.secondaryText)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(colors.mutedText))
+                        Text("Completed", style = typography.caption.copy(fontSize = 10.sp), color = colors.secondaryText)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Selected Date Agenda Section
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = selectedDate.format(selectedDateFormatter),
+                    style = typography.sectionTitle,
+                    color = colors.primaryText,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (selectedDateExams.isEmpty()) "No scheduled tests on this date" else "${selectedDateExams.size} test(s) on this date",
+                    style = typography.caption,
+                    color = colors.secondaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            StudyOSOutlinedButton(
+                text = "+ Add Test",
+                onClick = { onScheduleOnDate(selectedDate) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (selectedDateExams.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shapes.card)
+                    .background(colors.surface)
+                    .border(0.5.dp, colors.border.copy(alpha = 0.3f), shapes.card)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Clean Schedule",
+                        style = typography.body,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.primaryText
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "No tests or exams set for ${selectedDate.format(selectedDateFormatter)}.",
+                        style = typography.caption,
+                        color = colors.secondaryText
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    StudyOSButton(
+                        text = "Schedule on This Date",
+                        onClick = { onScheduleOnDate(selectedDate) }
+                    )
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                selectedDateExams.forEach { exam ->
+                    ExamCardItem(
+                        exam = exam,
+                        subjects = subjects.filter { exam.subjectIds.contains(it.id) },
+                        onClick = { onOpenExamDetail(exam.id) }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }

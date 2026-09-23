@@ -1238,6 +1238,8 @@ private fun rememberExamViewModel(
                     getExamDashboardUseCase = container.getExamDashboardUseCase,
                     subjectRepository = container.subjectRepository,
                     updateExamScoreUseCase = container.updateExamScoreUseCase,
+                    updateChapterProgressUseCase = container.updateChapterProgressUseCase,
+                    quizRepository = container.quizRepository,
                     alarmScheduler = container.alarmScheduler,
                     context = context
                 ) as T

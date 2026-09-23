@@ -1,19 +1,23 @@
 package com.studyos.app.features.exams.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.studyos.app.core.notification.AlarmScheduler
 import com.studyos.app.domain.model.Exam
 import com.studyos.app.domain.model.ExamChapterRevisionItem
 import com.studyos.app.domain.model.ExamDashboardItem
 import com.studyos.app.domain.model.ExamRevisionCategory
+import com.studyos.app.domain.model.QuizAttempt
 import com.studyos.app.domain.model.Subject
+import com.studyos.app.domain.repository.QuizRepository
 import com.studyos.app.domain.repository.SubjectRepository
 import com.studyos.app.domain.usecase.DeleteExamUseCase
 import com.studyos.app.domain.usecase.GetExamDashboardUseCase
 import com.studyos.app.domain.usecase.GetExamsUseCase
 import com.studyos.app.domain.usecase.SaveExamUseCase
-import com.studyos.app.core.notification.AlarmScheduler
-import android.content.Context
+import com.studyos.app.domain.usecase.UpdateChapterProgressUseCase
+import com.studyos.app.domain.usecase.UpdateExamScoreUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +32,7 @@ data class ExamUiState(
     val examDashboard: ExamDashboardItem? = null,
     val revisionChapters: List<ExamChapterRevisionItem> = emptyList(),
     val selectedCategoryFilter: ExamRevisionCategory? = null,
+    val recentMockAttempts: List<QuizAttempt> = emptyList(),
     val isLoadingDetail: Boolean = false,
     val isCreateExamSheetOpen: Boolean = false,
     val editingExam: Exam? = null,
@@ -43,6 +48,7 @@ data class ExamUiState(
     val needRevisionCount: Int get() = revisionChapters.count { it.category == ExamRevisionCategory.NEED_REVISION }
     val practiceCount: Int get() = revisionChapters.count { it.category == ExamRevisionCategory.PRACTICE }
     val strongCount: Int get() = revisionChapters.count { it.category == ExamRevisionCategory.STRONG }
+    val revisedChaptersCount: Int get() = revisionChapters.count { it.chapter.progress >= 100 }
 }
 
 class ExamViewModel(
@@ -51,7 +57,9 @@ class ExamViewModel(
     private val deleteExamUseCase: DeleteExamUseCase,
     private val getExamDashboardUseCase: GetExamDashboardUseCase,
     private val subjectRepository: SubjectRepository,
-    private val updateExamScoreUseCase: com.studyos.app.domain.usecase.UpdateExamScoreUseCase? = null,
+    private val updateExamScoreUseCase: UpdateExamScoreUseCase? = null,
+    private val updateChapterProgressUseCase: UpdateChapterProgressUseCase? = null,
+    private val quizRepository: QuizRepository? = null,
     private val alarmScheduler: AlarmScheduler? = null,
     private val context: Context? = null
 ) : ViewModel() {
@@ -94,6 +102,36 @@ class ExamViewModel(
                     revisionChapters = chapters,
                     isLoadingDetail = false
                 )
+            }
+
+            // Load relevant mock test / quiz attempts for this exam's subjects
+            if (dashboard != null && quizRepository != null) {
+                val examSubjects = dashboard.exam.subjectIds.toSet()
+                quizRepository.getAllAttempts().collect { allAttempts ->
+                    val relevant = allAttempts
+                        .filter { it.subjectId in examSubjects }
+                        .sortedByDescending { it.completedAt ?: it.startedAt }
+                    _uiState.update { it.copy(recentMockAttempts = relevant) }
+                }
+            }
+        }
+    }
+
+    fun toggleChapterRevised(chapterId: String, currentProgress: Int) {
+        viewModelScope.launch {
+            val newProgress = if (currentProgress >= 100) 0 else 100
+            updateChapterProgressUseCase?.invoke(chapterId, newProgress)
+            val currentExamId = _uiState.value.selectedExamId
+            if (currentExamId != null) {
+                val dashboard = getExamDashboardUseCase(currentExamId)
+                val chapters = getExamDashboardUseCase.getRevisionChapters(currentExamId)
+                _uiState.update {
+                    it.copy(
+                        examDashboard = dashboard,
+                        revisionChapters = chapters,
+                        infoMessage = if (newProgress >= 100) "Chapter marked as revised!" else "Chapter unmarked."
+                    )
+                }
             }
         }
     }
@@ -162,6 +200,7 @@ class ExamViewModel(
                     selectedExamId = if (it.selectedExamId == id) null else it.selectedExamId,
                     examDashboard = if (it.selectedExamId == id) null else it.examDashboard,
                     revisionChapters = if (it.selectedExamId == id) emptyList() else it.revisionChapters,
+                    recentMockAttempts = if (it.selectedExamId == id) emptyList() else it.recentMockAttempts,
                     infoMessage = "Exam deleted."
                 )
             }

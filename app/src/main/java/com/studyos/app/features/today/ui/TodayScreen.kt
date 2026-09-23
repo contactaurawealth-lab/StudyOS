@@ -37,8 +37,10 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -262,6 +264,13 @@ fun TodayScreen(
                                 }
                             )
                             DropdownMenuItem(
+                                text = { Text("Exams & Mock Tests", style = typography.body, color = colors.primaryText) },
+                                onClick = { menuExpanded = false; onOpenExams() },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.School, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Study Timer", style = typography.body, color = colors.primaryText) },
                                 onClick = { menuExpanded = false; onOpenTimer() },
                                 leadingIcon = {
@@ -329,13 +338,14 @@ fun TodayScreen(
                             } else {
                                 // 1. Actionable Exam Readiness Alert (if upcoming exam exists or readiness calculated)
                                 if (uiState.upcomingExam != null || uiState.overallReadiness?.upcomingExamDaysLeft != null) {
+                                    val now = System.currentTimeMillis()
+                                    val isMock = uiState.upcomingExam?.notes?.contains("[MOCK_TEST]") == true
                                     val examName = uiState.upcomingExam?.name
                                         ?: uiState.overallReadiness?.upcomingExamName
                                         ?: "Final Exam"
-                                    val daysLeft = uiState.overallReadiness?.upcomingExamDaysLeft
-                                        ?: uiState.upcomingExam?.let {
-                                            kotlin.math.max(0L, (it.targetDate - System.currentTimeMillis()) / 86_400_000L)
-                                        } ?: 0L
+                                    val daysLeft = uiState.upcomingExam?.getDaysRemaining(now)
+                                        ?: uiState.overallReadiness?.upcomingExamDaysLeft
+                                        ?: 0L
                                     val readinessPct = uiState.overallReadiness?.overallPercentage ?: 70
 
                                     GlassCard(
@@ -350,14 +360,22 @@ fun TodayScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Row(
+                                                    modifier = Modifier.weight(1f, fill = false),
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
                                                     Text(
-                                                        text = if (daysLeft == 0L) "EXAM TODAY" else "EXAM IN $daysLeft DAYS",
+                                                        text = when {
+                                                            daysLeft < 0L -> if (isMock) "MOCK PAST DUE" else "EXAM PAST DUE"
+                                                            daysLeft == 0L -> if (isMock) "MOCK TODAY" else "EXAM TODAY"
+                                                            daysLeft == 1L -> if (isMock) "MOCK TOMORROW" else "EXAM TOMORROW"
+                                                            else -> if (isMock) "MOCK IN $daysLeft DAYS" else "EXAM IN $daysLeft DAYS"
+                                                        },
                                                         style = typography.caption,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = colors.accent
+                                                        color = colors.accent,
+                                                        maxLines = 1,
+                                                        softWrap = false
                                                     )
                                                     Text(
                                                         text = "•",
@@ -369,9 +387,12 @@ fun TodayScreen(
                                                         style = typography.caption,
                                                         fontWeight = FontWeight.SemiBold,
                                                         color = colors.primaryText,
-                                                        maxLines = 1
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
                                                     )
                                                 }
+
+                                                Spacer(modifier = Modifier.width(8.dp))
 
                                                 Box(
                                                     modifier = Modifier
@@ -383,7 +404,9 @@ fun TodayScreen(
                                                         text = "$readinessPct% Ready",
                                                         style = typography.caption.copy(fontSize = 11.sp),
                                                         fontWeight = FontWeight.Bold,
-                                                        color = colors.accent
+                                                        color = colors.accent,
+                                                        maxLines = 1,
+                                                        softWrap = false
                                                     )
                                                 }
                                             }

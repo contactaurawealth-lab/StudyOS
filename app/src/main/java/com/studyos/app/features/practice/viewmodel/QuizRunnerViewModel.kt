@@ -25,6 +25,10 @@ data class QuizRunnerUiState(
     val questions: List<QuizQuestion> = emptyList(),
     val currentQuestionIndex: Int = 0,
     val selectedAnswers: Map<String, String> = emptyMap(),
+    val flaggedQuestionIds: Set<String> = emptySet(),
+    val customTimeLimitMinutes: Int? = null,
+    val showPaletteSheet: Boolean = false,
+    val showReviewDialog: Boolean = false,
     val elapsedSeconds: Int = 0,
     val startedAt: Long = System.currentTimeMillis(),
     val isLoading: Boolean = true,
@@ -37,7 +41,16 @@ data class QuizRunnerUiState(
     val totalQuestions: Int get() = questions.size
     val progress: Float get() = if (totalQuestions > 0) (currentQuestionIndex + 1).toFloat() / totalQuestions else 0f
     val answeredCount: Int get() = selectedAnswers.size
+    val unansweredCount: Int get() = (totalQuestions - answeredCount).coerceAtLeast(0)
+    val flaggedCount: Int get() = flaggedQuestionIds.size
     val allQuestionsAnswered: Boolean get() = questions.isNotEmpty() && selectedAnswers.size == questions.size
+
+    val effectiveTimeLimitMinutes: Int? get() = customTimeLimitMinutes ?: quiz?.timeLimitMinutes
+    val isTimed: Boolean get() = (effectiveTimeLimitMinutes ?: 0) > 0
+    val totalTimeSeconds: Int get() = (effectiveTimeLimitMinutes ?: 0) * 60
+    val remainingSeconds: Int get() = if (isTimed) maxOf(0, totalTimeSeconds - elapsedSeconds) else 0
+    val isTimeExpiringSoon: Boolean get() = isTimed && remainingSeconds in 1..300
+    val isTimeCritical: Boolean get() = isTimed && remainingSeconds in 1..60
 }
 
 class QuizRunnerViewModel(
@@ -92,10 +105,25 @@ class QuizRunnerViewModel(
         timerJob = viewModelScope.launch {
             while (isActive && !_uiState.value.isCompleted) {
                 delay(1000L)
-                _uiState.update { it.copy(elapsedSeconds = it.elapsedSeconds + 1) }
+                val currentElapsed = _uiState.value.elapsedSeconds + 1
+                val isTimed = _uiState.value.isTimed
+                val totalLimit = _uiState.value.totalTimeSeconds
+
+                if (isTimed && currentElapsed >= totalLimit) {
+                    _uiState.update {
+                        it.copy(
+                            elapsedSeconds = totalLimit,
+                            infoMessage = "Time is up! Your mock test has been submitted automatically."
+                        )
+                    }
+                    submitQuiz()
+                    break
+                }
+
+                _uiState.update { it.copy(elapsedSeconds = currentElapsed) }
 
                 // Periodic autosave every 10 seconds
-                if (_uiState.value.elapsedSeconds % 10 == 0) {
+                if (currentElapsed % 10 == 0) {
                     persistActiveState()
                 }
             }
@@ -107,6 +135,33 @@ class QuizRunnerViewModel(
         updated[questionId] = answer
         _uiState.update { it.copy(selectedAnswers = updated) }
         persistActiveState()
+    }
+
+    fun toggleFlagCurrentQuestion() {
+        val current = _uiState.value.currentQuestion ?: return
+        toggleFlagQuestion(current.id)
+    }
+
+    fun toggleFlagQuestion(questionId: String) {
+        val currentFlags = _uiState.value.flaggedQuestionIds.toMutableSet()
+        if (currentFlags.contains(questionId)) {
+            currentFlags.remove(questionId)
+        } else {
+            currentFlags.add(questionId)
+        }
+        _uiState.update { it.copy(flaggedQuestionIds = currentFlags) }
+    }
+
+    fun setCustomTimeLimit(minutes: Int?) {
+        _uiState.update { it.copy(customTimeLimitMinutes = minutes) }
+    }
+
+    fun showPalette(show: Boolean) {
+        _uiState.update { it.copy(showPaletteSheet = show) }
+    }
+
+    fun showReviewDialog(show: Boolean) {
+        _uiState.update { it.copy(showReviewDialog = show) }
     }
 
     fun nextQuestion() {
@@ -127,12 +182,30 @@ class QuizRunnerViewModel(
 
     fun jumpToQuestion(index: Int) {
         if (index in 0 until _uiState.value.questions.size) {
-            _uiState.update { it.copy(currentQuestionIndex = index) }
+            _uiState.update { it.copy(currentQuestionIndex = index, showPaletteSheet = false, showReviewDialog = false) }
             persistActiveState()
         }
     }
 
-    private var persistJob: kotlinx.coroutines.Job? = null
+    fun jumpToFirstUnanswered() {
+        val unansweredIdx = _uiState.value.questions.indexOfFirst {
+            !_uiState.value.selectedAnswers.containsKey(it.id)
+        }
+        if (unansweredIdx != -1) {
+            jumpToQuestion(unansweredIdx)
+        }
+    }
+
+    fun jumpToFirstFlagged() {
+        val flaggedIdx = _uiState.value.questions.indexOfFirst {
+            _uiState.value.flaggedQuestionIds.contains(it.id)
+        }
+        if (flaggedIdx != -1) {
+            jumpToQuestion(flaggedIdx)
+        }
+    }
+
+    private var persistJob: Job? = null
 
     private fun persistActiveState() {
         val state = _uiState.value
@@ -156,7 +229,7 @@ class QuizRunnerViewModel(
         if (state.isSubmitting || state.isCompleted) return
 
         timerJob?.cancel()
-        _uiState.update { it.copy(isSubmitting = true) }
+        _uiState.update { it.copy(isSubmitting = true, showReviewDialog = false, showPaletteSheet = false) }
 
         viewModelScope.launch {
             try {
@@ -194,11 +267,14 @@ class QuizRunnerViewModel(
             it.copy(
                 currentQuestionIndex = 0,
                 selectedAnswers = emptyMap(),
+                flaggedQuestionIds = emptySet(),
                 elapsedSeconds = 0,
                 startedAt = System.currentTimeMillis(),
                 isCompleted = false,
                 attemptResult = null,
-                infoMessage = null
+                infoMessage = null,
+                showPaletteSheet = false,
+                showReviewDialog = false
             )
         }
         persistActiveState()

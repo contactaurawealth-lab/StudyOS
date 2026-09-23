@@ -1,6 +1,7 @@
 package com.studyos.app.features.exams.ui
 
 import android.content.Intent
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,12 +22,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Grade
-import androidx.compose.material.icons.outlined.ListAlt
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -47,8 +49,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.StudyOSButton
@@ -59,8 +68,11 @@ import com.studyos.app.core.ui.component.StudyOSLoadingState
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
 import com.studyos.app.core.ui.component.StudyOSProgressBar
 import com.studyos.app.core.ui.component.StudyOSTextField
+import com.studyos.app.domain.model.Exam
 import com.studyos.app.domain.model.ExamChapterRevisionItem
+import com.studyos.app.domain.model.ExamDashboardItem
 import com.studyos.app.domain.model.ExamRevisionCategory
+import com.studyos.app.domain.model.QuizAttempt
 import com.studyos.app.domain.model.WeakTopic
 import com.studyos.app.domain.model.WeakTopicAction
 import com.studyos.app.features.exams.viewmodel.ExamViewModel
@@ -68,6 +80,7 @@ import com.studyos.app.theme.StudyOSTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,7 +161,9 @@ fun ExamDetailScreen(
                             Text(
                                 text = exam.name,
                                 style = typography.sectionTitle,
-                                color = colors.primaryText
+                                color = colors.primaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             val dateFormat = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
                             Text(
@@ -301,129 +316,180 @@ fun ExamDetailScreen(
                         }
                     }
 
-                    // Actual Score & Results Card
+                    // Multi-Dimension Readiness Radar / Index Card
+                    item {
+                        ReadinessRadarCard(
+                            dashboard = dashboard,
+                            revisionChapters = uiState.revisionChapters,
+                            recentMockAttempts = uiState.recentMockAttempts
+                        )
+                    }
+
+                    // Mock Test Performance & Score Trendline Card
+                    item {
+                        MockScoreTrendlineCard(
+                            exam = exam,
+                            recentAttempts = uiState.recentMockAttempts,
+                            onLogScore = {
+                                scoreInputText = exam.actualScore?.toString() ?: ""
+                                isCompletedChecked = exam.isCompleted
+                                showScoreDialog = true
+                            }
+                        )
+                    }
+
+                    // Subject Readiness Breakdown
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(shapes.surface)
                                 .background(colors.surface)
-                                .border(1.dp, if (exam.actualScore != null) colors.accent else colors.border, shapes.surface)
+                                .border(1.dp, colors.border, shapes.surface)
                                 .padding(18.dp)
                         ) {
                             Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Grade,
-                                            contentDescription = null,
-                                            tint = colors.accent,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Exam Result & Performance",
-                                            style = typography.sectionTitle,
-                                            color = colors.primaryText
-                                        )
-                                    }
-
-                                    StudyOSButton(
-                                        text = if (exam.actualScore != null) "Edit Score" else "Log Score",
-                                        onClick = {
-                                            scoreInputText = exam.actualScore?.toString() ?: ""
-                                            isCompletedChecked = exam.isCompleted
-                                            showScoreDialog = true
-                                        }
-                                    )
-                                }
-
+                                Text(
+                                    text = "Curriculum Readiness",
+                                    style = typography.sectionTitle,
+                                    color = colors.primaryText
+                                )
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(shapes.card)
-                                            .background(colors.cardBackground)
-                                            .border(1.dp, colors.border, shapes.card)
-                                            .padding(12.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                dashboard.subjectProgresses.forEach { subProg ->
+                                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
                                             Text(
-                                                text = if (exam.actualScore != null) "${exam.actualScore}%" else "Not Logged",
-                                                style = typography.sectionTitle,
-                                                color = if (exam.actualScore != null) colors.accent else colors.secondaryText
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = "Actual Score",
-                                                style = typography.caption,
-                                                color = colors.secondaryText
-                                            )
-                                        }
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(shapes.card)
-                                            .background(colors.cardBackground)
-                                            .border(1.dp, colors.border, shapes.card)
-                                            .padding(12.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(
-                                                text = if (exam.targetScore != null) "${exam.targetScore}%" else "None Set",
-                                                style = typography.sectionTitle,
+                                                text = subProg.subject.name,
+                                                style = typography.secondary,
+                                                fontWeight = FontWeight.Medium,
                                                 color = colors.primaryText
                                             )
-                                            Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = "Target Score",
+                                                text = "${subProg.progressPercentage}% (${subProg.completedChaptersCount}/${subProg.chaptersCount})",
                                                 style = typography.caption,
                                                 color = colors.secondaryText
                                             )
                                         }
-                                    }
-
-                                    if (exam.actualScore != null && exam.targetScore != null) {
-                                        val delta = exam.actualScore!! - exam.targetScore!!
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clip(shapes.card)
-                                                .background(colors.cardBackground)
-                                                .border(1.dp, colors.border, shapes.card)
-                                                .padding(12.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(
-                                                    text = if (delta >= 0) "+$delta%" else "$delta%",
-                                                    style = typography.sectionTitle,
-                                                    color = if (delta >= 0) colors.accent else colors.secondaryText
-                                                )
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                Text(
-                                                    text = "Target Delta",
-                                                    style = typography.caption,
-                                                    color = colors.secondaryText
-                                                )
-                                            }
-                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        StudyOSProgressBar(
+                                            progress = subProg.progressPercentage,
+                                            height = 5.dp,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // Weak Topics Identified
+                    if (dashboard.weakTopics.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Exam Focus Topics",
+                                style = typography.sectionTitle,
+                                color = colors.primaryText
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                dashboard.weakTopics.take(3).forEach { weak ->
+                                    WeakTopicExamRow(weak)
+                                }
+                            }
+                        }
+                    }
+
+                    // Interactive Syllabus Revision Checklist Section
+                    item {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Syllabus Revision Checklist",
+                                    style = typography.sectionTitle,
+                                    color = colors.primaryText
+                                )
+
+                                val totalCh = uiState.revisionChapters.size
+                                val revCh = uiState.revisedChaptersCount
+                                val revPct = if (totalCh > 0) (revCh * 100) / totalCh else 0
+
+                                Text(
+                                    text = "$revCh of $totalCh Mastered ($revPct%)",
+                                    style = typography.caption,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (revPct == 100) colors.accent else colors.secondaryText
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val totalCh = uiState.revisionChapters.size
+                            val revCh = uiState.revisedChaptersCount
+                            val revPct = if (totalCh > 0) (revCh * 100) / totalCh else 0
+                            StudyOSProgressBar(
+                                progress = revPct,
+                                height = 5.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Category Filter Chips
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                FilterCategoryChip(
+                                    label = "All (${uiState.revisionChapters.size})",
+                                    isSelected = uiState.selectedCategoryFilter == null,
+                                    onClick = { viewModel.filterRevisionCategory(null) }
+                                )
+                                FilterCategoryChip(
+                                    label = "Need Revision (${uiState.needRevisionCount})",
+                                    isSelected = uiState.selectedCategoryFilter == ExamRevisionCategory.NEED_REVISION,
+                                    onClick = { viewModel.filterRevisionCategory(ExamRevisionCategory.NEED_REVISION) }
+                                )
+                                FilterCategoryChip(
+                                    label = "Practice (${uiState.practiceCount})",
+                                    isSelected = uiState.selectedCategoryFilter == ExamRevisionCategory.PRACTICE,
+                                    onClick = { viewModel.filterRevisionCategory(ExamRevisionCategory.PRACTICE) }
+                                )
+                                FilterCategoryChip(
+                                    label = "Strong (${uiState.strongCount})",
+                                    isSelected = uiState.selectedCategoryFilter == ExamRevisionCategory.STRONG,
+                                    onClick = { viewModel.filterRevisionCategory(ExamRevisionCategory.STRONG) }
+                                )
+                            }
+                        }
+                    }
+
+                    // Chapters Priority List
+                    val chapters = uiState.filteredRevisionChapters
+                    if (chapters.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No chapters in this category.",
+                                style = typography.caption,
+                                color = colors.secondaryText,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        }
+                    } else {
+                        items(chapters, key = { it.chapter.id }) { item ->
+                            RevisionChapterItem(
+                                item = item,
+                                onToggleRevised = { viewModel.toggleChapterRevised(item.chapter.id, item.chapter.progress) },
+                                onClick = { onOpenChapterPractice(item.chapter.id) }
+                            )
                         }
                     }
 
@@ -451,7 +517,7 @@ fun ExamDetailScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = Icons.Outlined.ListAlt,
+                                            imageVector = Icons.AutoMirrored.Outlined.ListAlt,
                                             contentDescription = null,
                                             tint = colors.accent,
                                             modifier = Modifier.size(18.dp)
@@ -564,136 +630,6 @@ fun ExamDetailScreen(
                             }
                         }
                     }
-
-                    // Subject Readiness Breakdown
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(shapes.surface)
-                                .background(colors.surface)
-                                .border(1.dp, colors.border, shapes.surface)
-                                .padding(18.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Curriculum Readiness",
-                                    style = typography.sectionTitle,
-                                    color = colors.primaryText
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                dashboard.subjectProgresses.forEach { subProg ->
-                                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(
-                                                text = subProg.subject.name,
-                                                style = typography.secondary,
-                                                fontWeight = FontWeight.Medium,
-                                                color = colors.primaryText
-                                            )
-                                            Text(
-                                                text = "${subProg.progressPercentage}% (${subProg.completedChaptersCount}/${subProg.chaptersCount})",
-                                                style = typography.caption,
-                                                color = colors.secondaryText
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        StudyOSProgressBar(
-                                            progress = subProg.progressPercentage,
-                                            height = 5.dp,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Weak Topics Identified
-                    if (dashboard.weakTopics.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = "Exam Focus Topics",
-                                style = typography.sectionTitle,
-                                color = colors.primaryText
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                dashboard.weakTopics.take(3).forEach { weak ->
-                                    WeakTopicExamRow(weak)
-                                }
-                            }
-                        }
-                    }
-
-                    // Revision Priority Section
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Revision Priority",
-                                style = typography.sectionTitle,
-                                color = colors.primaryText
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Category Filter Chips
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            FilterCategoryChip(
-                                label = "All (${uiState.revisionChapters.size})",
-                                isSelected = uiState.selectedCategoryFilter == null,
-                                onClick = { viewModel.filterRevisionCategory(null) }
-                            )
-                            FilterCategoryChip(
-                                label = "Need Revision (${uiState.needRevisionCount})",
-                                isSelected = uiState.selectedCategoryFilter == ExamRevisionCategory.NEED_REVISION,
-                                onClick = { viewModel.filterRevisionCategory(ExamRevisionCategory.NEED_REVISION) }
-                            )
-                            FilterCategoryChip(
-                                label = "Practice (${uiState.practiceCount})",
-                                isSelected = uiState.selectedCategoryFilter == ExamRevisionCategory.PRACTICE,
-                                onClick = { viewModel.filterRevisionCategory(ExamRevisionCategory.PRACTICE) }
-                            )
-                            FilterCategoryChip(
-                                label = "Strong (${uiState.strongCount})",
-                                isSelected = uiState.selectedCategoryFilter == ExamRevisionCategory.STRONG,
-                                onClick = { viewModel.filterRevisionCategory(ExamRevisionCategory.STRONG) }
-                            )
-                        }
-                    }
-
-                    // Chapters Priority List
-                    val chapters = uiState.filteredRevisionChapters
-                    if (chapters.isEmpty()) {
-                        item {
-                            Text(
-                                text = "No chapters in this category.",
-                                style = typography.caption,
-                                color = colors.secondaryText,
-                                modifier = Modifier.padding(vertical = 12.dp)
-                            )
-                        }
-                    } else {
-                        items(chapters, key = { it.chapter.id }) { item ->
-                            RevisionChapterItem(
-                                item = item,
-                                onClick = { onOpenChapterPractice(item.chapter.id) }
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -800,6 +736,481 @@ fun ExamDetailScreen(
 }
 
 @Composable
+private fun ReadinessRadarCard(
+    dashboard: ExamDashboardItem,
+    revisionChapters: List<ExamChapterRevisionItem>,
+    recentMockAttempts: List<QuizAttempt>
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val totalChapters = dashboard.subjectProgresses.sumOf { it.chaptersCount }.coerceAtLeast(1)
+    val completedChapters = dashboard.subjectProgresses.sumOf { it.completedChaptersCount }
+    val syllabusPct = ((completedChapters * 100f) / totalChapters).roundToInt().coerceIn(0, 100)
+
+    val accuracyPct = dashboard.quizAccuracy
+        ?: (if (recentMockAttempts.isNotEmpty()) recentMockAttempts.map { it.accuracyPercentage }.average().roundToInt() else 0)
+
+    val dueFlashcards = dashboard.flashcardsDue
+    val retentionPct = (100 - (dueFlashcards * 4)).coerceIn(15, 100)
+
+    val weakCount = dashboard.weakTopics.size
+    val masteryPct = (100 - (weakCount * 15)).coerceIn(20, 100)
+
+    val readinessScore = ((syllabusPct * 0.40f) + (accuracyPct * 0.30f) + (retentionPct * 0.15f) + (masteryPct * 0.15f)).roundToInt().coerceIn(0, 100)
+
+    val tierLabel = when {
+        readinessScore >= 80 -> "EXAM READY 🎯"
+        readinessScore >= 60 -> "ON TRACK 📈"
+        readinessScore >= 40 -> "NEEDS FOCUS ⚡"
+        else -> "CRITICAL REVISION ⚠️"
+    }
+
+    val tierColor = when {
+        readinessScore >= 80 -> colors.accent
+        readinessScore >= 60 -> colors.accent
+        readinessScore >= 40 -> Color(0xFFD39A3A)
+        else -> Color(0xFFFF6B6B)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.surface)
+            .background(colors.surface)
+            .border(1.dp, colors.border, shapes.surface)
+            .padding(18.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ShowChart,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Exam Readiness Index",
+                        style = typography.sectionTitle,
+                        color = colors.primaryText
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.button)
+                        .background(tierColor.copy(alpha = 0.15f))
+                        .border(0.5.dp, tierColor.copy(alpha = 0.4f), shapes.button)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = tierLabel,
+                        style = typography.caption.copy(fontSize = 10.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = tierColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Score Banner
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = "$readinessScore",
+                            style = typography.screenTitle.copy(fontSize = 36.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = tierColor
+                        )
+                        Text(
+                            text = "/100",
+                            style = typography.body,
+                            color = colors.secondaryText,
+                            modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
+                        )
+                    }
+                    Text(
+                        text = "Composite weighted score based on 4 prep dimensions",
+                        style = typography.caption,
+                        color = colors.secondaryText
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 4 Dimension Progress Meters
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DimensionMeterRow(title = "Syllabus Covered", percentage = syllabusPct, detail = "$completedChapters of $totalChapters Ch")
+                DimensionMeterRow(title = "Mock / Quiz Accuracy", percentage = accuracyPct, detail = if (accuracyPct > 0) "$accuracyPct% avg" else "No tests yet")
+                DimensionMeterRow(title = "Active Recall Retention", percentage = retentionPct, detail = if (dueFlashcards == 0) "All cards clear" else "$dueFlashcards cards due")
+                DimensionMeterRow(title = "Weak Topic Mastery", percentage = masteryPct, detail = if (weakCount == 0) "Zero weak spots" else "$weakCount flagged topics")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DimensionMeterRow(
+    title: String,
+    percentage: Int,
+    detail: String
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = typography.caption,
+                fontWeight = FontWeight.Medium,
+                color = colors.primaryText
+            )
+            Text(
+                text = "$percentage% ($detail)",
+                style = typography.caption.copy(fontSize = 11.sp),
+                color = colors.secondaryText
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        StudyOSProgressBar(
+            progress = percentage,
+            height = 4.dp,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun MockScoreTrendlineCard(
+    exam: Exam,
+    recentAttempts: List<QuizAttempt>,
+    onLogScore: () -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val bestAttemptScore = recentAttempts.maxOfOrNull { it.accuracyPercentage }
+    val latestAttemptScore = recentAttempts.firstOrNull()?.accuracyPercentage
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.surface)
+            .background(colors.surface)
+            .border(1.dp, if (exam.actualScore != null || recentAttempts.isNotEmpty()) colors.accent.copy(alpha = 0.4f) else colors.border, shapes.surface)
+            .padding(18.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Grade,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Mock Tests & Performance Trend",
+                        style = typography.sectionTitle,
+                        color = colors.primaryText
+                    )
+                }
+
+                StudyOSButton(
+                    text = if (exam.actualScore != null) "Edit Score" else "Log Score",
+                    onClick = onLogScore
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Score Metrics Summary Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.card)
+                        .background(colors.cardBackground)
+                        .border(1.dp, colors.border, shapes.card)
+                        .padding(10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (latestAttemptScore != null) "$latestAttemptScore%" else if (exam.actualScore != null) "${exam.actualScore}%" else "—",
+                            style = typography.sectionTitle,
+                            color = colors.primaryText
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Latest Mock",
+                            style = typography.caption.copy(fontSize = 10.sp),
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.card)
+                        .background(colors.cardBackground)
+                        .border(1.dp, colors.border, shapes.card)
+                        .padding(10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (bestAttemptScore != null) "$bestAttemptScore%" else if (exam.actualScore != null) "${exam.actualScore}%" else "—",
+                            style = typography.sectionTitle,
+                            color = colors.accent
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Best Score",
+                            style = typography.caption.copy(fontSize = 10.sp),
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shapes.card)
+                        .background(colors.cardBackground)
+                        .border(1.dp, colors.border, shapes.card)
+                        .padding(10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (exam.targetScore != null) "${exam.targetScore}%" else "—",
+                            style = typography.sectionTitle,
+                            color = colors.primaryText
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Target Score",
+                            style = typography.caption.copy(fontSize = 10.sp),
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+
+                if (exam.targetScore != null && (latestAttemptScore != null || exam.actualScore != null)) {
+                    val currentVal = latestAttemptScore ?: exam.actualScore!!
+                    val delta = currentVal - exam.targetScore
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(shapes.card)
+                            .background(colors.cardBackground)
+                            .border(1.dp, colors.border, shapes.card)
+                            .padding(10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = if (delta >= 0) "+$delta%" else "$delta%",
+                                style = typography.sectionTitle,
+                                color = if (delta >= 0) colors.accent else Color(0xFFFF6B6B)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Delta",
+                                style = typography.caption.copy(fontSize = 10.sp),
+                                color = colors.secondaryText
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Canvas Score Trendline
+            MockScoreTrendlineView(
+                attempts = recentAttempts,
+                targetScore = exam.targetScore,
+                actualScore = exam.actualScore
+            )
+        }
+    }
+}
+
+@Composable
+private fun MockScoreTrendlineView(
+    attempts: List<QuizAttempt>,
+    targetScore: Int?,
+    actualScore: Int?,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val scores = remember(attempts, actualScore) {
+        val list = attempts.sortedBy { it.completedAt ?: it.startedAt }.map { it.accuracyPercentage }
+        if (list.isEmpty() && actualScore != null) {
+            listOf(actualScore)
+        } else {
+            list
+        }
+    }
+
+    if (scores.isEmpty()) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(shapes.card)
+                .background(colors.cardBackground)
+                .border(0.5.dp, colors.border.copy(alpha = 0.4f), shapes.card)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No mock tests recorded yet. Practice tests to see your performance trendline.",
+                style = typography.caption,
+                color = colors.secondaryText
+            )
+        }
+        return
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(shapes.card)
+                .background(colors.cardBackground)
+                .border(0.5.dp, colors.border.copy(alpha = 0.4f), shapes.card)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val width = size.width
+                val height = size.height
+                val maxScore = 100f
+
+                // Draw target score dashed line
+                if (targetScore != null && targetScore in 0..100) {
+                    val targetY = height - (targetScore / maxScore * height)
+                    drawLine(
+                        color = colors.accent.copy(alpha = 0.5f),
+                        start = Offset(0f, targetY),
+                        end = Offset(width, targetY),
+                        strokeWidth = 2f,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f)
+                    )
+                }
+
+                if (scores.size == 1) {
+                    val y = height - (scores[0].coerceIn(0, 100) / maxScore * height)
+                    drawCircle(
+                        color = colors.accent,
+                        radius = 6.dp.toPx(),
+                        center = Offset(width / 2f, y)
+                    )
+                } else {
+                    val stepX = width / (scores.size - 1)
+                    val points = scores.mapIndexed { idx, s ->
+                        val x = idx * stepX
+                        val y = height - (s.coerceIn(0, 100) / maxScore * height)
+                        Offset(x, y)
+                    }
+
+                    val path = Path()
+                    path.moveTo(points.first().x, points.first().y)
+                    for (i in 1 until points.size) {
+                        val prev = points[i - 1]
+                        val curr = points[i]
+                        val cx = (prev.x + curr.x) / 2f
+                        path.cubicTo(cx, prev.y, cx, curr.y, curr.x, curr.y)
+                    }
+
+                    drawPath(
+                        path = path,
+                        color = colors.accent,
+                        style = Stroke(
+                            width = 3.dp.toPx(),
+                            cap = StrokeCap.Round
+                        )
+                    )
+
+                    points.forEach { pt ->
+                        drawCircle(
+                            color = colors.surface,
+                            radius = 5.dp.toPx(),
+                            center = pt
+                        )
+                        drawCircle(
+                            color = colors.accent,
+                            radius = 3.5.dp.toPx(),
+                            center = pt
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val latest = scores.lastOrNull()
+            val initial = scores.firstOrNull()
+            val gain = if (latest != null && initial != null) latest - initial else 0
+
+            Text(
+                text = "${scores.size} Attempt${if (scores.size > 1) "s" else ""} Logged",
+                style = typography.caption,
+                color = colors.secondaryText
+            )
+
+            if (scores.size > 1) {
+                Text(
+                    text = if (gain >= 0) "Growth: +$gain% 🚀" else "Trend: $gain%",
+                    style = typography.caption,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (gain >= 0) colors.accent else colors.secondaryText
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DashboardMetricCard(
     title: String,
     value: String,
@@ -875,7 +1286,7 @@ private fun WeakTopicExamRow(weak: WeakTopic) {
                     .clip(shapes.button)
                     .background(colors.cardBackground)
                     .border(1.dp, colors.border, shapes.button)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = "${weak.accuracyPercentage}% Acc",
@@ -917,16 +1328,19 @@ private fun FilterCategoryChip(
 @Composable
 private fun RevisionChapterItem(
     item: ExamChapterRevisionItem,
+    onToggleRevised: (Boolean) -> Unit,
     onClick: () -> Unit
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
+    val isMastered = item.chapter.progress >= 100
 
-    val categoryBadgeText = when (item.category) {
-        ExamRevisionCategory.NEED_REVISION -> "Need Revision"
-        ExamRevisionCategory.PRACTICE -> "Practice"
-        ExamRevisionCategory.STRONG -> "Strong"
+    val categoryBadgeText = when {
+        isMastered -> "Mastered ✓"
+        item.category == ExamRevisionCategory.NEED_REVISION -> "Need Revision"
+        item.category == ExamRevisionCategory.PRACTICE -> "Practice"
+        else -> "Strong"
     }
 
     Box(
@@ -934,68 +1348,97 @@ private fun RevisionChapterItem(
             .fillMaxWidth()
             .clip(shapes.card)
             .background(colors.surface)
-            .border(1.dp, colors.border, shapes.card)
+            .border(1.dp, if (isMastered) colors.accent.copy(alpha = 0.35f) else colors.border, shapes.card)
             .clickable(onClick = onClick)
-            .padding(14.dp)
+            .padding(12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(shapes.button)
-                            .background(colors.cardBackground)
-                            .border(1.dp, colors.border, shapes.button)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = isMastered,
+                    onCheckedChange = onToggleRevised,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = colors.accent,
+                        uncheckedColor = colors.secondaryText,
+                        checkmarkColor = colors.background
+                    )
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .clip(shapes.button)
+                                .background(if (isMastered) colors.accent.copy(alpha = 0.15f) else colors.cardBackground)
+                                .border(
+                                    0.5.dp,
+                                    if (isMastered) colors.accent else colors.border,
+                                    shapes.button
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = categoryBadgeText,
+                                style = typography.caption.copy(fontSize = 10.sp),
+                                fontWeight = FontWeight.SemiBold,
+                                color = when {
+                                    isMastered -> colors.accent
+                                    item.category == ExamRevisionCategory.NEED_REVISION -> Color(0xFFD39A3A)
+                                    else -> colors.secondaryText
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
                         Text(
-                            text = categoryBadgeText,
-                            style = typography.caption.copy(fontSize = 10.sp),
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (item.category == ExamRevisionCategory.NEED_REVISION) colors.accent else colors.secondaryText
+                            text = item.subject.name,
+                            style = typography.caption,
+                            color = colors.secondaryText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = item.subject.name,
+                        text = item.chapter.name,
+                        style = typography.secondary,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isMastered) colors.secondaryText else colors.primaryText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    val metrics = mutableListOf<String>()
+                    metrics.add("Progress ${item.chapter.progress}%")
+                    if (item.accuracyPercentage != null) metrics.add("${item.accuracyPercentage}% Acc")
+                    if (item.mistakesCount > 0) metrics.add("${item.mistakesCount} mistakes")
+                    if (item.flashcardsDueCount > 0) metrics.add("${item.flashcardsDueCount} due")
+
+                    Text(
+                        text = metrics.joinToString(" • "),
                         style = typography.caption,
-                        color = colors.secondaryText
+                        color = colors.mutedText
                     )
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = item.chapter.name,
-                    style = typography.secondary,
-                    fontWeight = FontWeight.Medium,
-                    color = colors.primaryText
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                val metrics = mutableListOf<String>()
-                metrics.add("Progress ${item.chapter.progress}%")
-                if (item.accuracyPercentage != null) metrics.add("Acc ${item.accuracyPercentage}%")
-                if (item.mistakesCount > 0) metrics.add("${item.mistakesCount} mistakes")
-                if (item.flashcardsDueCount > 0) metrics.add("${item.flashcardsDueCount} due")
-
-                Text(
-                    text = metrics.joinToString(" • "),
-                    style = typography.caption,
-                    color = colors.mutedText
-                )
             }
 
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                contentDescription = null,
+                contentDescription = "Open Chapter Practice",
                 tint = colors.secondaryText,
                 modifier = Modifier.size(16.dp)
             )
