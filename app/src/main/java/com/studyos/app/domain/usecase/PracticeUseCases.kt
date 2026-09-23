@@ -188,6 +188,41 @@ class GetQuizWithQuestionsUseCase(private val quizRepository: QuizRepository) {
     }
 }
 
+fun checkQuizAnswersMatch(studentAnswer: String, correctAnswer: String, options: List<String> = emptyList()): Boolean {
+    val s = studentAnswer.trim()
+    val c = correctAnswer.trim()
+    if (s.isEmpty() || c.isEmpty()) return false
+    if (s.equals(c, ignoreCase = true)) return true
+
+    val optionLetters = listOf("A", "B", "C", "D", "E", "F")
+    val cleanC = c.removePrefix("Option ").removePrefix("option ").trim().removeSurrounding("(", ")").removeSuffix(")").removeSuffix(".").trim()
+    val letterIndex = optionLetters.indexOfFirst { it.equals(cleanC, ignoreCase = true) }
+    if (letterIndex in options.indices) {
+        val targetOption = options[letterIndex].trim()
+        if (s.equals(targetOption, ignoreCase = true)) return true
+    }
+
+    for ((idx, letter) in optionLetters.withIndex()) {
+        val prefixes = listOf("$letter)", "$letter.", "$letter -", "$letter: ")
+        for (prefix in prefixes) {
+            if (c.startsWith(prefix, ignoreCase = true)) {
+                val textAfterPrefix = c.removePrefix(prefix).trim()
+                if (s.equals(textAfterPrefix, ignoreCase = true)) return true
+                if (idx in options.indices && s.equals(options[idx].trim(), ignoreCase = true)) return true
+            }
+        }
+    }
+
+    val cleanS = s.removePrefix("Option ").removePrefix("option ").trim().removeSurrounding("(", ")").removeSuffix(")").removeSuffix(".").trim()
+    val sLetterIndex = optionLetters.indexOfFirst { it.equals(cleanS, ignoreCase = true) }
+    if (sLetterIndex in options.indices) {
+        val targetOption = options[sLetterIndex].trim()
+        if (c.equals(targetOption, ignoreCase = true)) return true
+    }
+
+    return false
+}
+
 class SubmitQuizAttemptUseCase(
     private val quizRepository: QuizRepository,
     private val mistakeRepository: MistakeRepository
@@ -208,7 +243,7 @@ class SubmitQuizAttemptUseCase(
 
         for (q in questions) {
             val studentAns = answers[q.id]?.trim() ?: ""
-            val isCorrect = studentAns.equals(q.correctAnswer.trim(), ignoreCase = true)
+            val isCorrect = checkQuizAnswersMatch(studentAns, q.correctAnswer, q.options)
             if (isCorrect) correctCount++
 
             questionResults.add(
@@ -375,6 +410,7 @@ class GetChapterPracticeSummaryUseCase(
             ChapterPracticeSummary(
                 chapterId = chapter.id,
                 chapterName = chapter.name,
+                subjectId = chapter.subjectId,
                 subjectName = subject?.name ?: "Subject",
                 progress = chapter.progress,
                 quizAccuracy = avgAccuracy,
@@ -404,13 +440,19 @@ class SaveExamUseCase(private val examRepository: ExamRepository) {
         targetScore: Int? = null,
         notes: String? = null
     ): Exam {
+        // When editing, preserve existing actualScore and isCompleted
+        val existing = if (id != null) examRepository.getExamByIdOnce(id) else null
         val exam = Exam(
             id = id ?: UUID.randomUUID().toString(),
             name = name.trim(),
             targetDate = targetDate,
             subjectIds = subjectIds,
             targetScore = targetScore,
-            notes = notes?.trim()?.ifEmpty { null }
+            actualScore = existing?.actualScore,
+            isCompleted = existing?.isCompleted ?: false,
+            notes = notes?.trim()?.ifEmpty { null },
+            createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
         )
         return examRepository.saveExam(exam, subjectIds)
     }
@@ -437,7 +479,7 @@ class GetExamDashboardUseCase(
     suspend operator fun invoke(examId: String): ExamDashboardItem? {
         val exam = examRepository.getExamByIdOnce(examId) ?: return null
         val now = System.currentTimeMillis()
-        val daysRemaining = max(0L, (exam.targetDate - now) / 86_400_000L)
+        val daysRemaining = exam.getDaysRemaining(now)
 
         val allSubjects = subjectRepository.getAllSubjectsOnce()
         val examSubjects = allSubjects.filter { exam.subjectIds.contains(it.id) }
@@ -759,15 +801,29 @@ class AiPracticeToolsUseCase(
                     for (j in 0 until optsArr.length()) {
                         opts.add(optsArr.getString(j))
                     }
+                    val rawCorrect = obj.getString("correctAnswer").trim()
+                    val optionLetters = listOf("A", "B", "C", "D", "E", "F")
+                    val cleanC = rawCorrect.removePrefix("Option ").removePrefix("option ").removeSurrounding("(", ")").removeSuffix(")").removeSuffix(".").trim()
+                    val letterIdx = optionLetters.indexOfFirst { it.equals(cleanC, ignoreCase = true) }
+                    val resolvedCorrect = if (letterIdx in opts.indices) opts[letterIdx] else rawCorrect
+
+                    val explanationStr = if (obj.has("explanation") && !obj.isNull("explanation")) {
+                        obj.optString("explanation").takeIf { it.isNotBlank() && it != "null" }
+                    } else null
+
+                    val topicStr = if (obj.has("topic") && !obj.isNull("topic")) {
+                        obj.optString("topic").takeIf { it.isNotBlank() && it != "null" } ?: topic
+                    } else topic
+
                     questions.add(
                         QuizQuestion(
                             quizId = quizId,
                             question = obj.getString("question"),
                             options = opts,
-                            correctAnswer = obj.getString("correctAnswer"),
-                            explanation = obj.optString("explanation", null),
+                            correctAnswer = resolvedCorrect,
+                            explanation = explanationStr,
                             type = QuestionType.MCQ,
-                            topic = obj.optString("topic", topic),
+                            topic = topicStr,
                             orderIndex = i
                         )
                     )

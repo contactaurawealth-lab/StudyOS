@@ -226,6 +226,7 @@ data class WeakTopic(
 data class ChapterPracticeSummary(
     val chapterId: String,
     val chapterName: String,
+    val subjectId: String,
     val subjectName: String,
     val progress: Int,
     val quizAccuracy: Int?,
@@ -239,6 +240,13 @@ data class ChapterPracticeSummary(
 // 5. EXAM PREPARATION
 // ==========================================
 
+fun calculateDaysRemaining(targetDateMillis: Long, nowMillis: Long = System.currentTimeMillis()): Long {
+    val zone = java.time.ZoneId.systemDefault()
+    val today = java.time.Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+    val examDay = java.time.Instant.ofEpochMilli(targetDateMillis).atZone(zone).toLocalDate()
+    return java.time.temporal.ChronoUnit.DAYS.between(today, examDay)
+}
+
 data class Exam(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
@@ -250,7 +258,10 @@ data class Exam(
     val subjectIds: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
-)
+) {
+    fun getDaysRemaining(now: Long = System.currentTimeMillis()): Long =
+        calculateDaysRemaining(targetDate, now)
+}
 
 data class ExamSubjectProgress(
     val subject: Subject,

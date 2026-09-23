@@ -43,6 +43,7 @@ class ExamRepositoryImpl(
     }
 
     override suspend fun deleteExam(id: String) {
+        examDao.deleteExamSubjects(id)
         examDao.deleteExamById(id)
     }
 

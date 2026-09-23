@@ -174,10 +174,18 @@ object ExamReadinessEngine {
             )
         }
 
-        val examsBySubject = upcomingExams.associateBy { it.subjectIds.firstOrNull() ?: "" }
-        val nearestExam = upcomingExams.minByOrNull { it.targetDate }
         val now = System.currentTimeMillis()
-        val examDays = nearestExam?.let { ((it.targetDate - now) / ONE_DAY_MS).coerceAtLeast(0) }
+        val activeUpcomingExams = upcomingExams.filter { !it.isCompleted && it.getDaysRemaining(now) >= 0L }
+        val examsBySubject = mutableMapOf<String, Exam>()
+        activeUpcomingExams.forEach { exam ->
+            exam.subjectIds.forEach { subId ->
+                if (!examsBySubject.containsKey(subId) || exam.targetDate < examsBySubject[subId]!!.targetDate) {
+                    examsBySubject[subId] = exam
+                }
+            }
+        }
+        val nearestExam = activeUpcomingExams.minByOrNull { it.targetDate }
+        val examDays = nearestExam?.getDaysRemaining(now)
 
         val subjectList = subjects.map { subj ->
             calculateSubjectReadiness(

@@ -156,7 +156,8 @@ fun ExamListScreen(
                 // Segmented Filter Chips: All, Major Exams, Mock & Tuition Tests, Completed
                 val completedExams = uiState.exams.filter { it.isCompleted || it.actualScore != null }
                 val activeExams = uiState.exams.filter { !it.isCompleted && it.actualScore == null }
-                val mockCount = activeExams.count { it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true) }
+                val isMockExam: (com.studyos.app.domain.model.Exam) -> Boolean = { it.notes?.contains("[MOCK_TEST]") == true }
+                val mockCount = activeExams.count(isMockExam)
                 val majorCount = activeExams.size - mockCount
                 val completedCount = completedExams.size
 
@@ -194,8 +195,8 @@ fun ExamListScreen(
 
                 val filteredExams = when (selectedFilter) {
                     TestListFilter.ALL -> activeExams
-                    TestListFilter.MAJOR_EXAMS -> activeExams.filter { !(it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true)) }
-                    TestListFilter.MOCK_TUITION -> activeExams.filter { it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true) }
+                    TestListFilter.MAJOR_EXAMS -> activeExams.filter { !isMockExam(it) }
+                    TestListFilter.MOCK_TUITION -> activeExams.filter(isMockExam)
                     TestListFilter.COMPLETED -> completedExams
                 }
 
@@ -258,9 +259,9 @@ private fun ExamCardItem(
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
 
-    val isMock = exam.notes?.contains("[MOCK_TEST]") == true || exam.name.contains("Mock", true) || exam.name.contains("Tuition", true) || exam.name.contains("Test", true)
+    val isMock = exam.notes?.contains("[MOCK_TEST]") == true
     val now = System.currentTimeMillis()
-    val daysRemaining = max(0L, (exam.targetDate - now) / 86_400_000L)
+    val daysRemaining = exam.getDaysRemaining(now)
     val dateTimeFormat = SimpleDateFormat("MMM d, yyyy • h:mm a", Locale.getDefault())
 
     Box(
@@ -340,6 +341,7 @@ private fun ExamCardItem(
                     ) {
                         Text(
                             text = when {
+                                daysRemaining < 0L -> "PAST DUE"
                                 daysRemaining == 0L -> "TODAY"
                                 daysRemaining == 1L -> "TOMORROW"
                                 else -> "IN $daysRemaining DAYS"
@@ -465,7 +467,7 @@ fun CreateExamBottomSheet(
     val shapes = StudyOSTheme.shapes
     val context = LocalContext.current
 
-    val initialIsMock = editingExam?.let { it.notes?.contains("[MOCK_TEST]") == true || it.name.contains("Mock", true) || it.name.contains("Tuition", true) || it.name.contains("Test", true) } ?: defaultIsMock
+    val initialIsMock = editingExam?.let { it.notes?.contains("[MOCK_TEST]") == true } ?: defaultIsMock
 
     var isMockTest by remember { mutableStateOf(initialIsMock) }
     var name by remember { mutableStateOf(editingExam?.name ?: "") }

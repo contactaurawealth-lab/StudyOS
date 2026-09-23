@@ -53,10 +53,9 @@ object SmartRevisionQueueEngine {
             val chRecallDue = recallItems.filter { it.chapterId == chapter.id && it.isDue }
 
             // 1. Check Exam Approaching
-            val relevantExam = exams.firstOrNull { exam ->
-                exam.subjectIds.contains(subject.id) || exam.subjectIds.isEmpty()
-            }
-            val daysToExam = relevantExam?.let { ((it.targetDate - now) / ONE_DAY_MS).coerceAtLeast(0) }
+            val relevantExam = exams.filter { !it.isCompleted && it.getDaysRemaining(now) >= 0L }
+                .firstOrNull { exam -> exam.subjectIds.contains(subject.id) || exam.subjectIds.isEmpty() }
+            val daysToExam = relevantExam?.getDaysRemaining(now)
 
             when {
                 // Exam within 14 days and chapter not mastered

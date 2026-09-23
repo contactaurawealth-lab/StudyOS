@@ -172,6 +172,7 @@ fun StudyOSApp(
         currentRoute?.startsWith("flashcards/") == true ||
         currentRoute?.startsWith("quiz/") == true ||
         currentRoute?.startsWith("recall/") == true ||
+        currentRoute == Screen.Exams.route ||
         currentRoute?.startsWith("exams/") == true
     val isSubRoute = isSubSettingsRoute || isSubjectDetailRoute || isChapterDetailRoute ||
         isStudySessionRoute || isTasksRoute || isAiRoute || isPracticeRoute
@@ -816,7 +817,13 @@ private fun StudyOSNavGraph(
 
         composable(Screen.ExamDetail.route) { backStackEntry ->
             val examId = backStackEntry.arguments?.getString("examId") ?: ""
-            val examViewModel = rememberExamViewModel(container)
+            // Share the same ExamViewModel with the ExamListScreen to keep data in sync
+            val parentEntry = try {
+                navController.getBackStackEntry(Screen.Exams.route)
+            } catch (_: Exception) {
+                backStackEntry
+            }
+            val examViewModel = rememberExamViewModel(container, parentEntry)
             ExamDetailScreen(
                 examId = examId,
                 viewModel = examViewModel,
@@ -1156,7 +1163,8 @@ private fun rememberNoteEditorViewModel(
             saveFlashcardUseCase = container.saveFlashcardUseCase,
             saveQuizUseCase = container.saveQuizUseCase,
             aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
-            getAiConfigUseCase = container.getAiConfigUseCase
+            getAiConfigUseCase = container.getAiConfigUseCase,
+            subjectRepository = container.subjectRepository
         )
     }
 }
@@ -1215,20 +1223,34 @@ private fun rememberMistakeBankViewModel(
 
 @Composable
 private fun rememberExamViewModel(
-    container: StudyOSAppContainer
+    container: StudyOSAppContainer,
+    viewModelStoreOwner: androidx.lifecycle.ViewModelStoreOwner? = null
 ): ExamViewModel {
     val context = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    return androidx.lifecycle.viewmodel.compose.viewModel {
-        ExamViewModel(
-            getExamsUseCase = container.getExamsUseCase,
-            saveExamUseCase = container.saveExamUseCase,
-            deleteExamUseCase = container.deleteExamUseCase,
-            getExamDashboardUseCase = container.getExamDashboardUseCase,
-            subjectRepository = container.subjectRepository,
-            updateExamScoreUseCase = container.updateExamScoreUseCase,
-            alarmScheduler = container.alarmScheduler,
-            context = context
+    val factory = remember(container) {
+        object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return ExamViewModel(
+                    getExamsUseCase = container.getExamsUseCase,
+                    saveExamUseCase = container.saveExamUseCase,
+                    deleteExamUseCase = container.deleteExamUseCase,
+                    getExamDashboardUseCase = container.getExamDashboardUseCase,
+                    subjectRepository = container.subjectRepository,
+                    updateExamScoreUseCase = container.updateExamScoreUseCase,
+                    alarmScheduler = container.alarmScheduler,
+                    context = context
+                ) as T
+            }
+        }
+    }
+    return if (viewModelStoreOwner != null) {
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            viewModelStoreOwner = viewModelStoreOwner,
+            factory = factory
         )
+    } else {
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = factory)
     }
 }
 

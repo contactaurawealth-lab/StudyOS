@@ -240,9 +240,10 @@ fun ExamDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = when (dashboard.daysRemaining) {
-                                            0L -> "Exam Today!"
-                                            1L -> "Exam Tomorrow"
+                                        text = when {
+                                            dashboard.daysRemaining < 0L -> "Exam Past Due"
+                                            dashboard.daysRemaining == 0L -> "Exam Today!"
+                                            dashboard.daysRemaining == 1L -> "Exam Tomorrow"
                                             else -> "${dashboard.daysRemaining} Days Left"
                                         },
                                         style = typography.screenTitle.copy(fontSize = 28.sp),
@@ -776,10 +777,7 @@ fun ExamDetailScreen(
                         text = "Save",
                         onClick = {
                             val parsed = scoreInputText.trim().toIntOrNull()
-                            if (parsed != null) {
-                                viewModel.logExamScore(examId, parsed)
-                            }
-                            viewModel.toggleExamCompleted(examId, isCompletedChecked)
+                            viewModel.saveExamResult(examId, parsed, isCompletedChecked)
                             showScoreDialog = false
                         }
                     )

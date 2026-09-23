@@ -27,13 +27,16 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.StudyOSButton
+import com.studyos.app.core.ui.component.StudyOSConfirmationDialog
 import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSLoadingState
@@ -66,6 +70,12 @@ fun QuizRunnerScreen(
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
     val snackbarHostState = remember { SnackbarHostState() }
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    val isQuizActive = !uiState.isCompleted && !uiState.isLoading && uiState.questions.isNotEmpty()
+    BackHandler(enabled = isQuizActive) {
+        showExitDialog = true
+    }
 
     LaunchedEffect(uiState.infoMessage) {
         uiState.infoMessage?.let {
@@ -99,7 +109,11 @@ fun QuizRunnerScreen(
                 onFinish = onBack
             )
         } else {
-            val question = uiState.currentQuestion ?: return
+            val question = uiState.currentQuestion
+            if (question == null) {
+                StudyOSLoadingState(message = "Loading question...")
+                return@Box
+            }
             val currentAnswer = uiState.selectedAnswers[question.id] ?: ""
 
             Column(
@@ -114,7 +128,13 @@ fun QuizRunnerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     StudyOSIconButton(
-                        onClick = onBack,
+                        onClick = {
+                            if (isQuizActive) {
+                                showExitDialog = true
+                            } else {
+                                onBack()
+                            }
+                        },
                         contentDescription = "Exit Quiz"
                     ) {
                         Icon(
@@ -155,7 +175,7 @@ fun QuizRunnerScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 StudyOSProgressBar(
-                    progress = ((uiState.currentQuestionIndex + 1).toFloat() / uiState.totalQuestions * 100).toInt(),
+                    progress = if (uiState.totalQuestions > 0) ((uiState.currentQuestionIndex + 1).toFloat() / uiState.totalQuestions * 100).toInt() else 0,
                     height = 4.dp,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -294,6 +314,19 @@ fun QuizRunnerScreen(
                     }
                 }
             }
+        }
+
+        if (showExitDialog) {
+            StudyOSConfirmationDialog(
+                title = "Exit Quiz?",
+                message = "Your progress has been autosaved. You can resume this quiz anytime from the Chapter Practice Hub.",
+                confirmButtonText = "Exit Quiz",
+                onConfirm = {
+                    showExitDialog = false
+                    onBack()
+                },
+                onDismiss = { showExitDialog = false }
+            )
         }
 
         SnackbarHost(
@@ -496,7 +529,7 @@ private fun QuizResultsView(
         // Question By Question Review List
         itemsIndexed(questions, key = { _, q -> q.id }) { index, question ->
             val userAns = userAnswers[question.id]?.trim() ?: ""
-            val isCorrect = userAns.equals(question.correctAnswer.trim(), ignoreCase = true)
+            val isCorrect = com.studyos.app.domain.usecase.checkQuizAnswersMatch(userAns, question.correctAnswer, question.options)
 
             Box(
                 modifier = Modifier

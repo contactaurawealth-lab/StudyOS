@@ -100,9 +100,11 @@ class GetSubjectReadinessUseCase(
         val dueRecallItems = recallRepository.getDueRecallItems().filter { it.subjectId == subjectId }
         val allMistakes = mistakeRepository.observeAllMistakes().firstOrNull() ?: emptyList()
         val subjectMistakes = allMistakes.filter { it.subjectId == subjectId }
+        val now = System.currentTimeMillis()
         val exams = examRepository.observeAllExams().firstOrNull() ?: emptyList()
-        val exam = exams.firstOrNull { it.subjectIds.contains(subjectId) }
-            ?: exams.minByOrNull { it.targetDate }
+        val activeExams = exams.filter { !it.isCompleted && it.getDaysRemaining(now) >= 0L }
+        val exam = activeExams.firstOrNull { it.subjectIds.contains(subjectId) }
+            ?: activeExams.minByOrNull { it.targetDate }
 
         return ExamReadinessEngine.calculateSubjectReadiness(
             subject = subject,

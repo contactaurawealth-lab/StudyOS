@@ -14,6 +14,7 @@ import com.studyos.app.domain.usecase.GetAiConfigUseCase
 import com.studyos.app.domain.usecase.GetNoteUseCase
 import com.studyos.app.domain.usecase.SaveFlashcardUseCase
 import com.studyos.app.domain.usecase.SaveNoteUseCase
+import com.studyos.app.domain.repository.SubjectRepository
 import com.studyos.app.domain.usecase.SaveQuizUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,9 +25,9 @@ import kotlinx.coroutines.launch
 
 data class NoteEditorUiState(
     val noteId: String? = null,
+    val title: String = "",
     val subjectId: String? = null,
     val chapterId: String? = null,
-    val title: String = "",
     val content: String = "",
     val isPinned: Boolean = false,
     val isLoading: Boolean = false,
@@ -50,7 +51,8 @@ class NoteEditorViewModel(
     private val saveFlashcardUseCase: SaveFlashcardUseCase,
     private val saveQuizUseCase: SaveQuizUseCase,
     private val aiPracticeToolsUseCase: AiPracticeToolsUseCase,
-    private val getAiConfigUseCase: GetAiConfigUseCase
+    private val getAiConfigUseCase: GetAiConfigUseCase,
+    private val subjectRepository: SubjectRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -205,10 +207,15 @@ class NoteEditorViewModel(
         }
     }
 
+    private suspend fun resolveSubjectId(): String? {
+        val current = _uiState.value.subjectId
+        if (!current.isNullOrBlank()) return current
+        return subjectRepository?.getAllSubjectsOnce()?.firstOrNull()?.id
+    }
+
     fun convertToFlashcards() {
         val content = _uiState.value.content.trim()
         val title = _uiState.value.title.trim().ifEmpty { "Study Note" }
-        val subId = _uiState.value.subjectId ?: "General"
         val chapId = _uiState.value.chapterId
 
         if (content.isBlank()) {
@@ -216,9 +223,14 @@ class NoteEditorViewModel(
             return
         }
 
-        _uiState.update { it.copy(isAiWorking = true) }
-
         viewModelScope.launch {
+            val subId = resolveSubjectId()
+            if (subId == null) {
+                _uiState.update { it.copy(infoMessage = "Please create at least one subject to store flashcards.") }
+                return@launch
+            }
+
+            _uiState.update { it.copy(isAiWorking = true) }
             try {
                 val config = getAiConfigUseCase().firstOrNull() ?: AiConfig()
                 val cards = aiPracticeToolsUseCase.generateFlashcardsFromNote(
@@ -259,7 +271,6 @@ class NoteEditorViewModel(
     fun generateQuizFromNote() {
         val content = _uiState.value.content.trim()
         val title = _uiState.value.title.trim().ifEmpty { "Study Note" }
-        val subId = _uiState.value.subjectId ?: "General"
         val chapId = _uiState.value.chapterId
 
         if (content.isBlank()) {
@@ -267,13 +278,18 @@ class NoteEditorViewModel(
             return
         }
 
-        _uiState.update { it.copy(isAiWorking = true) }
-
         viewModelScope.launch {
+            val subId = resolveSubjectId()
+            if (subId == null) {
+                _uiState.update { it.copy(infoMessage = "Please create at least one subject to store quizzes.") }
+                return@launch
+            }
+
+            _uiState.update { it.copy(isAiWorking = true) }
             try {
                 val config = getAiConfigUseCase().firstOrNull() ?: AiConfig()
                 val (quiz, questions) = aiPracticeToolsUseCase.generateQuizFromContext(
-                    title = "Quiz: $title",
+                    title = "$title Quiz",
                     topic = title,
                     content = content,
                     questionCount = 5,
@@ -282,22 +298,13 @@ class NoteEditorViewModel(
                     chapterId = chapId,
                     config = config
                 )
-                if (questions.isNotEmpty()) {
-                    saveQuizUseCase(quiz, questions)
-                    _uiState.update {
-                        it.copy(
-                            isAiWorking = false,
-                            generatedQuizId = quiz.id,
-                            infoMessage = "Generated quiz with ${questions.size} questions!"
-                        )
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isAiWorking = false,
-                            infoMessage = "Could not generate questions."
-                        )
-                    }
+                saveQuizUseCase(quiz, questions)
+                _uiState.update {
+                    it.copy(
+                        isAiWorking = false,
+                        generatedQuizId = quiz.id,
+                        infoMessage = "Quiz generated successfully!"
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.update {

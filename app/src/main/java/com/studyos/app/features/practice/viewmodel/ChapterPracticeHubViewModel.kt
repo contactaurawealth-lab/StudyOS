@@ -142,7 +142,7 @@ class ChapterPracticeHubViewModel(
             saveFlashcardUseCase(
                 question = question,
                 answer = answer,
-                subjectId = summary.subjectName, // fallback or resolved
+                subjectId = summary.subjectId,
                 chapterId = chapterId,
                 difficulty = difficulty
             )
@@ -238,7 +238,7 @@ class ChapterPracticeHubViewModel(
                     content = contextContent,
                     questionCount = questionCount,
                     difficulty = difficulty,
-                    subjectId = summary.subjectName,
+                    subjectId = summary.subjectId,
                     chapterId = chapterId,
                     config = config
                 )

@@ -185,6 +185,24 @@ class ExamViewModel(
         }
     }
 
+    /**
+     * Combined save: records score and completion status in a single operation,
+     * avoiding race conditions from two concurrent DB writes.
+     */
+    fun saveExamResult(examId: String, actualScore: Int?, isCompleted: Boolean) {
+        viewModelScope.launch {
+            updateExamScoreUseCase?.invoke(examId, actualScore, isCompleted = isCompleted)
+            loadExamDetail(examId)
+            val msg = when {
+                actualScore != null && isCompleted -> "Score recorded: $actualScore% • Exam completed."
+                actualScore != null -> "Score recorded: $actualScore%"
+                isCompleted -> "Exam marked as completed."
+                else -> "Exam updated."
+            }
+            _uiState.update { it.copy(infoMessage = msg) }
+        }
+    }
+
     fun clearInfoMessage() {
         _uiState.update { it.copy(infoMessage = null) }
     }
