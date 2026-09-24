@@ -1,6 +1,7 @@
 package com.studyos.app.features.practice.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -152,36 +153,40 @@ fun RevisionDashboardScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 2. Tab Content
-                    AnimatedVisibility(
-                        visible = uiState.selectedTab == RevisionTab.DUE_QUEUE,
-                        enter = fadeIn(),
-                        exit = fadeOut()
+                    // 2. Tab Content (Bounded with weight(1f) to prevent height jumping and scrolling glitches)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
                     ) {
-                        DueQueueTabContent(
-                            data = data,
-                            leitnerBoxes = uiState.leitnerBoxes,
-                            selectedBoxIndex = uiState.selectedBoxIndex,
-                            selectedFilter = uiState.selectedFilter,
-                            priorityQueue = uiState.priorityQueue,
-                            onSelectBox = viewModel::selectLeitnerBox,
-                            onSelectFilter = viewModel::selectFilter,
-                            onStartRecallSession = onStartRecallSession,
-                            onOpenChapter = onOpenChapter
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = uiState.selectedTab == RevisionTab.PRACTICE_LAB,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        PracticeLabTabContent(
-                            data = data,
-                            onStartRecallSession = onStartRecallSession,
-                            onOpenMistakes = onOpenMistakes,
-                            onOpenChapter = onOpenChapter
-                        )
+                        Crossfade(
+                            targetState = uiState.selectedTab,
+                            label = "RevisionTabCrossfade"
+                        ) { tab ->
+                            when (tab) {
+                                RevisionTab.DUE_QUEUE -> {
+                                    DueQueueTabContent(
+                                        data = data,
+                                        leitnerBoxes = uiState.leitnerBoxes,
+                                        selectedBoxIndex = uiState.selectedBoxIndex,
+                                        selectedFilter = uiState.selectedFilter,
+                                        priorityQueue = uiState.priorityQueue,
+                                        onSelectBox = viewModel::selectLeitnerBox,
+                                        onSelectFilter = viewModel::selectFilter,
+                                        onStartRecallSession = onStartRecallSession,
+                                        onOpenChapter = onOpenChapter
+                                    )
+                                }
+                                RevisionTab.PRACTICE_LAB -> {
+                                    PracticeLabTabContent(
+                                        data = data,
+                                        onStartRecallSession = onStartRecallSession,
+                                        onOpenMistakes = onOpenMistakes,
+                                        onOpenChapter = onOpenChapter
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

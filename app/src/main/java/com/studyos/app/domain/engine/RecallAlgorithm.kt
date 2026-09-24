@@ -132,22 +132,84 @@ object RecallAlgorithm {
         )
     }
 
+    private val ENGLISH_STOP_WORDS = setOf(
+        "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
+        "it", "its", "of", "to", "in", "for", "on", "with", "at", "by",
+        "from", "as", "that", "this", "these", "those", "or", "and"
+    )
+
+    private val NUMBER_MAP = mapOf(
+        "zero" to "0", "one" to "1", "first" to "1st",
+        "two" to "2", "second" to "2nd",
+        "three" to "3", "third" to "3rd",
+        "four" to "4", "fourth" to "4th",
+        "five" to "5", "fifth" to "5th",
+        "six" to "6", "sixth" to "6th",
+        "seven" to "7", "seventh" to "7th",
+        "eight" to "8", "eighth" to "8th",
+        "nine" to "9", "ninth" to "9th",
+        "ten" to "10", "tenth" to "10th"
+    )
+
+    private fun stem(word: String): String {
+        return when {
+            word.endsWith("ies") && word.length > 4 -> word.dropLast(3) + "y"
+            word.endsWith("es") && word.length > 4 -> word.dropLast(2)
+            word.endsWith("s") && !word.endsWith("ss") && word.length > 3 -> word.dropLast(1)
+            word.endsWith("ing") && word.length > 5 -> word.dropLast(3)
+            word.endsWith("ed") && word.length > 4 -> word.dropLast(2)
+            else -> word
+        }
+    }
+
+    private fun tokensMatch(t1: String, t2: String): Boolean {
+        if (t1 == t2) return true
+        if (stem(t1) == stem(t2)) return true
+        val minLen = minOf(t1.length, t2.length)
+        if (minLen >= 5 && levenshteinDistance(t1, t2) <= 1) return true
+        return false
+    }
+
+    private fun extractContentTokens(normalizedText: String): List<String> {
+        return normalizedText.split(" ")
+            .map { it.trim() }
+            .filter { it.isNotBlank() && it !in ENGLISH_STOP_WORDS }
+    }
+
     private fun checkPartialMatch(userAnswer: String, expectedAnswer: String): Boolean {
         val cleanUser = normalize(userAnswer)
         val cleanExpected = normalize(expectedAnswer)
-        if (cleanExpected.length in 3..25 && levenshteinDistance(cleanUser, cleanExpected) <= 3) return true
-        val userTokens = cleanUser.split(" ").filter { it.length > 2 }.toSet()
-        val expectedTokens = cleanExpected.split(" ").filter { it.length > 2 }.toSet()
-        if (expectedTokens.isNotEmpty() && userTokens.isNotEmpty()) {
-            val intersection = userTokens.intersect(expectedTokens).size
-            val ratio = intersection.toDouble() / expectedTokens.size.toDouble()
-            if (ratio >= 0.45) return true
+        if (cleanUser.isEmpty() || cleanExpected.isEmpty()) return false
+
+        val userContent = extractContentTokens(cleanUser)
+        val expectedContent = extractContentTokens(cleanExpected)
+
+        val cleanUserNoStop = userContent.joinToString(" ")
+        val cleanExpectedNoStop = expectedContent.joinToString(" ")
+
+        if (cleanExpectedNoStop.length in 3..25 && levenshteinDistance(cleanUserNoStop, cleanExpectedNoStop) <= 3) return true
+
+        if (expectedContent.isNotEmpty() && userContent.isNotEmpty()) {
+            var matches = 0
+            for (eTok in expectedContent) {
+                if (userContent.any { uTok -> tokensMatch(uTok, eTok) }) {
+                    matches++
+                }
+            }
+            val ratio = matches.toDouble() / expectedContent.size.toDouble()
+            if (ratio >= 0.40) return true
         }
         return false
     }
 
     /**
-     * Fuzzy matching for student answers (case-insensitive, trims whitespace, supports minor punctuation differences).
+     * Flexible, intelligent matching for student answers:
+     * - Case-insensitive and whitespace tolerant
+     * - Strips English leading articles and filler stop words
+     * - Recognizes number words and digits interchangeably ("two" <-> "2")
+     * - Plural and inflection tolerance ("cells" <-> "cell")
+     * - Levenshtein typo allowance for technical terms
+     * - Stem-aware token overlap
      */
     fun checkAnswerMatch(userAnswer: String, expectedAnswer: String): Boolean {
         val cleanUser = normalize(userAnswer)
@@ -156,38 +218,60 @@ object RecallAlgorithm {
         if (cleanUser == cleanExpected) return true
         if (cleanUser.isEmpty() || cleanExpected.isEmpty()) return false
 
-        // True/False synonyms
-        if ((cleanUser == "true" || cleanUser == "t" || cleanUser == "yes") && (cleanExpected == "true" || cleanExpected == "yes")) return true
-        if ((cleanUser == "false" || cleanUser == "f" || cleanUser == "no") && (cleanExpected == "false" || cleanExpected == "no")) return true
+        // True/False/Boolean synonyms
+        val trueSynonyms = setOf("true", "t", "yes", "y", "correct", "right")
+        val falseSynonyms = setOf("false", "f", "no", "n", "incorrect", "wrong")
+        if (cleanUser in trueSynonyms && cleanExpected in trueSynonyms) return true
+        if (cleanUser in falseSynonyms && cleanExpected in falseSynonyms) return true
 
-        // For concise single/double word answers, allow close match if lengths are similar
-        if (cleanExpected.length in 3..25) {
+        // Direct containment when expected is distinct
+        if (cleanExpected.length >= 4 && cleanUser.contains(cleanExpected)) return true
+        if (cleanUser.length >= 4 && cleanExpected.contains(cleanUser) && cleanUser.length >= cleanExpected.length * 0.75) return true
+
+        // Strip stop words to compare core concepts
+        val userContent = extractContentTokens(cleanUser)
+        val expectedContent = extractContentTokens(cleanExpected)
+
+        val cleanUserNoStop = userContent.joinToString(" ")
+        val cleanExpectedNoStop = expectedContent.joinToString(" ")
+
+        if (cleanUserNoStop == cleanExpectedNoStop && cleanUserNoStop.isNotBlank()) return true
+
+        // For concise single/double word answers, allow close match with scaled Levenshtein distance
+        if (cleanExpectedNoStop.length in 3..25) {
             val maxDist = when {
-                cleanExpected.length > 10 -> 2
-                cleanExpected.length > 4 -> 1
+                cleanExpectedNoStop.length > 10 -> 2
+                cleanExpectedNoStop.length > 4 -> 1
                 else -> 0
             }
-            if (levenshteinDistance(cleanUser, cleanExpected) <= maxDist) return true
+            if (levenshteinDistance(cleanUserNoStop, cleanExpectedNoStop) <= maxDist) return true
         }
 
-        // For multi-word answers, check token overlap (at least 70% of key words matched)
-        val userTokens = cleanUser.split(" ").filter { it.length > 2 }.toSet()
-        val expectedTokens = cleanExpected.split(" ").filter { it.length > 2 }.toSet()
-
-        if (expectedTokens.isNotEmpty() && userTokens.isNotEmpty()) {
-            val intersection = userTokens.intersect(expectedTokens).size
-            val ratio = intersection.toDouble() / expectedTokens.size.toDouble()
-            if (ratio >= 0.70) return true
+        // Multi-word stem-aware token matching
+        if (expectedContent.isNotEmpty() && userContent.isNotEmpty()) {
+            var matches = 0
+            for (eTok in expectedContent) {
+                if (userContent.any { uTok -> tokensMatch(uTok, eTok) }) {
+                    matches++
+                }
+            }
+            val recallRatio = matches.toDouble() / expectedContent.size.toDouble()
+            // At least 65% of key concept tokens recalled
+            if (recallRatio >= 0.65) return true
         }
 
         return false
     }
 
-    private fun normalize(text: String): String {
-        return text.trim()
-            .lowercase()
-            .replace(Regex("[^a-z0-9 ]"), "")
-            .replace(Regex("\\s+"), " ")
+    fun normalize(text: String): String {
+        var cleaned = text.trim().lowercase()
+        // Replace punctuation (apostrophes removed, hyphens/others converted to spaces)
+        cleaned = cleaned.replace(Regex("['’]"), "")
+        cleaned = cleaned.replace(Regex("[^a-z0-9 ]"), " ")
+        cleaned = cleaned.replace(Regex("\\s+"), " ").trim()
+
+        val tokens = cleaned.split(" ").map { NUMBER_MAP[it] ?: it }
+        return tokens.joinToString(" ")
     }
 
     private fun levenshteinDistance(s1: String, s2: String): Int {

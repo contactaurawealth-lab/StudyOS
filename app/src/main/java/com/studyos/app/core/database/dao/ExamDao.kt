@@ -46,4 +46,7 @@ interface ExamDao {
 
     @Query("DELETE FROM exam_subjects WHERE examId = :examId")
     suspend fun deleteExamSubjects(examId: String)
+
+    @Query("DELETE FROM exam_subjects WHERE subjectId = :subjectId")
+    suspend fun deleteExamSubjectsBySubject(subjectId: String)
 }

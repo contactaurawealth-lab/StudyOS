@@ -1,6 +1,7 @@
 package com.studyos.app.domain.model
 
 import java.util.UUID
+import kotlin.math.roundToInt
 
 enum class ChapterStatus {
     NOT_STARTED,
@@ -72,12 +73,12 @@ data class ChapterSearchResult(
 
 fun calculateSubjectProgress(chapters: List<Chapter>): Int {
     if (chapters.isEmpty()) return 0
-    return chapters.sumOf { it.progress } / chapters.size
+    return ((chapters.sumOf { it.progress }.toFloat() / chapters.size.toFloat())).roundToInt().coerceIn(0, 100)
 }
 
 fun calculateOverallProgress(chapters: List<Chapter>): Int {
     if (chapters.isEmpty()) return 0
-    return chapters.sumOf { it.progress } / chapters.size
+    return ((chapters.sumOf { it.progress }.toFloat() / chapters.size.toFloat())).roundToInt().coerceIn(0, 100)
 }
 
 fun statusForProgress(progress: Int): ChapterStatus {

@@ -98,7 +98,7 @@ class StudyOSAppContainer(private val context: Context) {
     }
 
     val subjectRepository: SubjectRepository by lazy {
-        SubjectRepositoryImpl(database.subjectDao(), database.chapterDao())
+        SubjectRepositoryImpl(database.subjectDao(), database.chapterDao(), database.examDao())
     }
 
     val studyPreferencesRepository: StudyPreferencesRepository by lazy {

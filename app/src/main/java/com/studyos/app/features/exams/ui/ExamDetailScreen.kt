@@ -142,7 +142,12 @@ fun ExamDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         StudyOSIconButton(
                             onClick = onBack,
                             contentDescription = "Back"
@@ -157,7 +162,7 @@ fun ExamDetailScreen(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        Column {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
                             Text(
                                 text = exam.name,
                                 style = typography.sectionTitle,
@@ -169,12 +174,17 @@ fun ExamDetailScreen(
                             Text(
                                 text = dateFormat.format(Date(exam.targetDate)),
                                 style = typography.caption,
-                                color = colors.secondaryText
+                                color = colors.secondaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
-                    Row {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
                         val context = LocalContext.current
                         val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
 
@@ -406,6 +416,10 @@ fun ExamDetailScreen(
 
                     // Interactive Syllabus Revision Checklist Section
                     item {
+                        val totalCh = uiState.revisionChapters.size
+                        val revCh = uiState.revisedChaptersCount
+                        val revPct = if (totalCh > 0) ((revCh * 100f) / totalCh.toFloat()).roundToInt().coerceIn(0, 100) else 0
+
                         Column {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -418,10 +432,6 @@ fun ExamDetailScreen(
                                     color = colors.primaryText
                                 )
 
-                                val totalCh = uiState.revisionChapters.size
-                                val revCh = uiState.revisedChaptersCount
-                                val revPct = if (totalCh > 0) (revCh * 100) / totalCh else 0
-
                                 Text(
                                     text = "$revCh of $totalCh Mastered ($revPct%)",
                                     style = typography.caption,
@@ -432,9 +442,6 @@ fun ExamDetailScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            val totalCh = uiState.revisionChapters.size
-                            val revCh = uiState.revisedChaptersCount
-                            val revPct = if (totalCh > 0) (revCh * 100) / totalCh else 0
                             StudyOSProgressBar(
                                 progress = revPct,
                                 height = 5.dp,
@@ -745,12 +752,15 @@ private fun ReadinessRadarCard(
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
 
-    val totalChapters = dashboard.subjectProgresses.sumOf { it.chaptersCount }.coerceAtLeast(1)
+    val rawTotalChapters = dashboard.subjectProgresses.sumOf { it.chaptersCount }
+    val totalChapters = rawTotalChapters.coerceAtLeast(1)
     val completedChapters = dashboard.subjectProgresses.sumOf { it.completedChaptersCount }
-    val syllabusPct = ((completedChapters * 100f) / totalChapters).roundToInt().coerceIn(0, 100)
+    val syllabusPct = if (rawTotalChapters > 0) {
+        ((completedChapters * 100f) / totalChapters.toFloat()).roundToInt().coerceIn(0, 100)
+    } else 0
 
     val accuracyPct = dashboard.quizAccuracy
-        ?: (if (recentMockAttempts.isNotEmpty()) recentMockAttempts.map { it.accuracyPercentage }.average().roundToInt() else 0)
+        ?: (if (recentMockAttempts.isNotEmpty()) recentMockAttempts.map { it.accuracyPercentage.toDouble() }.average().roundToInt().coerceIn(0, 100) else 0)
 
     val dueFlashcards = dashboard.flashcardsDue
     val retentionPct = (100 - (dueFlashcards * 4)).coerceIn(15, 100)

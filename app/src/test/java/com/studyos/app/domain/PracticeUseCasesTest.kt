@@ -297,6 +297,14 @@ class FakeExamRepository : ExamRepository {
         exams.removeAll { it.id == id }
         sync()
     }
+
+    override suspend fun updateExamScore(id: String, actualScore: Int?, isCompleted: Boolean) {
+        val index = exams.indexOfFirst { it.id == id }
+        if (index != -1) {
+            exams[index] = exams[index].copy(actualScore = actualScore, isCompleted = isCompleted)
+            sync()
+        }
+    }
 }
 
 class FakeSubjectRepositoryForPractice : SubjectRepository {

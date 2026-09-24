@@ -51,16 +51,16 @@ class ExamCountdownWidgetProvider : AppWidgetProvider() {
                         examTitle = exam.name
                         targetRoute = Screen.ExamDetail.createRoute(exam.id)
 
+                        val daysRemaining = com.studyos.app.domain.model.calculateDaysRemaining(exam.date, now)
                         val diff = exam.date - now
-                        val days = (diff / (1000 * 60 * 60 * 24)).toInt()
-                        val hours = ((diff / (1000 * 60 * 60)) % 24).toInt()
+                        val hours = (diff / (1000 * 60 * 60)).coerceAtLeast(0)
 
                         countdownBadge = when {
-                            days > 1 -> "🔥 $days DAYS REMAINING"
-                            days == 1 -> "⚡ TOMORROW ($hours hrs left)"
-                            days == 0 && hours > 0 -> "⏱️ TODAY ($hours hrs left)"
-                            days == 0 -> "🚨 STARTING SOON"
-                            else -> "EXAM DAY"
+                            daysRemaining > 1L -> "🔥 $daysRemaining DAYS REMAINING"
+                            daysRemaining == 1L -> "⚡ TOMORROW ($hours hrs left)"
+                            daysRemaining == 0L && diff > 0 -> "⏱️ TODAY ($hours hrs left)"
+                            daysRemaining == 0L -> "🚨 TODAY (IN PROGRESS)"
+                            else -> "EXAM PASSED"
                         }
 
                         val dateFormat = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())

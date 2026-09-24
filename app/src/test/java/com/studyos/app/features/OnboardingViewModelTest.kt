@@ -94,6 +94,7 @@ class FakePreferencesDataSource : PreferencesDataSource {
     override suspend fun setDailyReminderEnabled(enabled: Boolean) {}
     override suspend fun setDailyReminderTime(time: String) {}
     override suspend fun setRevisionRemindersEnabled(enabled: Boolean) {}
+    override suspend fun resetAll() {}
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

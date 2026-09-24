@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -97,240 +98,67 @@ fun ProgressScreen(
                     }
                 } else {
                     val progress = uiState.academicProgress
+                    val animatedProgress by animateIntAsState(
+                        targetValue = progress.overallProgress,
+                        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+                        label = "overallProgressAnimation"
+                    )
 
-                    Column(
+                    LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .widthIn(max = 680.dp)
                             .padding(horizontal = spacing.screenHorizontal),
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.Start
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(top = 14.dp, bottom = 32.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(14.dp))
-
                         // 1. Time Window Filter Chips
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            ProgressTimeWindow.values().forEach { window ->
-                                val isSelected = uiState.selectedTimeWindow == window
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(shapes.statusPill)
-                                        .background(if (isSelected) colors.primaryText else colors.surface)
-                                        .border(0.5.dp, if (isSelected) colors.primaryText else colors.border.copy(alpha = 0.3f), shapes.statusPill)
-                                        .clickable { viewModel.setTimeWindowFilter(window) }
-                                        .padding(vertical = 6.dp)
-                                        .semantics { this.role = Role.Tab },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = window.label,
-                                        style = typography.caption.copy(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 12.sp
-                                        ),
-                                        color = if (isSelected) colors.buttonText else colors.secondaryText
-                                    )
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                ProgressTimeWindow.values().forEach { window ->
+                                    val isSelected = uiState.selectedTimeWindow == window
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(shapes.statusPill)
+                                            .background(if (isSelected) colors.primaryText else colors.surface)
+                                            .border(0.5.dp, if (isSelected) colors.primaryText else colors.border.copy(alpha = 0.3f), shapes.statusPill)
+                                            .clickable { viewModel.setTimeWindowFilter(window) }
+                                            .padding(vertical = 6.dp)
+                                            .semantics { this.role = Role.Tab },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = window.label,
+                                            style = typography.caption.copy(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 12.sp
+                                            ),
+                                            color = if (isSelected) colors.buttonText else colors.secondaryText
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
-
                         if (progress.totalChapters == 0) {
-                            Spacer(modifier = Modifier.height(32.dp))
-                            StudyOSEmptyState(
-                                title = "No progress yet",
-                                description = "Add chapters and update their progress to see your study coverage."
-                            )
+                            item {
+                                Spacer(modifier = Modifier.height(32.dp))
+                                StudyOSEmptyState(
+                                    title = "No progress yet",
+                                    description = "Add chapters and update their progress to see your study coverage."
+                                )
+                            }
                         } else {
                             // 2. Cognitive Readiness Index Card
                             val readiness = uiState.cognitiveReadiness
-                            GlassCard(
-                                backgroundColor = colors.glassSurface,
-                                padding = 18.dp
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "COGNITIVE READINESS",
-                                            style = typography.caption.copy(fontWeight = FontWeight.Bold),
-                                            color = colors.accent,
-                                            letterSpacing = 1.sp
-                                        )
-
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(shapes.statusPill)
-                                                .background(colors.accent.copy(alpha = 0.15f))
-                                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(
-                                                text = readiness.readinessTier,
-                                                style = typography.caption.copy(fontWeight = FontWeight.Bold),
-                                                color = colors.accent
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.Bottom
-                                    ) {
-                                        Text(
-                                            text = "${readiness.overallIndex}%",
-                                            style = typography.screenTitle,
-                                            color = colors.primaryText
-                                        )
-
-                                        val hours = uiState.filteredStudyMinutes / 60
-                                        val mins = uiState.filteredStudyMinutes % 60
-                                        val timeStr = if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
-                                        Text(
-                                            text = "$timeStr • ${uiState.activeDaysCount} active days",
-                                            style = typography.caption,
-                                            color = colors.secondaryText
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    StudyOSProgressBar(
-                                        progress = readiness.overallIndex,
-                                        height = 6.dp,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-
-                                    Spacer(modifier = Modifier.height(14.dp))
-
-                                    // 4 Breakdown Quadrants
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        ReadinessMetricTile(
-                                            label = "Syllabus",
-                                            value = "${readiness.syllabusCompletionPct}%",
-                                            weight = "35%",
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        ReadinessMetricTile(
-                                            label = "Retention",
-                                            value = "${readiness.recallRetentionPct}%",
-                                            weight = "25%",
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        ReadinessMetricTile(
-                                            label = "Accuracy",
-                                            value = "${readiness.quizAccuracyPct}%",
-                                            weight = "20%",
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        ReadinessMetricTile(
-                                            label = "Habit",
-                                            value = "${readiness.consistencyPct}%",
-                                            weight = "20%",
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Animated overall progress percentage (400-600ms)
-                            val animatedProgress by animateIntAsState(
-                                targetValue = progress.overallProgress,
-                                animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-                                label = "overallProgressAnimation"
-                            )
-
-                            // Overall Progress Card
-                            GlassCard(
-                                backgroundColor = colors.glassSurface,
-                                padding = 18.dp
-                            ) {
-                                Text(
-                                    text = "Overall progress",
-                                    style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
-                                    color = colors.secondaryText
-                                )
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Bottom
-                                ) {
-                                    Text(
-                                        text = "$animatedProgress%",
-                                        style = typography.screenTitle,
-                                        color = colors.primaryText
-                                    )
-
-                                    Text(
-                                        text = "${progress.completedChapters} of ${progress.totalChapters} chapters",
-                                        style = typography.caption,
-                                        color = colors.secondaryText
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                StudyOSProgressBar(
-                                    progress = progress.overallProgress,
-                                    height = 6.dp,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Consistency & Retention Momentum Card
-                            GlassCard(
-                                backgroundColor = colors.glassSurface,
-                                padding = 16.dp
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        text = "Consistency & Momentum",
-                                        style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
-                                        color = colors.accent
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = if (progress.completedChapters > 0) "Active Learning Pace" else "Start Your Habit",
-                                        style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = colors.primaryText
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Non-punitive consistency: daily retrieval and incremental progress compound into long-term recall without penalty for missed days.",
-                                        style = typography.caption,
-                                        color = colors.secondaryText
-                                    )
-                                }
-                            }
-
-                            // Weekly Study Report Card
-                            val report = uiState.weeklyReport
-                            if (report != null && report.totalMinutes > 0) {
-                                val context = androidx.compose.ui.platform.LocalContext.current
-                                Spacer(modifier = Modifier.height(12.dp))
+                            item {
                                 GlassCard(
                                     backgroundColor = colors.glassSurface,
-                                    padding = 16.dp
+                                    padding = 18.dp
                                 ) {
                                     Column(modifier = Modifier.fillMaxWidth()) {
                                         Row(
@@ -339,117 +167,296 @@ fun ProgressScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = "WEEKLY STUDY REPORT",
+                                                text = "COGNITIVE READINESS",
                                                 style = typography.caption.copy(fontWeight = FontWeight.Bold),
                                                 color = colors.accent,
                                                 letterSpacing = 1.sp
                                             )
 
-                                            Text(
-                                                text = "Share",
-                                                style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
-                                                color = colors.accent,
-                                                modifier = Modifier.clickable {
-                                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                                        type = "text/plain"
-                                                        putExtra(android.content.Intent.EXTRA_TEXT, report.shareableText)
-                                                    }
-                                                    context.startActivity(android.content.Intent.createChooser(sendIntent, "Share Weekly Report"))
-                                                }
-                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(shapes.statusPill)
+                                                    .background(colors.accent.copy(alpha = 0.15f))
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = readiness.readinessTier,
+                                                    style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                    color = colors.accent
+                                                )
+                                            }
                                         }
-
-                                        Spacer(modifier = Modifier.height(6.dp))
-
-                                        Text(
-                                            text = report.headline,
-                                            style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = colors.primaryText
-                                        )
 
                                         Spacer(modifier = Modifier.height(8.dp))
 
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.Bottom
                                         ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                val hours = report.totalMinutes / 60
-                                                val mins = report.totalMinutes % 60
-                                                Text(
-                                                    text = if (hours > 0) "${hours}h ${mins}m" else "${mins}m",
-                                                    style = typography.sectionTitle,
-                                                    color = colors.primaryText
-                                                )
-                                                Text(
-                                                    text = "Focused Study",
-                                                    style = typography.caption,
-                                                    color = colors.secondaryText
-                                                )
-                                            }
+                                            Text(
+                                                text = "${readiness.overallIndex}%",
+                                                style = typography.screenTitle,
+                                                color = colors.primaryText
+                                            )
 
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = "${report.activeDaysCount}/7 Days",
-                                                    style = typography.sectionTitle,
-                                                    color = colors.primaryText
-                                                )
-                                                Text(
-                                                    text = "Consistency",
-                                                    style = typography.caption,
-                                                    color = colors.secondaryText
-                                                )
-                                            }
-
-                                            if (report.mistakesResolved > 0) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        text = "${report.mistakesResolved}",
-                                                        style = typography.sectionTitle,
-                                                        color = colors.accent
-                                                    )
-                                                    Text(
-                                                        text = "Mistakes Fixed",
-                                                        style = typography.caption,
-                                                        color = colors.secondaryText
-                                                    )
-                                                }
-                                            }
+                                            val hours = uiState.filteredStudyMinutes / 60
+                                            val mins = uiState.filteredStudyMinutes % 60
+                                            val timeStr = if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+                                            Text(
+                                                text = "$timeStr • ${uiState.activeDaysCount} active days",
+                                                style = typography.caption,
+                                                color = colors.secondaryText
+                                            )
                                         }
 
-                                        if (report.subjectBreakdown.isNotEmpty()) {
-                                            Spacer(modifier = Modifier.height(10.dp))
-                                            Text(
-                                                text = "Top Subjects: " + report.subjectBreakdown.take(3).joinToString(", ") { "${it.first} (${it.second / 60}h)" },
-                                                style = typography.caption,
-                                                color = colors.mutedText
-                                            )
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        StudyOSProgressBar(
+                                            progress = readiness.overallIndex,
+                                            height = 6.dp,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(14.dp))
+
+                                        // 4 Breakdown Quadrants in responsive 2x2 Grid
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                ReadinessMetricTile(
+                                                    label = "Syllabus",
+                                                    value = "${readiness.syllabusCompletionPct}%",
+                                                    weight = "35%",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                ReadinessMetricTile(
+                                                    label = "Retention",
+                                                    value = "${readiness.recallRetentionPct}%",
+                                                    weight = "25%",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                ReadinessMetricTile(
+                                                    label = "Accuracy",
+                                                    value = "${readiness.quizAccuracyPct}%",
+                                                    weight = "20%",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                ReadinessMetricTile(
+                                                    label = "Habit",
+                                                    value = "${readiness.consistencyPct}%",
+                                                    weight = "20%",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(20.dp))
+                            // 3. Overall Progress Card
+                            item {
+                                GlassCard(
+                                    backgroundColor = colors.glassSurface,
+                                    padding = 18.dp
+                                ) {
+                                    Text(
+                                        text = "Overall progress",
+                                        style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                        color = colors.secondaryText
+                                    )
 
-                            // Subjects Breakdown Section Header
-                            Text(
-                                text = "Subjects",
-                                style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
-                                color = colors.primaryText
-                            )
+                                    Spacer(modifier = Modifier.height(6.dp))
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Bottom
+                                    ) {
+                                        Text(
+                                            text = "$animatedProgress%",
+                                            style = typography.screenTitle,
+                                            color = colors.primaryText
+                                        )
 
-                            LazyColumn(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(progress.subjectBreakdowns, key = { it.subjectId }) { breakdown ->
-                                    SubjectProgressRow(
-                                        breakdown = breakdown,
-                                        onClick = { onSubjectClick(breakdown.subjectId) }
+                                        Text(
+                                            text = "${progress.completedChapters} of ${progress.totalChapters} chapters",
+                                            style = typography.caption,
+                                            color = colors.secondaryText
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    StudyOSProgressBar(
+                                        progress = progress.overallProgress,
+                                        height = 6.dp,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
+                            }
+
+                            // 4. Consistency & Retention Momentum Card
+                            item {
+                                GlassCard(
+                                    backgroundColor = colors.glassSurface,
+                                    padding = 16.dp
+                                ) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            text = "Consistency & Momentum",
+                                            style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                            color = colors.accent
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = if (progress.completedChapters > 0) "Active Learning Pace" else "Start Your Habit",
+                                            style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = colors.primaryText
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Non-punitive consistency: daily retrieval and incremental progress compound into long-term recall without penalty for missed days.",
+                                            style = typography.caption,
+                                            color = colors.secondaryText
+                                        )
+                                    }
+                                }
+                            }
+
+                            // 5. Weekly Study Report Card
+                            val report = uiState.weeklyReport
+                            if (report != null && report.totalMinutes > 0) {
+                                item {
+                                    val context = androidx.compose.ui.platform.LocalContext.current
+                                    GlassCard(
+                                        backgroundColor = colors.glassSurface,
+                                        padding = 16.dp
+                                    ) {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "WEEKLY STUDY REPORT",
+                                                    style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                    color = colors.accent,
+                                                    letterSpacing = 1.sp
+                                                )
+
+                                                Text(
+                                                    text = "Share",
+                                                    style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                                    color = colors.accent,
+                                                    modifier = Modifier.clickable {
+                                                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                            type = "text/plain"
+                                                            putExtra(android.content.Intent.EXTRA_TEXT, report.shareableText)
+                                                        }
+                                                        context.startActivity(android.content.Intent.createChooser(sendIntent, "Share Weekly Report"))
+                                                    }
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.height(6.dp))
+
+                                            Text(
+                                                text = report.headline,
+                                                style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = colors.primaryText
+                                            )
+
+                                            Spacer(modifier = Modifier.height(8.dp))
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    val hours = report.totalMinutes / 60
+                                                    val mins = report.totalMinutes % 60
+                                                    Text(
+                                                        text = if (hours > 0) "${hours}h ${mins}m" else "${mins}m",
+                                                        style = typography.sectionTitle,
+                                                        color = colors.primaryText
+                                                    )
+                                                    Text(
+                                                        text = "Focused Study",
+                                                        style = typography.caption,
+                                                        color = colors.secondaryText
+                                                    )
+                                                }
+
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "${report.activeDaysCount}/7 Days",
+                                                        style = typography.sectionTitle,
+                                                        color = colors.primaryText
+                                                    )
+                                                    Text(
+                                                        text = "Consistency",
+                                                        style = typography.caption,
+                                                        color = colors.secondaryText
+                                                    )
+                                                }
+
+                                                if (report.mistakesResolved > 0) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = "${report.mistakesResolved}",
+                                                            style = typography.sectionTitle,
+                                                            color = colors.accent
+                                                        )
+                                                        Text(
+                                                            text = "Mistakes Fixed",
+                                                            style = typography.caption,
+                                                            color = colors.secondaryText
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            if (report.subjectBreakdown.isNotEmpty()) {
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                Text(
+                                                    text = "Top Subjects: " + report.subjectBreakdown.take(3).joinToString(", ") { "${it.first} (${it.second / 60}h)" },
+                                                    style = typography.caption,
+                                                    color = colors.mutedText
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 6. Subjects Breakdown Section Header
+                            item {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Subjects",
+                                    style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
+                                    color = colors.primaryText
+                                )
+                            }
+
+                            // 7. Subjects Breakdown Rows
+                            items(progress.subjectBreakdowns, key = { it.subjectId }) { breakdown ->
+                                SubjectProgressRow(
+                                    breakdown = breakdown,
+                                    onClick = { onSubjectClick(breakdown.subjectId) }
+                                )
                             }
                         }
                     }

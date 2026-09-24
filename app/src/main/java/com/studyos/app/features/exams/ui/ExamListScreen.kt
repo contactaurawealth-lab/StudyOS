@@ -916,17 +916,23 @@ fun CreateExamBottomSheet(
     }
 
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = targetDate)
+        val localZone = remember { java.time.ZoneId.systemDefault() }
+        val initialUtcMillis = remember(targetDate) {
+            val localDate = java.time.Instant.ofEpochMilli(targetDate).atZone(localZone).toLocalDate()
+            localDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        }
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialUtcMillis)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedMillis ->
-                        val calOld = Calendar.getInstance().apply { timeInMillis = targetDate }
-                        val calNew = Calendar.getInstance().apply { timeInMillis = selectedMillis }
-                        calNew.set(Calendar.HOUR_OF_DAY, calOld.get(Calendar.HOUR_OF_DAY))
-                        calNew.set(Calendar.MINUTE, calOld.get(Calendar.MINUTE))
-                        targetDate = calNew.timeInMillis
+                    datePickerState.selectedDateMillis?.let { selectedUtcMillis ->
+                        val selectedLocalDate = java.time.Instant.ofEpochMilli(selectedUtcMillis)
+                            .atZone(java.time.ZoneOffset.UTC)
+                            .toLocalDate()
+                        val currentLocal = java.time.Instant.ofEpochMilli(targetDate).atZone(localZone)
+                        val updatedLocal = selectedLocalDate.atTime(currentLocal.toLocalTime()).atZone(localZone)
+                        targetDate = updatedLocal.toInstant().toEpochMilli()
                     }
                     showDatePicker = false
                 }) {

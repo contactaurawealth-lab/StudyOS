@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,9 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.StudyOSButton
@@ -306,37 +309,84 @@ fun FlashcardStudyScreen(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            RatingButton(
-                                label = "Again",
-                                sublabel = "< 1d",
-                                onClick = { viewModel.rateCard(FlashcardRating.AGAIN) },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            RatingButton(
-                                label = "Hard",
-                                sublabel = "2d",
-                                onClick = { viewModel.rateCard(FlashcardRating.HARD) },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            RatingButton(
-                                label = "Good",
-                                sublabel = "4d",
-                                onClick = { viewModel.rateCard(FlashcardRating.GOOD) },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            RatingButton(
-                                label = "Easy",
-                                sublabel = "7d",
-                                onClick = { viewModel.rateCard(FlashcardRating.EASY) },
-                                modifier = Modifier.weight(1f)
-                            )
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            val isNarrow = maxWidth < 340.dp
+                            if (isNarrow) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        RatingButton(
+                                            label = "Again",
+                                            sublabel = "< 1d",
+                                            colorIndicator = Color(0xFFE53E3E),
+                                            onClick = { viewModel.rateCard(FlashcardRating.AGAIN) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        RatingButton(
+                                            label = "Hard",
+                                            sublabel = "2d",
+                                            colorIndicator = Color(0xFFDD6B20),
+                                            onClick = { viewModel.rateCard(FlashcardRating.HARD) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        RatingButton(
+                                            label = "Good",
+                                            sublabel = "4d",
+                                            colorIndicator = colors.accent,
+                                            onClick = { viewModel.rateCard(FlashcardRating.GOOD) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        RatingButton(
+                                            label = "Easy",
+                                            sublabel = "7d",
+                                            colorIndicator = Color(0xFF38A169),
+                                            onClick = { viewModel.rateCard(FlashcardRating.EASY) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    RatingButton(
+                                        label = "Again",
+                                        sublabel = "< 1d",
+                                        colorIndicator = Color(0xFFE53E3E),
+                                        onClick = { viewModel.rateCard(FlashcardRating.AGAIN) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    RatingButton(
+                                        label = "Hard",
+                                        sublabel = "2d",
+                                        colorIndicator = Color(0xFFDD6B20),
+                                        onClick = { viewModel.rateCard(FlashcardRating.HARD) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    RatingButton(
+                                        label = "Good",
+                                        sublabel = "4d",
+                                        colorIndicator = colors.accent,
+                                        onClick = { viewModel.rateCard(FlashcardRating.GOOD) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    RatingButton(
+                                        label = "Easy",
+                                        sublabel = "7d",
+                                        colorIndicator = Color(0xFF38A169),
+                                        onClick = { viewModel.rateCard(FlashcardRating.EASY) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -352,7 +402,8 @@ private fun RatingButton(
     label: String,
     sublabel: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    colorIndicator: Color = Color.Transparent
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
@@ -362,22 +413,30 @@ private fun RatingButton(
         modifier = modifier
             .clip(shapes.button)
             .background(colors.surface)
-            .border(1.dp, colors.border, shapes.button)
+            .border(
+                1.dp,
+                if (colorIndicator != Color.Transparent) colorIndicator.copy(alpha = 0.35f) else colors.border,
+                shapes.button
+            )
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(vertical = 10.dp, horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = label,
-                style = typography.secondary,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.primaryText
+                style = typography.caption.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                color = if (colorIndicator != Color.Transparent) colorIndicator else colors.primaryText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = sublabel,
                 style = typography.caption.copy(fontSize = 11.sp),
-                color = colors.secondaryText
+                color = colors.secondaryText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

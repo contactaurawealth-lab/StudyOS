@@ -83,8 +83,8 @@ class ProgressViewModelTest {
 
         assertEquals(4, progress.totalChapters)
         assertEquals(2, progress.completedChapters)
-        // Overall: (100 + 50 + 100 + 0) / 4 = 250 / 4 = 62%
-        assertEquals(62, progress.overallProgress)
+        // Overall: (100 + 50 + 100 + 0) / 4 = 250 / 4 = 62.5% -> 63%
+        assertEquals(63, progress.overallProgress)
 
         val mathBreakdown = progress.subjectBreakdowns.find { it.subjectId == math.id }!!
         assertEquals(75, mathBreakdown.progress)

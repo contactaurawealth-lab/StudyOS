@@ -4,13 +4,18 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -133,6 +138,93 @@ fun FeynmanAudioWalkScreen(
         hasMicPermission = granted
     }
 
+    // Audio focus management
+    val audioManager = remember(context) {
+        context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    }
+    var audioFocusRequest by remember { mutableStateOf<AudioFocusRequest?>(null) }
+
+    val requestAudioFocus: () -> Unit = {
+        try {
+            audioManager?.let { am ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val playbackAttributes = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                    val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                        .setAudioAttributes(playbackAttributes)
+                        .setAcceptsDelayedFocusGain(false)
+                        .setOnAudioFocusChangeListener { /* no-op ducking */ }
+                        .build()
+                    audioFocusRequest = request
+                    am.requestAudioFocus(request)
+                } else {
+                    @Suppress("DEPRECATION")
+                    am.requestAudioFocus(
+                        null,
+                        AudioManager.STREAM_MUSIC,
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    val releaseAudioFocus: () -> Unit = {
+        try {
+            audioManager?.let { am ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    audioFocusRequest?.let { req ->
+                        am.abandonAudioFocusRequest(req)
+                        audioFocusRequest = null
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    am.abandonAudioFocus(null)
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    val cleanupAudioAndSpeech: () -> Unit = {
+        try { tts?.stop() } catch (_: Exception) {}
+        try {
+            speechRecognizer?.cancel()
+            speechRecognizer?.stopListening()
+        } catch (_: Exception) {}
+        try {
+            mediaPlayer?.pause()
+            viewModel.setAudioPlaying(false)
+        } catch (_: Exception) {}
+        releaseAudioFocus()
+    }
+
+    // Handle system back gesture
+    BackHandler {
+        cleanupAudioAndSpeech()
+        onNavigateBack()
+    }
+
+    // Screen-level lifecycle cleanup
+    DisposableEffect(Unit) {
+        onDispose {
+            cleanupAudioAndSpeech()
+            try {
+                speechRecognizer?.destroy()
+                speechRecognizer = null
+            } catch (_: Exception) {}
+            try {
+                mediaPlayer?.release()
+                mediaPlayer = null
+            } catch (_: Exception) {}
+            try {
+                tts?.shutdown()
+                tts = null
+            } catch (_: Exception) {}
+        }
+    }
+
     // Initialize TTS
     DisposableEffect(context) {
         var engine: TextToSpeech? = null
@@ -150,13 +242,17 @@ fun FeynmanAudioWalkScreen(
                     "FEEDBACK_TTS" -> viewModel.onFeedbackTtsFinished()
                 }
             }
-            override fun onError(utteranceId: String?) {}
+            override fun onError(utteranceId: String?) {
+                releaseAudioFocus()
+            }
         })
         tts = engine
 
         onDispose {
-            engine.stop()
-            engine.shutdown()
+            try {
+                engine.stop()
+                engine.shutdown()
+            } catch (_: Exception) {}
         }
     }
 
@@ -164,37 +260,46 @@ fun FeynmanAudioWalkScreen(
     DisposableEffect(context) {
         var recognizer: SpeechRecognizer? = null
         if (SpeechRecognizer.isRecognitionAvailable(context)) {
-            recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
-                setRecognitionListener(object : RecognitionListener {
-                    override fun onReadyForSpeech(params: Bundle?) {
-                        isSpeechRecognizerListening = true
-                    }
-                    override fun onBeginningOfSpeech() {}
-                    override fun onRmsChanged(rmsdB: Float) {}
-                    override fun onBufferReceived(buffer: ByteArray?) {}
-                    override fun onEndOfSpeech() {
-                        isSpeechRecognizerListening = false
-                    }
-                    override fun onError(error: Int) {
-                        isSpeechRecognizerListening = false
-                    }
-                    override fun onResults(results: Bundle?) {
-                        isSpeechRecognizerListening = false
-                        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        val text = matches?.firstOrNull() ?: ""
-                        if (text.isNotBlank()) {
-                            viewModel.onUserAnswerSpoken(text)
+            try {
+                recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
+                    setRecognitionListener(object : RecognitionListener {
+                        override fun onReadyForSpeech(params: Bundle?) {
+                            isSpeechRecognizerListening = true
                         }
-                    }
-                    override fun onPartialResults(partialResults: Bundle?) {}
-                    override fun onEvent(eventType: Int, params: Bundle?) {}
-                })
-            }
-            speechRecognizer = recognizer
+                        override fun onBeginningOfSpeech() {}
+                        override fun onRmsChanged(rmsdB: Float) {}
+                        override fun onBufferReceived(buffer: ByteArray?) {}
+                        override fun onEndOfSpeech() {
+                            isSpeechRecognizerListening = false
+                        }
+                        override fun onError(error: Int) {
+                            isSpeechRecognizerListening = false
+                            try {
+                                cancel()
+                            } catch (_: Exception) {}
+                        }
+                        override fun onResults(results: Bundle?) {
+                            isSpeechRecognizerListening = false
+                            releaseAudioFocus()
+                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            val text = matches?.firstOrNull() ?: ""
+                            if (text.isNotBlank()) {
+                                viewModel.onUserAnswerSpoken(text)
+                            }
+                        }
+                        override fun onPartialResults(partialResults: Bundle?) {}
+                        override fun onEvent(eventType: Int, params: Bundle?) {}
+                    })
+                }
+                speechRecognizer = recognizer
+            } catch (_: Exception) {}
         }
 
         onDispose {
-            recognizer?.destroy()
+            try {
+                recognizer?.cancel()
+                recognizer?.destroy()
+            } catch (_: Exception) {}
         }
     }
 
@@ -212,6 +317,7 @@ fun FeynmanAudioWalkScreen(
                     }
                     setOnCompletionListener {
                         viewModel.setAudioPlaying(false)
+                        releaseAudioFocus()
                     }
                 }
                 mediaPlayer = player
@@ -220,13 +326,20 @@ fun FeynmanAudioWalkScreen(
             }
         }
         onDispose {
-            mediaPlayer?.release()
-            mediaPlayer = null
+            try {
+                mediaPlayer?.release()
+                mediaPlayer = null
+            } catch (_: Exception) {}
         }
     }
 
     // Media Player progress polling
     LaunchedEffect(uiState.isAudioRevisionPlaying) {
+        if (uiState.isAudioRevisionPlaying) {
+            requestAudioFocus()
+        } else {
+            releaseAudioFocus()
+        }
         while (uiState.isAudioRevisionPlaying) {
             mediaPlayer?.let { mp ->
                 if (mp.isPlaying) {
@@ -241,6 +354,7 @@ fun FeynmanAudioWalkScreen(
     val currentQuestion = uiState.questions.getOrNull(uiState.currentIndex)
     LaunchedEffect(uiState.walkStatus, currentQuestion, isTtsReady) {
         if (isTtsReady && uiState.walkStatus == WalkStatus.SPEAKING_QUESTION && currentQuestion != null) {
+            requestAudioFocus()
             tts?.speak(currentQuestion.question, TextToSpeech.QUEUE_FLUSH, null, "QUESTION_TTS")
         }
     }
@@ -248,6 +362,7 @@ fun FeynmanAudioWalkScreen(
     // Trigger TTS for Socratic Feedback
     LaunchedEffect(uiState.walkStatus, uiState.lastEvaluationFeedback, isTtsReady) {
         if (isTtsReady && uiState.walkStatus == WalkStatus.SPEAKING_FEEDBACK && uiState.lastEvaluationFeedback.isNotBlank()) {
+            requestAudioFocus()
             tts?.speak(uiState.lastEvaluationFeedback, TextToSpeech.QUEUE_FLUSH, null, "FEEDBACK_TTS")
         }
     }
@@ -255,10 +370,13 @@ fun FeynmanAudioWalkScreen(
     // Trigger STT when Listening
     LaunchedEffect(uiState.walkStatus, hasMicPermission) {
         if (uiState.walkStatus == WalkStatus.LISTENING_ANSWER) {
+            // Ensure TTS is stopped before listening
+            try { tts?.stop() } catch (_: Exception) {}
             if (!hasMicPermission) {
                 micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             } else if (speechRecognizer != null) {
                 try {
+                    speechRecognizer?.cancel()
                     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                         putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
@@ -266,11 +384,14 @@ fun FeynmanAudioWalkScreen(
                     speechRecognizer?.startListening(intent)
                     isSpeechRecognizerListening = true
                 } catch (e: Exception) {
-                    // Ignore mic error
+                    isSpeechRecognizerListening = false
                 }
             }
         } else {
-            speechRecognizer?.stopListening()
+            try {
+                speechRecognizer?.cancel()
+                speechRecognizer?.stopListening()
+            } catch (_: Exception) {}
             isSpeechRecognizerListening = false
         }
     }
@@ -291,9 +412,7 @@ fun FeynmanAudioWalkScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StudyOSIconButton(
                     onClick = {
-                        tts?.stop()
-                        speechRecognizer?.stopListening()
-                        mediaPlayer?.pause()
+                        cleanupAudioAndSpeech()
                         onNavigateBack()
                     },
                     contentDescription = "Back"

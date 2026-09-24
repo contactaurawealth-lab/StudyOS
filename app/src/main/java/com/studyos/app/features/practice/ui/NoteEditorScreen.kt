@@ -30,17 +30,22 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material.icons.outlined.FormatItalic
 import androidx.compose.material.icons.outlined.FormatListNumbered
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Title
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -57,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.StudyOSButton
@@ -83,6 +89,8 @@ fun NoteEditorScreen(
     val context = LocalContext.current
 
     var isPreviewMode by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
@@ -95,6 +103,42 @@ fun NoteEditorScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.clearInfoMessage()
         }
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Delete Note",
+                    style = typography.sectionTitle,
+                    color = colors.primaryText
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete this note? This action cannot be undone.",
+                    style = typography.body,
+                    color = colors.secondaryText
+                )
+            },
+            confirmButton = {
+                StudyOSButton(
+                    text = "Delete",
+                    onClick = {
+                        showDeleteConfirmDialog = false
+                        viewModel.deleteNote()
+                    }
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("Cancel", color = colors.secondaryText)
+                }
+            },
+            containerColor = colors.surface
+        )
     }
 
     Box(
@@ -117,7 +161,10 @@ fun NoteEditorScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         StudyOSIconButton(
                             onClick = onBack,
                             contentDescription = "Back"
@@ -136,58 +183,16 @@ fun NoteEditorScreen(
                             text = if (uiState.noteId == null) "New Note" else "Edit Note",
                             style = typography.secondary,
                             fontWeight = FontWeight.SemiBold,
-                            color = colors.primaryText
+                            color = colors.primaryText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        StudyOSIconButton(
-                            onClick = { viewModel.undo() },
-                            enabled = uiState.canUndo,
-                            contentDescription = "Undo"
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.Undo,
-                                contentDescription = null,
-                                tint = if (uiState.canUndo) colors.primaryText else colors.mutedText.copy(alpha = 0.4f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        StudyOSIconButton(
-                            onClick = { viewModel.redo() },
-                            enabled = uiState.canRedo,
-                            contentDescription = "Redo"
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.Redo,
-                                contentDescription = null,
-                                tint = if (uiState.canRedo) colors.primaryText else colors.mutedText.copy(alpha = 0.4f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        // Native Share Action
-                        StudyOSIconButton(
-                            onClick = {
-                                val shareText = "${uiState.title.ifBlank { "Untitled Note" }}\n\n${uiState.content}"
-                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_SUBJECT, uiState.title)
-                                    putExtra(Intent.EXTRA_TEXT, shareText)
-                                }
-                                context.startActivity(Intent.createChooser(sendIntent, "Share Note"))
-                            },
-                            contentDescription = "Share Note"
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Share,
-                                contentDescription = null,
-                                tint = colors.secondaryText,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
                         StudyOSIconButton(
                             onClick = { viewModel.togglePin() },
                             contentDescription = "Toggle Pin"
@@ -200,21 +205,57 @@ fun NoteEditorScreen(
                             )
                         }
 
-                        if (uiState.noteId != null) {
+                        Box {
                             StudyOSIconButton(
-                                onClick = { viewModel.deleteNote() },
-                                contentDescription = "Delete Note"
+                                onClick = { showMoreMenu = true },
+                                contentDescription = "More Options"
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.DeleteOutline,
+                                    imageVector = Icons.Outlined.MoreVert,
                                     contentDescription = null,
                                     tint = colors.secondaryText,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
+
+                            DropdownMenu(
+                                expanded = showMoreMenu,
+                                onDismissRequest = { showMoreMenu = false },
+                                modifier = Modifier.background(colors.surface)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Share Note", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        val shareText = "${uiState.title.ifBlank { "Untitled Note" }}\n\n${uiState.content}"
+                                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_SUBJECT, uiState.title)
+                                            putExtra(Intent.EXTRA_TEXT, shareText)
+                                        }
+                                        context.startActivity(Intent.createChooser(sendIntent, "Share Note"))
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.Share, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
+
+                                if (uiState.noteId != null) {
+                                    DropdownMenuItem(
+                                        text = { Text("Delete Note", style = typography.body, color = Color(0xFFE53E3E)) },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            showDeleteConfirmDialog = true
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Outlined.DeleteOutline, null, tint = Color(0xFFE53E3E), modifier = Modifier.size(18.dp))
+                                        }
+                                    )
+                                }
+                            }
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         StudyOSButton(
                             text = "Save",

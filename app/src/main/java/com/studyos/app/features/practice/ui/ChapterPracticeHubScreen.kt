@@ -12,6 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.studyos.app.core.util.FlashcardImportParser
 import com.studyos.app.core.util.ParsedCard
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -189,35 +191,84 @@ fun ChapterPracticeHubScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Hub Navigation Tabs
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shapes.button)
-                        .background(colors.surface)
-                        .border(1.dp, colors.border, shapes.button)
-                        .padding(4.dp)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                val tabScrollState = rememberScrollState()
+
+                LaunchedEffect(uiState.selectedTab) {
+                    val tabIndex = PracticeHubTab.values().indexOf(uiState.selectedTab)
+                    if (tabIndex > 0) {
+                        tabScrollState.animateScrollTo(tabIndex * 180)
+                    } else {
+                        tabScrollState.animateScrollTo(0)
+                    }
+                }
+
+                Box(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    PracticeHubTab.values().forEach { tab ->
-                        val isSelected = uiState.selectedTab == tab
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(shapes.button)
+                            .background(colors.surface)
+                            .border(1.dp, colors.border, shapes.button)
+                            .padding(4.dp)
+                            .horizontalScroll(tabScrollState),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        PracticeHubTab.values().forEach { tab ->
+                            val isSelected = uiState.selectedTab == tab
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) colors.cardBackground else Color.Transparent)
+                                    .border(
+                                        width = if (isSelected) 1.dp else 0.dp,
+                                        color = if (isSelected) colors.border.copy(alpha = 0.5f) else Color.Transparent,
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                                    .clickable { viewModel.selectTab(tab) }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = tab.label,
+                                    style = typography.caption,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isSelected) colors.primaryText else colors.secondaryText,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+
+                    if (tabScrollState.canScrollForward) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSelected) colors.cardBackground else colors.surface)
-                                .clickable { viewModel.selectTab(tab) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = tab.label,
-                                style = typography.caption,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) colors.primaryText else colors.secondaryText,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
+                                .align(Alignment.CenterEnd)
+                                .width(28.dp)
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(Color.Transparent, colors.surface)
+                                    )
+                                )
+                        )
+                    }
+                    if (tabScrollState.canScrollBackward) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .width(28.dp)
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(colors.surface, Color.Transparent)
+                                    )
+                                )
+                        )
                     }
                 }
 

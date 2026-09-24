@@ -18,14 +18,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,13 +39,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.studyos.app.core.ui.component.GlassCard
+import com.studyos.app.core.ui.component.GlassIconButton
+import com.studyos.app.core.ui.component.GlassTopBar
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSConfirmationDialog
 import com.studyos.app.core.ui.component.StudyOSDivider
-import com.studyos.app.core.ui.component.StudyOSIconButton
+import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
 import com.studyos.app.core.util.DateTimeUtils
+import com.studyos.app.domain.model.StudySessionStatus
 import com.studyos.app.features.today.viewmodel.StudySessionViewModel
 import com.studyos.app.theme.StudyOSTheme
 
@@ -86,10 +95,11 @@ fun StudySessionPlaceholderScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = colors.background,
         topBar = {
-            TopAppBar(
-                title = {},
+            GlassTopBar(
+                title = "Study Session",
+                subtitle = uiState.subject?.name ?: "Deep Work",
                 navigationIcon = {
-                    StudyOSIconButton(
+                    GlassIconButton(
                         onClick = onBack,
                         contentDescription = "Back to Today"
                     ) {
@@ -97,13 +107,13 @@ fun StudySessionPlaceholderScreen(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = null,
                             tint = colors.primaryText,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 },
                 actions = {
                     if (uiState.session != null) {
-                        StudyOSIconButton(
+                        GlassIconButton(
                             onClick = { showDeleteConfirmation = true },
                             contentDescription = "Delete session"
                         ) {
@@ -111,14 +121,11 @@ fun StudySessionPlaceholderScreen(
                                 imageVector = Icons.Outlined.DeleteOutline,
                                 contentDescription = null,
                                 tint = colors.secondaryText,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colors.background
-                )
+                }
             )
         }
     ) { innerPadding ->
@@ -144,103 +151,134 @@ fun StudySessionPlaceholderScreen(
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Session not found.",
-                        style = typography.body,
-                        color = colors.secondaryText
+                    StudyOSEmptyState(
+                        title = "Session not found",
+                        description = "This study session may have already been completed or removed.",
+                        actionButtonText = "Back to Today",
+                        onActionClick = onBack
                     )
                 }
             } else {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 24.dp)
-                        .verticalScroll(rememberScrollState())
-                        .widthIn(max = 560.dp),
-                    horizontalAlignment = Alignment.Start
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    Text(
-                        text = "STUDY SESSION",
-                        style = typography.caption,
-                        color = colors.accent
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = session.title,
-                        style = typography.screenTitle,
-                        color = colors.primaryText
-                    )
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    // Desk details card
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(shapes.surface)
-                            .background(colors.surface)
-                            .border(1.dp, colors.border, shapes.surface)
-                            .padding(20.dp)
+                            .fillMaxSize()
+                            .widthIn(max = 600.dp)
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.Start
                     ) {
-                        if (uiState.subject != null) {
-                            SessionDetailRow(
-                                label = "Subject",
-                                value = uiState.subject?.name ?: ""
-                            )
-                            StudyOSDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        // Hero Session Card
+                        GlassCard(
+                            backgroundColor = colors.glassSurface,
+                            padding = 20.dp
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                // Subject badge
+                                if (uiState.subject != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(shapes.statusPill)
+                                            .background(colors.accent.copy(alpha = 0.15f))
+                                            .border(0.5.dp, colors.accent.copy(alpha = 0.3f), shapes.statusPill)
+                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = uiState.subject!!.name.uppercase(),
+                                            style = typography.caption.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 1.sp
+                                            ),
+                                            color = colors.accent
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                }
+
+                                Text(
+                                    text = session.title,
+                                    style = typography.screenTitle,
+                                    color = colors.primaryText
+                                )
+
+                                if (uiState.chapter != null) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+                                            contentDescription = null,
+                                            tint = colors.secondaryText,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = uiState.chapter!!.name,
+                                            style = typography.bodyMedium,
+                                            color = colors.secondaryText
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(18.dp))
+                                StudyOSDivider()
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Session Details Rows
+                                if (session.scheduledStart != null) {
+                                    SessionDetailRow(
+                                        icon = Icons.Outlined.CalendarToday,
+                                        label = "Scheduled time",
+                                        value = DateTimeUtils.formatTime(session.scheduledStart)
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
+
+                                SessionDetailRow(
+                                    icon = Icons.Outlined.AccessTime,
+                                    label = "Planned duration",
+                                    value = "${session.plannedMinutes} minutes"
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                SessionDetailRow(
+                                    icon = Icons.Outlined.CheckCircle,
+                                    label = "Status",
+                                    value = when (session.status) {
+                                        StudySessionStatus.COMPLETED -> "Completed"
+                                        StudySessionStatus.IN_PROGRESS -> "In Progress"
+                                        StudySessionStatus.CANCELLED -> "Cancelled"
+                                        StudySessionStatus.PLANNED -> "Planned"
+                                    }
+                                )
+                            }
                         }
 
-                        if (uiState.chapter != null) {
-                            SessionDetailRow(
-                                label = "Chapter",
-                                value = uiState.chapter?.name ?: ""
-                            )
-                            StudyOSDivider(modifier = Modifier.padding(vertical = 12.dp))
-                        }
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                        if (session.scheduledStart != null) {
-                            SessionDetailRow(
-                                label = "Scheduled time",
-                                value = DateTimeUtils.formatTime(session.scheduledStart)
-                            )
-                            StudyOSDivider(modifier = Modifier.padding(vertical = 12.dp))
-                        }
-
-                        SessionDetailRow(
-                            label = "Planned duration",
-                            value = "${session.plannedMinutes} minutes"
-                        )
-
-                        StudyOSDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                        SessionDetailRow(
-                            label = "Status",
-                            value = session.status.name.lowercase().replaceFirstChar { it.uppercase() }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    StudyOSButton(
-                        text = "Start Focus Timer",
-                        onClick = onOpenTimer,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Chapter button if linked
-                    if (uiState.chapter != null) {
-                        StudyOSOutlinedButton(
-                            text = "Open Chapter",
-                            onClick = { onOpenChapter(uiState.chapter!!.id) },
+                        // Primary Action: Start Timer
+                        StudyOSButton(
+                            text = "Start Focus Timer",
+                            onClick = onOpenTimer,
                             modifier = Modifier.fillMaxWidth()
                         )
+
+                        // Secondary Action: Open Chapter if linked
+                        if (uiState.chapter != null) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            StudyOSOutlinedButton(
+                                text = "Open Chapter",
+                                onClick = { onOpenChapter(uiState.chapter!!.id) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
@@ -250,6 +288,7 @@ fun StudySessionPlaceholderScreen(
 
 @Composable
 private fun SessionDetailRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String
 ) {
@@ -261,14 +300,23 @@ private fun SessionDetailRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            style = typography.secondary,
-            color = colors.secondaryText
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colors.secondaryText,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = label,
+                style = typography.secondary,
+                color = colors.secondaryText
+            )
+        }
         Text(
             text = value,
-            style = typography.bodyMedium,
+            style = typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
             color = colors.primaryText
         )
     }

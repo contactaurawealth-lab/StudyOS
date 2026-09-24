@@ -12,11 +12,13 @@ import com.studyos.app.domain.model.calculateSubjectProgress
 import com.studyos.app.domain.repository.SubjectRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import com.studyos.app.core.database.dao.ExamDao
 import kotlinx.coroutines.flow.map
 
 class SubjectRepositoryImpl(
     private val subjectDao: SubjectDao,
-    private val chapterDao: ChapterDao
+    private val chapterDao: ChapterDao,
+    private val examDao: ExamDao? = null
 ) : SubjectRepository {
 
     override fun getAllSubjects(): Flow<List<Subject>> {
@@ -101,11 +103,11 @@ class SubjectRepositoryImpl(
     }
 
     override suspend fun deleteSubject(subject: Subject) {
-        chapterDao.deleteForSubject(subject.id)
-        subjectDao.delete(subject.toEntity())
+        deleteSubjectById(subject.id)
     }
 
     override suspend fun deleteSubjectById(id: String) {
+        examDao?.deleteExamSubjectsBySubject(id)
         chapterDao.deleteForSubject(id)
         subjectDao.deleteById(id)
     }
