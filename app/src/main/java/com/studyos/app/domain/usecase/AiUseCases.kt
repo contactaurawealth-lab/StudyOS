@@ -13,6 +13,7 @@ import com.studyos.app.domain.provider.AiProvider
 import com.studyos.app.domain.repository.AiConversationRepository
 import com.studyos.app.domain.repository.AiMessageRepository
 import com.studyos.app.domain.repository.ChapterRepository
+import com.studyos.app.domain.repository.NoteRepository
 import com.studyos.app.domain.repository.SubjectRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -123,11 +124,29 @@ class DeleteConversationUseCase(
 
 class GetStudyContextUseCase(
     private val subjectRepository: SubjectRepository,
-    private val chapterRepository: ChapterRepository
+    private val chapterRepository: ChapterRepository,
+    private val noteRepository: NoteRepository? = null
 ) {
     suspend operator fun invoke(subjectId: String?, chapterId: String?): StudyContext {
         val subject = subjectId?.let { subjectRepository.getSubjectByIdOnce(it) }
         val chapter = chapterId?.let { chapterRepository.getChapterById(it) }
+
+        val subjectNotes: List<String> = if (!subjectId.isNullOrBlank() && noteRepository != null) {
+            try {
+                val notes = noteRepository.observeNotesForSubject(subjectId).firstOrNull() ?: emptyList()
+                notes.map { note ->
+                    if (note.title.isNotBlank()) {
+                        "### Note: ${note.title}\n${note.content.take(3000)}"
+                    } else {
+                        note.content.take(3000)
+                    }
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
 
         return StudyContext(
             subjectId = subjectId,
@@ -137,7 +156,8 @@ class GetStudyContextUseCase(
             chapterProgress = chapter?.progress,
             weakTopics = emptyList(),
             recentActivity = null,
-            upcomingExams = emptyList()
+            upcomingExams = emptyList(),
+            subjectNotes = subjectNotes
         )
     }
 }

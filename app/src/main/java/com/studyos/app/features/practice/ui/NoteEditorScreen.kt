@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,11 +22,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.Redo
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material.icons.outlined.FormatItalic
-import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.PushPin
@@ -105,6 +108,7 @@ fun NoteEditorScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
                     .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
                 // Top App Bar
@@ -137,6 +141,32 @@ fun NoteEditorScreen(
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        StudyOSIconButton(
+                            onClick = { viewModel.undo() },
+                            enabled = uiState.canUndo,
+                            contentDescription = "Undo"
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Undo,
+                                contentDescription = null,
+                                tint = if (uiState.canUndo) colors.primaryText else colors.mutedText.copy(alpha = 0.4f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        StudyOSIconButton(
+                            onClick = { viewModel.redo() },
+                            enabled = uiState.canRedo,
+                            contentDescription = "Redo"
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Redo,
+                                contentDescription = null,
+                                tint = if (uiState.canRedo) colors.primaryText else colors.mutedText.copy(alpha = 0.4f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
                         // Native Share Action
                         StudyOSIconButton(
                             onClick = {
@@ -276,6 +306,29 @@ fun NoteEditorScreen(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    ToolbarButton(
+                        icon = Icons.AutoMirrored.Outlined.Undo,
+                        label = "Undo",
+                        enabled = uiState.canUndo
+                    ) {
+                        viewModel.undo()
+                    }
+                    ToolbarButton(
+                        icon = Icons.AutoMirrored.Outlined.Redo,
+                        label = "Redo",
+                        enabled = uiState.canRedo
+                    ) {
+                        viewModel.redo()
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(20.dp)
+                            .width(1.dp)
+                            .background(colors.border)
+                            .padding(horizontal = 4.dp)
+                    )
+
                     ToolbarButton(icon = Icons.Outlined.FormatBold, label = "Bold") {
                         viewModel.insertMarkdown("**", "**")
                     }
@@ -285,7 +338,7 @@ fun NoteEditorScreen(
                     ToolbarButton(icon = Icons.Outlined.Title, label = "H1") {
                         viewModel.insertMarkdown("# ")
                     }
-                    ToolbarButton(icon = Icons.Outlined.FormatListBulleted, label = "List") {
+                    ToolbarButton(icon = Icons.AutoMirrored.Outlined.FormatListBulleted, label = "List") {
                         viewModel.insertMarkdown("- ")
                     }
                     ToolbarButton(icon = Icons.Outlined.FormatListNumbered, label = "Num") {
@@ -540,20 +593,21 @@ fun NoteEditorScreen(
 private fun ToolbarButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val colors = StudyOSTheme.colors
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = colors.primaryText,
+            tint = if (enabled) colors.primaryText else colors.mutedText.copy(alpha = 0.35f),
             modifier = Modifier.size(16.dp)
         )
     }

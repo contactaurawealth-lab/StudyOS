@@ -13,9 +13,12 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import com.studyos.app.core.model.AppState
 import com.studyos.app.core.model.AppTheme
 import com.studyos.app.domain.model.AiConfig
+import com.studyos.app.domain.model.NamedApiKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.IOException
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "studyos_preferences")
@@ -55,6 +58,8 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         val AI_BASE_URL = stringPreferencesKey("ai_base_url")
         val AI_MODEL = stringPreferencesKey("ai_model")
         val AI_SYSTEM_PROMPT = stringPreferencesKey("ai_system_prompt")
+        val AI_SAVED_KEYS_JSON = stringPreferencesKey("ai_saved_keys_json")
+        val AI_SAVED_MODELS_JSON = stringPreferencesKey("ai_saved_models_json")
         val REVISION_STREAK_DAYS = intPreferencesKey("revision_streak_days")
         val DAILY_REVISION_TARGET_MINUTES = intPreferencesKey("daily_revision_target_minutes")
         val LAST_REVISION_EPOCH_DAY = longPreferencesKey("last_revision_epoch_day")
@@ -154,11 +159,53 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
             }
         }
         .map { preferences ->
+            val apiKey = preferences[PreferencesKeys.AI_API_KEY] ?: ""
+            val baseUrl = preferences[PreferencesKeys.AI_BASE_URL] ?: "https://api.openai.com/v1/"
+            val model = preferences[PreferencesKeys.AI_MODEL] ?: "gpt-4o-mini"
+            val systemPrompt = preferences[PreferencesKeys.AI_SYSTEM_PROMPT]
+            val keysJson = preferences[PreferencesKeys.AI_SAVED_KEYS_JSON] ?: ""
+            val modelsJson = preferences[PreferencesKeys.AI_SAVED_MODELS_JSON] ?: ""
+
+            val savedKeys = mutableListOf<NamedApiKey>()
+            if (keysJson.isNotBlank()) {
+                try {
+                    val array = JSONArray(keysJson)
+                    for (i in 0 until array.length()) {
+                        val obj = array.getJSONObject(i)
+                        savedKeys.add(
+                            NamedApiKey(
+                                id = obj.optString("id", java.util.UUID.randomUUID().toString()),
+                                name = obj.optString("name", "Key ${i + 1}"),
+                                key = obj.optString("key", "")
+                            )
+                        )
+                    }
+                } catch (ignored: Exception) {}
+            }
+            if (savedKeys.isEmpty() && apiKey.isNotBlank()) {
+                savedKeys.add(NamedApiKey(name = "Primary Key", key = apiKey))
+            }
+
+            val savedModels = mutableListOf<String>()
+            if (modelsJson.isNotBlank()) {
+                try {
+                    val array = JSONArray(modelsJson)
+                    for (i in 0 until array.length()) {
+                        val m = array.getString(i).trim()
+                        if (m.isNotEmpty() && !savedModels.contains(m)) {
+                            savedModels.add(m)
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
+
             AiConfig(
-                apiKey = preferences[PreferencesKeys.AI_API_KEY] ?: "",
-                baseUrl = preferences[PreferencesKeys.AI_BASE_URL] ?: "https://api.openai.com/v1/",
-                model = preferences[PreferencesKeys.AI_MODEL] ?: "gpt-4o-mini",
-                customSystemPrompt = preferences[PreferencesKeys.AI_SYSTEM_PROMPT]
+                apiKey = apiKey,
+                baseUrl = baseUrl,
+                model = model,
+                customSystemPrompt = systemPrompt,
+                savedApiKeys = savedKeys,
+                savedModels = savedModels
             )
         }
 
@@ -172,6 +219,28 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
             } else {
                 preferences.remove(PreferencesKeys.AI_SYSTEM_PROMPT)
             }
+
+            // Save multiple API keys
+            val keysArray = JSONArray()
+            config.savedApiKeys.forEach { item ->
+                if (item.key.isNotBlank()) {
+                    val obj = JSONObject()
+                    obj.put("id", item.id)
+                    obj.put("name", item.name)
+                    obj.put("key", item.key.trim())
+                    keysArray.put(obj)
+                }
+            }
+            preferences[PreferencesKeys.AI_SAVED_KEYS_JSON] = keysArray.toString()
+
+            // Save multiple models
+            val modelsArray = JSONArray()
+            config.savedModels.forEach { m ->
+                if (m.isNotBlank()) {
+                    modelsArray.put(m.trim())
+                }
+            }
+            preferences[PreferencesKeys.AI_SAVED_MODELS_JSON] = modelsArray.toString()
         }
     }
 

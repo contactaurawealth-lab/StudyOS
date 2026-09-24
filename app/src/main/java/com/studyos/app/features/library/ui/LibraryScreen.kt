@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Bookmark
@@ -34,8 +35,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Functions
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Search
@@ -662,7 +661,7 @@ private fun FormulasListSection(
                                     contentDescription = "Open note"
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.OpenInNew,
+                                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
                                         contentDescription = null,
                                         tint = colors.mutedText,
                                         modifier = Modifier.size(16.dp)

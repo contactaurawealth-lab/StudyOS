@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,11 +20,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -51,6 +54,10 @@ fun SearchScreen(
     onBack: () -> Unit,
     onSubjectClick: (String) -> Unit = {},
     onChapterClick: (String) -> Unit = {},
+    onNoteClick: (noteId: String, subjectId: String, chapterId: String) -> Unit = { _, _, _ -> },
+    onFlashcardClick: (chapterId: String) -> Unit = {},
+    onMistakeClick: (mistakeId: String) -> Unit = {},
+    onExamClick: (examId: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -112,6 +119,7 @@ fun SearchScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // 1. Subjects
@@ -142,7 +150,7 @@ fun SearchScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.MenuBook,
+                                        imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp),
                                         tint = colors.accent
@@ -246,6 +254,8 @@ fun SearchScreen(
                                     .clip(shapes.surface)
                                     .background(colors.surface)
                                     .border(1.dp, colors.border, shapes.surface)
+                                    .clickable { onNoteClick(note.id, note.subjectId ?: "", note.chapterId ?: "") }
+                                    .semantics { role = Role.Button }
                                     .padding(horizontal = 16.dp, vertical = 14.dp)
                             ) {
                                 Row(
@@ -300,6 +310,8 @@ fun SearchScreen(
                                     .clip(shapes.surface)
                                     .background(colors.surface)
                                     .border(1.dp, colors.border, shapes.surface)
+                                    .clickable { onFlashcardClick(card.chapterId ?: "") }
+                                    .semantics { role = Role.Button }
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Row(
@@ -352,6 +364,8 @@ fun SearchScreen(
                                     .clip(shapes.surface)
                                     .background(colors.surface)
                                     .border(1.dp, colors.border, shapes.surface)
+                                    .clickable { onMistakeClick(mistake.id) }
+                                    .semantics { role = Role.Button }
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Row(
@@ -437,6 +451,63 @@ fun SearchScreen(
                                             text = "Accuracy: ${recall.recallAccuracy}% • Next review in ${recall.intervalDays}d",
                                             style = typography.caption,
                                             color = colors.mutedText,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 7. Exams & Mock Tests
+                    if (uiState.examResults.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Exams & Mock Tests (${uiState.examResults.size})",
+                                style = typography.secondary,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.secondaryText,
+                                modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                            )
+                        }
+
+                        items(uiState.examResults, key = { "exam_${it.id}" }) { exam ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shapes.surface)
+                                    .background(colors.surface)
+                                    .border(1.dp, colors.border, shapes.surface)
+                                    .clickable { onExamClick(exam.id) }
+                                    .semantics { role = Role.Button }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val isMock = exam.notes?.contains("[MOCK_TEST]") == true
+                                    Icon(
+                                        imageVector = if (isMock) Icons.AutoMirrored.Outlined.Assignment else Icons.Outlined.School,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = colors.accent
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = exam.name,
+                                            style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            color = colors.primaryText
+                                        )
+                                        val examTypeLabel = if (isMock) "Mock Test" else "Major Exam"
+                                        val targetLabel = if (exam.targetScore != null) " • Target: ${exam.targetScore}%" else ""
+                                        Text(
+                                            text = "$examTypeLabel$targetLabel",
+                                            style = typography.caption,
+                                            color = colors.mutedText,
+                                            maxLines = 1,
                                             modifier = Modifier.padding(top = 2.dp)
                                         )
                                     }

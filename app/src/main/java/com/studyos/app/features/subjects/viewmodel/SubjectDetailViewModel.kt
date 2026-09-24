@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studyos.app.domain.model.Chapter
 import com.studyos.app.domain.model.ChapterStatus
+import com.studyos.app.domain.model.Note
 import com.studyos.app.domain.model.Subject
 import com.studyos.app.domain.model.calculateSubjectProgress
+import com.studyos.app.domain.repository.NoteRepository
 import com.studyos.app.domain.usecase.AddChapterUseCase
 import com.studyos.app.domain.usecase.AddSubjectResult
 import com.studyos.app.domain.usecase.ChapterActionResult
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 data class SubjectDetailUiState(
     val subject: Subject? = null,
     val chapters: List<Chapter> = emptyList(),
+    val notes: List<Note> = emptyList(),
     val progress: Int = 0,
     val completedCount: Int = 0,
     val isLoading: Boolean = true,
@@ -42,7 +45,8 @@ class SubjectDetailViewModel(
     private val deleteChapterUseCase: DeleteChapterUseCase,
     private val moveChapterUseCase: MoveChapterUseCase,
     private val renameSubjectUseCase: RenameSubjectUseCase,
-    private val deleteSubjectUseCase: DeleteSubjectUseCase
+    private val deleteSubjectUseCase: DeleteSubjectUseCase,
+    private val noteRepository: NoteRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubjectDetailUiState())
@@ -54,26 +58,53 @@ class SubjectDetailViewModel(
 
     private fun observeSubjectAndChapters() {
         viewModelScope.launch {
-            combine(
-                getSubjectByIdUseCase(subjectId),
-                getChaptersForSubjectUseCase(subjectId)
-            ) { subject, chapters ->
-                Pair(subject, chapters)
-            }.collect { (subject, chapters) ->
-                if (subject == null && !_uiState.value.isDeleted && !_uiState.value.isLoading) {
-                    _uiState.update { it.copy(isDeleted = true) }
-                    return@collect
+            if (noteRepository != null) {
+                combine(
+                    getSubjectByIdUseCase(subjectId),
+                    getChaptersForSubjectUseCase(subjectId),
+                    noteRepository.observeNotesForSubject(subjectId)
+                ) { subject, chapters, notes ->
+                    Triple(subject, chapters, notes)
+                }.collect { (subject, chapters, notes) ->
+                    if (subject == null && !_uiState.value.isDeleted && !_uiState.value.isLoading) {
+                        _uiState.update { it.copy(isDeleted = true) }
+                        return@collect
+                    }
+                    val progress = calculateSubjectProgress(chapters)
+                    val completed = chapters.count { it.status == ChapterStatus.COMPLETED || it.progress == 100 }
+                    _uiState.update {
+                        it.copy(
+                            subject = subject,
+                            chapters = chapters,
+                            notes = notes,
+                            progress = progress,
+                            completedCount = completed,
+                            isLoading = false
+                        )
+                    }
                 }
-                val progress = calculateSubjectProgress(chapters)
-                val completed = chapters.count { it.status == ChapterStatus.COMPLETED || it.progress == 100 }
-                _uiState.update {
-                    it.copy(
-                        subject = subject,
-                        chapters = chapters,
-                        progress = progress,
-                        completedCount = completed,
-                        isLoading = false
-                    )
+            } else {
+                combine(
+                    getSubjectByIdUseCase(subjectId),
+                    getChaptersForSubjectUseCase(subjectId)
+                ) { subject, chapters ->
+                    Pair(subject, chapters)
+                }.collect { (subject, chapters) ->
+                    if (subject == null && !_uiState.value.isDeleted && !_uiState.value.isLoading) {
+                        _uiState.update { it.copy(isDeleted = true) }
+                        return@collect
+                    }
+                    val progress = calculateSubjectProgress(chapters)
+                    val completed = chapters.count { it.status == ChapterStatus.COMPLETED || it.progress == 100 }
+                    _uiState.update {
+                        it.copy(
+                            subject = subject,
+                            chapters = chapters,
+                            progress = progress,
+                            completedCount = completed,
+                            isLoading = false
+                        )
+                    }
                 }
             }
         }
@@ -147,5 +178,42 @@ class SubjectDetailViewModel(
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, actionMessage = null) }
+    }
+
+    fun addOrUploadNote(title: String, content: String, chapterId: String? = null) {
+        viewModelScope.launch {
+            if (title.isBlank() && content.isBlank()) {
+                _uiState.update { it.copy(errorMessage = "Note title and content cannot both be empty.") }
+                return@launch
+            }
+            if (noteRepository == null) {
+                _uiState.update { it.copy(errorMessage = "Note repository not initialized.") }
+                return@launch
+            }
+            try {
+                val newNote = Note(
+                    title = title.trim().ifBlank { "Subject Note" },
+                    content = content.trim(),
+                    subjectId = subjectId,
+                    chapterId = chapterId
+                )
+                noteRepository.saveNote(newNote)
+                _uiState.update { it.copy(actionMessage = "Note uploaded & available for AI context") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Failed to save note: ${e.message}") }
+            }
+        }
+    }
+
+    fun deleteNote(noteId: String) {
+        viewModelScope.launch {
+            if (noteRepository == null) return@launch
+            try {
+                noteRepository.deleteNote(noteId)
+                _uiState.update { it.copy(actionMessage = "Note removed") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Failed to delete note.") }
+            }
+        }
     }
 }

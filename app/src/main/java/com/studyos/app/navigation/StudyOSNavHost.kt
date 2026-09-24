@@ -20,16 +20,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -117,6 +117,8 @@ import com.studyos.app.features.practice.ui.RevisionDashboardScreen
 import com.studyos.app.features.practice.ui.ActiveRecallRunnerScreen
 import com.studyos.app.features.practice.viewmodel.RevisionDashboardViewModel
 import com.studyos.app.features.practice.viewmodel.ActiveRecallRunnerViewModel
+import com.studyos.app.features.practice.audiowalk.FeynmanAudioWalkScreen
+import com.studyos.app.features.practice.audiowalk.FeynmanAudioWalkViewModel
 import com.studyos.app.domain.model.ActiveRecallSessionType
 import com.studyos.app.theme.StudyOSTheme
 
@@ -347,17 +349,17 @@ fun StudyOSApp(
 
 private val PhoneBottomNavItems = listOf(
     GlassNavigationItem(Screen.Today.route, "Today", Icons.Outlined.Today),
-    GlassNavigationItem(Screen.Subjects.route, "Subjects", Icons.Outlined.MenuBook),
-    GlassNavigationItem(Screen.Progress.route, "Progress", Icons.Outlined.ShowChart),
+    GlassNavigationItem(Screen.Subjects.route, "Subjects", Icons.AutoMirrored.Outlined.MenuBook),
+    GlassNavigationItem(Screen.Progress.route, "Progress", Icons.AutoMirrored.Outlined.ShowChart),
     GlassNavigationItem(Screen.Planner.route, "Calendar", Icons.Outlined.CalendarMonth)
 )
 
 private val PrimaryDrawerItems = listOf(
     DrawerNavigationItem("Today", Screen.Today.route, Icons.Outlined.Today),
-    DrawerNavigationItem("Subjects", Screen.Subjects.route, Icons.Outlined.MenuBook),
+    DrawerNavigationItem("Subjects", Screen.Subjects.route, Icons.AutoMirrored.Outlined.MenuBook),
     DrawerNavigationItem("Library", Screen.Library.route, Icons.Outlined.Folder),
     DrawerNavigationItem("Study Timer", Screen.StudyTimer.route, Icons.Outlined.Timer),
-    DrawerNavigationItem("Progress", Screen.Progress.route, Icons.Outlined.ShowChart),
+    DrawerNavigationItem("Progress", Screen.Progress.route, Icons.AutoMirrored.Outlined.ShowChart),
     DrawerNavigationItem("Calendar", Screen.Planner.route, Icons.Outlined.CalendarMonth),
     DrawerNavigationItem("Revision", Screen.RevisionDashboard.route, Icons.Outlined.Psychology)
 )
@@ -534,6 +536,15 @@ private fun StudyOSNavGraph(
                 onChapterClick = { chapterId ->
                     navController.navigate(Screen.ChapterDetail.createRoute(chapterId))
                 },
+                onNoteClick = { noteId ->
+                    navController.navigate(Screen.NoteEditor.createRoute(noteId = noteId, subjectId = subjectId))
+                },
+                onCreateNote = {
+                    navController.navigate(Screen.NoteEditor.createRoute(subjectId = subjectId))
+                },
+                onStartAudioWalk = {
+                    navController.navigate(Screen.AudioWalk.createRoute(subjectId = subjectId))
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -661,6 +672,26 @@ private fun StudyOSNavGraph(
                 },
                 onChapterClick = { chapterId ->
                     navController.navigate(Screen.ChapterDetail.createRoute(chapterId))
+                },
+                onNoteClick = { noteId, subjectId, chapterId ->
+                    navController.navigate(
+                        Screen.NoteEditor.createRoute(
+                            noteId = noteId,
+                            subjectId = subjectId.ifBlank { null },
+                            chapterId = chapterId.ifBlank { null }
+                        )
+                    )
+                },
+                onFlashcardClick = { chapterId ->
+                    if (chapterId.isNotBlank()) {
+                        navController.navigate(Screen.FlashcardStudy.createRoute(chapterId))
+                    }
+                },
+                onMistakeClick = {
+                    navController.navigate(Screen.MistakeBank.route)
+                },
+                onExamClick = { examId ->
+                    navController.navigate(Screen.ExamDetail.createRoute(examId))
                 }
             )
         }
@@ -724,6 +755,9 @@ private fun StudyOSNavGraph(
                 },
                 onOpenMistakeBank = {
                     navController.navigate(Screen.MistakeBank.route)
+                },
+                onStartAudioWalk = {
+                    navController.navigate(Screen.AudioWalk.createRoute(chapterId = chapterId))
                 }
             )
         }
@@ -868,6 +902,30 @@ private fun StudyOSNavGraph(
             ActiveRecallRunnerScreen(
                 viewModel = recallViewModel,
                 onFinish = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.AudioWalk.route,
+            arguments = listOf(
+                navArgument("subjectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("chapterId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val subjectId = backStackEntry.arguments?.getString("subjectId")
+            val chapterId = backStackEntry.arguments?.getString("chapterId")
+            val audioWalkViewModel = rememberFeynmanAudioWalkViewModel(container, subjectId, chapterId)
+            FeynmanAudioWalkScreen(
+                viewModel = audioWalkViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
@@ -1017,7 +1075,8 @@ private fun rememberSubjectDetailViewModel(container: StudyOSAppContainer, subje
             deleteChapterUseCase = container.deleteChapterUseCase,
             moveChapterUseCase = container.moveChapterUseCase,
             renameSubjectUseCase = container.renameSubjectUseCase,
-            deleteSubjectUseCase = container.deleteSubjectUseCase
+            deleteSubjectUseCase = container.deleteSubjectUseCase,
+            noteRepository = container.noteRepository
         )
     }
 }
@@ -1064,7 +1123,8 @@ private fun rememberSearchViewModel(container: StudyOSAppContainer): SearchViewM
             noteRepository = container.noteRepository,
             flashcardRepository = container.flashcardRepository,
             mistakeRepository = container.mistakeRepository,
-            recallRepository = container.recallRepository
+            recallRepository = container.recallRepository,
+            examRepository = container.examRepository
         )
     }
 }
@@ -1295,5 +1355,27 @@ private fun rememberActiveRecallRunnerViewModel(
         )
     }
 }
+
+@Composable
+private fun rememberFeynmanAudioWalkViewModel(
+    container: StudyOSAppContainer,
+    subjectId: String?,
+    chapterId: String?
+): FeynmanAudioWalkViewModel {
+    val key = "FeynmanAudioWalkViewModel_${subjectId}_${chapterId}"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        FeynmanAudioWalkViewModel(
+            subjectId = subjectId,
+            chapterId = chapterId,
+            noteRepository = container.noteRepository,
+            mistakeRepository = container.mistakeRepository,
+            subjectRepository = container.subjectRepository,
+            chapterRepository = container.chapterRepository,
+            aiProvider = container.aiProvider,
+            getAiConfigUseCase = container.getAiConfigUseCase
+        )
+    }
+}
+
 
 

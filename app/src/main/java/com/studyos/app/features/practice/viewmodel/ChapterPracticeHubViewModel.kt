@@ -48,6 +48,7 @@ data class ChapterPracticeHubUiState(
     val mistakes: List<Mistake> = emptyList(),
     val isLoading: Boolean = true,
     val isCreateFlashcardSheetOpen: Boolean = false,
+    val isBulkImportSheetOpen: Boolean = false,
     val isCreateQuizSheetOpen: Boolean = false,
     val isGeneratingAiQuiz: Boolean = false,
     val selectedMistakeForAi: Mistake? = null,
@@ -132,6 +133,41 @@ class ChapterPracticeHubViewModel(
 
     fun closeCreateFlashcardSheet() {
         _uiState.update { it.copy(isCreateFlashcardSheetOpen = false) }
+    }
+
+    fun openBulkImportSheet() {
+        _uiState.update { it.copy(isBulkImportSheetOpen = true) }
+    }
+
+    fun closeBulkImportSheet() {
+        _uiState.update { it.copy(isBulkImportSheetOpen = false) }
+    }
+
+    fun bulkImportFlashcards(
+        parsedCards: List<com.studyos.app.core.util.ParsedCard>,
+        difficulty: FlashcardDifficulty = FlashcardDifficulty.MEDIUM
+    ) {
+        val summary = _uiState.value.summary ?: return
+        if (parsedCards.isEmpty()) return
+
+        viewModelScope.launch {
+            val cards = parsedCards.map { card ->
+                Flashcard(
+                    question = card.question.trim(),
+                    answer = card.answer.trim(),
+                    subjectId = summary.subjectId,
+                    chapterId = chapterId,
+                    difficulty = difficulty
+                )
+            }
+            saveFlashcardUseCase.saveBatch(cards)
+            _uiState.update {
+                it.copy(
+                    isBulkImportSheetOpen = false,
+                    infoMessage = "Successfully imported ${cards.size} flashcard(s)!"
+                )
+            }
+        }
     }
 
     fun createFlashcard(question: String, answer: String, difficulty: FlashcardDifficulty) {

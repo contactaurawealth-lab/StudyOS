@@ -332,7 +332,7 @@ class StudyOSAppContainer(private val context: Context) {
     }
 
     val getStudyContextUseCase: GetStudyContextUseCase by lazy {
-        GetStudyContextUseCase(subjectRepository, chapterRepository)
+        GetStudyContextUseCase(subjectRepository, chapterRepository, noteRepository)
     }
 
     val sendAiMessageUseCase: SendAiMessageUseCase by lazy {

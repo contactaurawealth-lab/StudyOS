@@ -1,9 +1,16 @@
 package com.studyos.app.features.practice.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.platform.LocalContext
+import com.studyos.app.core.util.FlashcardImportParser
+import com.studyos.app.core.util.ParsedCard
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +38,8 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.PushPin
@@ -93,6 +102,7 @@ fun ChapterPracticeHubScreen(
     onStartFlashcards: (chapterId: String) -> Unit,
     onStartQuiz: (quizId: String) -> Unit,
     onOpenMistakeBank: () -> Unit,
+    onStartAudioWalk: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -162,6 +172,18 @@ fun ChapterPracticeHubScreen(
                             color = colors.secondaryText
                         )
                     }
+
+                    StudyOSIconButton(
+                        onClick = onStartAudioWalk,
+                        contentDescription = "Feynman Audio Walk"
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Headphones,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -173,18 +195,18 @@ fun ChapterPracticeHubScreen(
                         .clip(shapes.button)
                         .background(colors.surface)
                         .border(1.dp, colors.border, shapes.button)
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(4.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     PracticeHubTab.values().forEach { tab ->
                         val isSelected = uiState.selectedTab == tab
                         Box(
                             modifier = Modifier
-                                .weight(1f)
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(if (isSelected) colors.cardBackground else colors.surface)
                                 .clickable { viewModel.selectTab(tab) }
-                                .padding(vertical = 8.dp),
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -192,7 +214,8 @@ fun ChapterPracticeHubScreen(
                                 style = typography.caption,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                 color = if (isSelected) colors.primaryText else colors.secondaryText,
-                                maxLines = 1
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -209,6 +232,7 @@ fun ChapterPracticeHubScreen(
                                 onStudyFlashcards = { onStartFlashcards(uiState.chapterId) },
                                 onTakeQuiz = { viewModel.openCreateQuizSheet() },
                                 onCreateNote = { onOpenNote(null, uiState.chapterId) },
+                                onStartAudioWalk = onStartAudioWalk,
                                 onSelectTab = { viewModel.selectTab(it) }
                             )
                         }
@@ -226,6 +250,7 @@ fun ChapterPracticeHubScreen(
                                 flashcards = uiState.flashcards,
                                 onStartStudy = { onStartFlashcards(uiState.chapterId) },
                                 onAddFlashcard = { viewModel.openCreateFlashcardSheet() },
+                                onBulkImport = { viewModel.openBulkImportSheet() },
                                 onDeleteCard = viewModel::deleteFlashcard
                             )
                         }
@@ -255,6 +280,14 @@ fun ChapterPracticeHubScreen(
             CreateFlashcardBottomSheet(
                 onDismiss = { viewModel.closeCreateFlashcardSheet() },
                 onSave = { q, a, diff -> viewModel.createFlashcard(q, a, diff) }
+            )
+        }
+
+        // Bottom Sheet: Bulk Import Flashcards
+        if (uiState.isBulkImportSheetOpen) {
+            BulkImportFlashcardsBottomSheet(
+                onDismiss = { viewModel.closeBulkImportSheet() },
+                onImport = { cards, diff -> viewModel.bulkImportFlashcards(cards, diff) }
             )
         }
 
@@ -294,6 +327,7 @@ private fun PracticeOverviewTab(
     onStudyFlashcards: () -> Unit,
     onTakeQuiz: () -> Unit,
     onCreateNote: () -> Unit,
+    onStartAudioWalk: () -> Unit = {},
     onSelectTab: (PracticeHubTab) -> Unit
 ) {
     val colors = StudyOSTheme.colors
@@ -373,18 +407,24 @@ private fun PracticeOverviewTab(
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StudyOSButton(
                     text = if (summary.flashcardsDue > 0) "Study Due (${summary.flashcardsDue})" else "Study Flashcards",
                     onClick = onStudyFlashcards,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1.2f)
                 )
 
                 StudyOSOutlinedButton(
-                    text = "Practice Quiz",
+                    text = "Quiz",
                     onClick = onTakeQuiz,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(0.8f)
+                )
+
+                StudyOSOutlinedButton(
+                    text = "🎧 Walk",
+                    onClick = onStartAudioWalk,
+                    modifier = Modifier.weight(0.9f)
                 )
             }
         }
@@ -766,6 +806,7 @@ private fun PracticeFlashcardsTab(
     flashcards: List<Flashcard>,
     onStartStudy: () -> Unit,
     onAddFlashcard: () -> Unit,
+    onBulkImport: () -> Unit,
     onDeleteCard: (String) -> Unit
 ) {
     val colors = StudyOSTheme.colors
@@ -780,19 +821,25 @@ private fun PracticeFlashcardsTab(
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StudyOSButton(
                 text = if (dueCards.isNotEmpty()) "Study Due (${dueCards.size})" else "Study All (${flashcards.size})",
                 onClick = onStartStudy,
                 enabled = flashcards.isNotEmpty(),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1.2f)
             )
 
             StudyOSOutlinedButton(
-                text = "+ Add Card",
+                text = "+ Add",
                 onClick = onAddFlashcard,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(0.8f)
+            )
+
+            StudyOSOutlinedButton(
+                text = "📥 Import",
+                onClick = onBulkImport,
+                modifier = Modifier.weight(1.0f)
             )
         }
 
@@ -1316,6 +1363,257 @@ private fun CreateFlashcardBottomSheet(
                 enabled = question.isNotBlank() && answer.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BulkImportFlashcardsBottomSheet(
+    onDismiss: () -> Unit,
+    onImport: (List<ParsedCard>, FlashcardDifficulty) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val context = LocalContext.current
+
+    var selectedMode by remember { mutableIntStateOf(0) } // 0 = File, 1 = Paste
+    var pastedText by remember { mutableStateOf("") }
+    var parsedCards by remember { mutableStateOf<List<ParsedCard>>(emptyList()) }
+    var selectedFileName by remember { mutableStateOf<String?>(null) }
+    var difficulty by remember { mutableStateOf(FlashcardDifficulty.MEDIUM) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "imported_file"
+            selectedFileName = fileName
+            val cards = FlashcardImportParser.parseFromUri(context, uri)
+            parsedCards = cards
+        }
+    }
+
+    LaunchedEffect(pastedText, selectedMode) {
+        if (selectedMode == 1) {
+            parsedCards = FlashcardImportParser.parseText(pastedText)
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = colors.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            Text(
+                text = "Bulk Import Flashcards",
+                style = typography.screenTitle,
+                color = colors.primaryText
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Import from Anki (.tsv, .txt), Quizlet, or CSV spreadsheet. Format: Question [TAB / COMMA] Answer",
+                style = typography.caption,
+                color = colors.secondaryText
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Mode Selector: Upload File vs Paste Text
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(StudyOSTheme.shapes.button)
+                    .background(colors.cardBackground)
+                    .border(1.dp, colors.border, StudyOSTheme.shapes.button)
+                    .padding(3.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(StudyOSTheme.shapes.button)
+                        .background(if (selectedMode == 0) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable { selectedMode = 0 }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "📁 Upload File",
+                        style = typography.caption,
+                        fontWeight = if (selectedMode == 0) FontWeight.Bold else FontWeight.Normal,
+                        color = if (selectedMode == 0) colors.background else colors.secondaryText
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(StudyOSTheme.shapes.button)
+                        .background(if (selectedMode == 1) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable { selectedMode = 1 }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "✏️ Paste Text",
+                        style = typography.caption,
+                        fontWeight = if (selectedMode == 1) FontWeight.Bold else FontWeight.Normal,
+                        color = if (selectedMode == 1) colors.background else colors.secondaryText
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (selectedMode == 0) {
+                // Upload File Button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(StudyOSTheme.shapes.card)
+                        .background(colors.cardBackground)
+                        .border(1.dp, colors.border, StudyOSTheme.shapes.card)
+                        .clickable {
+                            filePickerLauncher.launch(arrayOf("text/*", "*/*"))
+                        }
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Outlined.FileUpload,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (selectedFileName != null) selectedFileName!! else "Select CSV, TSV or Anki export file",
+                            style = typography.secondary,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.primaryText
+                        )
+                        Text(
+                            text = "Tap to open device file picker",
+                            style = typography.caption,
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+            } else {
+                // Paste Text
+                StudyOSTextField(
+                    value = pastedText,
+                    onValueChange = { pastedText = it },
+                    label = "Paste Flashcard Text",
+                    placeholder = "What is mitochondria?\tPowerhouse of the cell\nWhat is ATP?\tEnergy currency of cell",
+                    singleLine = false,
+                    maxLines = 6,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 100.dp, max = 150.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Status & Preview
+            if (parsedCards.isNotEmpty()) {
+                Text(
+                    text = "Detected ${parsedCards.size} flashcards:",
+                    style = typography.caption,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.accent
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(StudyOSTheme.shapes.card)
+                        .background(colors.cardBackground)
+                        .border(1.dp, colors.border, StudyOSTheme.shapes.card)
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    parsedCards.take(3).forEachIndexed { idx, card ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "#${idx + 1}",
+                                style = typography.caption,
+                                color = colors.mutedText
+                            )
+                            Text(
+                                text = card.question,
+                                style = typography.caption,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.primaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "→",
+                                style = typography.caption,
+                                color = colors.mutedText
+                            )
+                            Text(
+                                text = card.answer,
+                                style = typography.caption,
+                                color = colors.secondaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    if (parsedCards.size > 3) {
+                        Text(
+                            text = "+ ${parsedCards.size - 3} more cards",
+                            style = typography.caption,
+                            color = colors.mutedText
+                        )
+                    }
+                }
+            } else if (selectedFileName != null || pastedText.isNotBlank()) {
+                Text(
+                    text = "No cards detected. Ensure cards are separated by tab, comma, or semicolon on each line.",
+                    style = typography.caption,
+                    color = colors.accent
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                StudyOSOutlinedButton(
+                    text = "Cancel",
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                )
+                StudyOSButton(
+                    text = if (parsedCards.isNotEmpty()) "Import ${parsedCards.size} Cards" else "Import Cards",
+                    enabled = parsedCards.isNotEmpty(),
+                    onClick = {
+                        onImport(parsedCards, difficulty)
+                    },
+                    modifier = Modifier.weight(1.5f)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }

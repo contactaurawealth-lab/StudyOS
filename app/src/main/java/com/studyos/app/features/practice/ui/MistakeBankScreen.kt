@@ -192,7 +192,9 @@ fun MistakeBankScreen(
 
                 // Filter Status Chips: Unresolved, All, Resolved
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     MistakeFilter.values().forEach { filter ->
@@ -214,7 +216,8 @@ fun MistakeBankScreen(
                                 text = "${filter.label} ($count)",
                                 style = typography.caption,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) colors.primaryText else colors.secondaryText
+                                color = if (isSelected) colors.primaryText else colors.secondaryText,
+                                softWrap = false
                             )
                         }
                     }

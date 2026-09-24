@@ -7,6 +7,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,10 +23,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Shuffle
-import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -181,7 +183,9 @@ fun FlashcardStudyScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -202,7 +206,7 @@ fun FlashcardStudyScreen(
                                 contentDescription = "Pronounce question"
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.VolumeUp,
+                                    imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                                     contentDescription = null,
                                     tint = colors.accent,
                                     modifier = Modifier.size(16.dp)
@@ -253,7 +257,7 @@ fun FlashcardStudyScreen(
                                         contentDescription = "Pronounce answer"
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Outlined.VolumeUp,
+                                            imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                                             contentDescription = null,
                                             tint = colors.accent,
                                             modifier = Modifier.size(16.dp)

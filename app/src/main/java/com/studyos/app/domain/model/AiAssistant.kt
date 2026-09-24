@@ -50,10 +50,11 @@ data class StudyContext(
     val chapterProgress: Int? = null,
     val weakTopics: List<String> = emptyList(),
     val recentActivity: String? = null,
-    val upcomingExams: List<String> = emptyList()
+    val upcomingExams: List<String> = emptyList(),
+    val subjectNotes: List<String> = emptyList()
 ) {
     val hasContext: Boolean
-        get() = !subjectName.isNullOrBlank() || !chapterName.isNullOrBlank() || weakTopics.isNotEmpty()
+        get() = !subjectName.isNullOrBlank() || !chapterName.isNullOrBlank() || weakTopics.isNotEmpty() || subjectNotes.isNotEmpty()
 
     fun toPromptContext(): String {
         val parts = mutableListOf<String>()
@@ -73,6 +74,9 @@ data class StudyContext(
         if (upcomingExams.isNotEmpty()) {
             parts.add("Upcoming exams: ${upcomingExams.joinToString(", ")}")
         }
+        if (subjectNotes.isNotEmpty()) {
+            parts.add("Subject Notes & Uploaded Materials (read and reference these directly):\n" + subjectNotes.joinToString("\n---\n"))
+        }
         return if (parts.isNotEmpty()) {
             "STUDY CONTEXT:\n" + parts.joinToString("\n")
         } else {
@@ -91,13 +95,33 @@ enum class QuickAction(val label: String, val promptPrefix: String) {
     WEAK_AREAS("Find my weak areas", "Based on our study context, what are the most common misconceptions and weak areas students encounter in:")
 }
 
+data class NamedApiKey(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val key: String
+)
+
+val DefaultAiModels = listOf(
+    "gpt-4o-mini",
+    "gpt-4o",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash",
+    "claude-3-5-sonnet",
+    "llama-3.3-70b-versatile",
+    "deepseek-chat"
+)
+
 data class AiConfig(
     val apiKey: String = "",
     val baseUrl: String = "https://api.openai.com/v1/",
     val model: String = "gpt-4o-mini",
-    val customSystemPrompt: String? = null
+    val customSystemPrompt: String? = null,
+    val savedApiKeys: List<NamedApiKey> = emptyList(),
+    val savedModels: List<String> = emptyList()
 ) {
     val isConfigured: Boolean get() = apiKey.isNotBlank()
+    val availableModels: List<String>
+        get() = (DefaultAiModels + savedModels + listOf(model)).filter { it.isNotBlank() }.distinct()
 }
 
 enum class AiErrorType {

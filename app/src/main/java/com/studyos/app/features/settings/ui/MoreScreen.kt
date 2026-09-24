@@ -16,11 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Icon
@@ -229,7 +229,7 @@ fun MoreScreen(
                         subtitle = "Review your academic study history",
                         leadingContent = {
                             Icon(
-                                imageVector = Icons.Outlined.ShowChart,
+                                imageVector = Icons.AutoMirrored.Outlined.ShowChart,
                                 contentDescription = null,
                                 tint = colors.secondaryText,
                                 modifier = Modifier.size(20.dp)

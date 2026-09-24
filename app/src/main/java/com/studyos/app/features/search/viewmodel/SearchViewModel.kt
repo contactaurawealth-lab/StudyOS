@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studyos.app.domain.model.Chapter
 import com.studyos.app.domain.model.ChapterSearchResult
+import com.studyos.app.domain.model.Exam
 import com.studyos.app.domain.model.Flashcard
 import com.studyos.app.domain.model.Mistake
 import com.studyos.app.domain.model.Note
 import com.studyos.app.domain.model.RecallItem
 import com.studyos.app.domain.model.Subject
 import com.studyos.app.domain.repository.ChapterRepository
+import com.studyos.app.domain.repository.ExamRepository
 import com.studyos.app.domain.repository.FlashcardRepository
 import com.studyos.app.domain.repository.MistakeRepository
 import com.studyos.app.domain.repository.NoteRepository
@@ -30,11 +32,13 @@ data class SearchUiState(
     val flashcardResults: List<Flashcard> = emptyList(),
     val mistakeResults: List<Mistake> = emptyList(),
     val recallResults: List<RecallItem> = emptyList(),
+    val examResults: List<Exam> = emptyList(),
     val hasSearched: Boolean = false
 ) {
     val totalResultsCount: Int
         get() = subjectResults.size + chapterResults.size + noteResults.size +
-                flashcardResults.size + mistakeResults.size + recallResults.size
+                flashcardResults.size + mistakeResults.size + recallResults.size +
+                examResults.size
 }
 
 class SearchViewModel(
@@ -43,7 +47,8 @@ class SearchViewModel(
     private val noteRepository: NoteRepository? = null,
     private val flashcardRepository: FlashcardRepository? = null,
     private val mistakeRepository: MistakeRepository? = null,
-    private val recallRepository: RecallRepository? = null
+    private val recallRepository: RecallRepository? = null,
+    private val examRepository: ExamRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
@@ -55,6 +60,7 @@ class SearchViewModel(
     private var allFlashcards: List<Flashcard> = emptyList()
     private var allMistakes: List<Mistake> = emptyList()
     private var allRecallItems: List<RecallItem> = emptyList()
+    private var allExams: List<Exam> = emptyList()
 
     init {
         // Collect Subjects & Chapters
@@ -120,6 +126,18 @@ class SearchViewModel(
                 }
             }
         }
+
+        // Collect Exams & Mock Tests
+        examRepository?.let { repo ->
+            viewModelScope.launch {
+                repo.observeAllExams().collect { exams ->
+                    allExams = exams
+                    if (_uiState.value.query.isNotBlank()) {
+                        performSearch(_uiState.value.query)
+                    }
+                }
+            }
+        }
     }
 
     fun onQueryChanged(query: String) {
@@ -138,6 +156,7 @@ class SearchViewModel(
                     flashcardResults = emptyList(),
                     mistakeResults = emptyList(),
                     recallResults = emptyList(),
+                    examResults = emptyList(),
                     hasSearched = false
                 )
             }
@@ -182,6 +201,11 @@ class SearchViewModel(
                 item.expectedAnswer.contains(trimmed, ignoreCase = true)
         }
 
+        val matchingExams = allExams.filter { exam ->
+            exam.name.contains(trimmed, ignoreCase = true) ||
+                (exam.notes?.contains(trimmed, ignoreCase = true) == true)
+        }
+
         _uiState.update {
             it.copy(
                 subjectResults = matchingSubjects,
@@ -190,6 +214,7 @@ class SearchViewModel(
                 flashcardResults = matchingFlashcards,
                 mistakeResults = matchingMistakes,
                 recallResults = matchingRecall,
+                examResults = matchingExams,
                 hasSearched = true
             )
         }

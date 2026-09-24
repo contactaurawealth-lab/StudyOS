@@ -1,12 +1,12 @@
 package com.studyos.app.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -118,6 +118,16 @@ sealed class Screen(val route: String) {
         }
     }
 
+    // Feynman Audio Walk (Hands-Free Socratic Revision)
+    object AudioWalk : Screen("audiowalk?subjectId={subjectId}&chapterId={chapterId}") {
+        fun createRoute(subjectId: String? = null, chapterId: String? = null): String {
+            val params = mutableListOf<String>()
+            if (!subjectId.isNullOrBlank()) params.add("subjectId=$subjectId")
+            if (!chapterId.isNullOrBlank()) params.add("chapterId=$chapterId")
+            return if (params.isNotEmpty()) "audiowalk?${params.joinToString("&")}" else "audiowalk"
+        }
+    }
+
     // Notification Center
     object NotificationCenter : Screen("notifications")
 }
@@ -130,7 +140,7 @@ data class TopLevelDestination(
 
 val PhoneNavigationItems = listOf(
     TopLevelDestination(Screen.Today, "Today", Icons.Outlined.Today),
-    TopLevelDestination(Screen.Subjects, "Subjects", Icons.Outlined.MenuBook),
+    TopLevelDestination(Screen.Subjects, "Subjects", Icons.AutoMirrored.Outlined.MenuBook),
     TopLevelDestination(Screen.Planner, "Planner", Icons.Outlined.CalendarMonth),
     TopLevelDestination(Screen.Library, "Library", Icons.Outlined.Folder),
     TopLevelDestination(Screen.More, "More", Icons.Outlined.MoreHoriz)
@@ -138,8 +148,8 @@ val PhoneNavigationItems = listOf(
 
 val TabletNavigationItems = listOf(
     TopLevelDestination(Screen.Today, "Today", Icons.Outlined.Today),
-    TopLevelDestination(Screen.Subjects, "Subjects", Icons.Outlined.MenuBook),
+    TopLevelDestination(Screen.Subjects, "Subjects", Icons.AutoMirrored.Outlined.MenuBook),
     TopLevelDestination(Screen.Planner, "Planner", Icons.Outlined.CalendarMonth),
     TopLevelDestination(Screen.Library, "Library", Icons.Outlined.Folder),
-    TopLevelDestination(Screen.Progress, "Progress", Icons.Outlined.ShowChart)
+    TopLevelDestination(Screen.Progress, "Progress", Icons.AutoMirrored.Outlined.ShowChart)
 )

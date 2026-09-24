@@ -398,6 +398,8 @@ fun ChapterDetailScreen(
                         onClick = { onAskAi(chapter.id) },
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Spacer(modifier = Modifier.height(48.dp))
                 }
             }
 

@@ -33,6 +33,8 @@ data class NoteEditorUiState(
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
     val isDeleted: Boolean = false,
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
     val isAiWorking: Boolean = false,
     val aiResultTitle: String? = null,
     val aiResultContent: String? = null,
@@ -55,6 +57,9 @@ class NoteEditorViewModel(
     private val subjectRepository: SubjectRepository? = null
 ) : ViewModel() {
 
+    private val undoStack = ArrayDeque<String>()
+    private val redoStack = ArrayDeque<String>()
+
     private val _uiState = MutableStateFlow(
         NoteEditorUiState(
             noteId = noteId,
@@ -75,6 +80,8 @@ class NoteEditorViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val note = getNoteUseCase.getOnce(id)
             if (note != null) {
+                undoStack.clear()
+                redoStack.clear()
                 _uiState.update {
                     it.copy(
                         noteId = note.id,
@@ -83,6 +90,8 @@ class NoteEditorViewModel(
                         subjectId = note.subjectId ?: it.subjectId,
                         chapterId = note.chapterId ?: it.chapterId,
                         isPinned = note.isPinned,
+                        canUndo = false,
+                        canRedo = false,
                         isLoading = false
                     )
                 }
@@ -97,7 +106,49 @@ class NoteEditorViewModel(
     }
 
     fun onContentChange(newContent: String) {
-        _uiState.update { it.copy(content = newContent) }
+        val current = _uiState.value.content
+        if (newContent != current) {
+            if (undoStack.size > 50) {
+                undoStack.removeFirst()
+            }
+            undoStack.addLast(current)
+            redoStack.clear()
+            _uiState.update {
+                it.copy(
+                    content = newContent,
+                    canUndo = true,
+                    canRedo = false
+                )
+            }
+        }
+    }
+
+    fun undo() {
+        if (undoStack.isEmpty()) return
+        val current = _uiState.value.content
+        redoStack.addLast(current)
+        val previous = undoStack.removeLast()
+        _uiState.update {
+            it.copy(
+                content = previous,
+                canUndo = undoStack.isNotEmpty(),
+                canRedo = true
+            )
+        }
+    }
+
+    fun redo() {
+        if (redoStack.isEmpty()) return
+        val current = _uiState.value.content
+        undoStack.addLast(current)
+        val next = redoStack.removeLast()
+        _uiState.update {
+            it.copy(
+                content = next,
+                canUndo = true,
+                canRedo = redoStack.isNotEmpty()
+            )
+        }
     }
 
     fun togglePin() {
@@ -106,6 +157,8 @@ class NoteEditorViewModel(
 
     fun insertMarkdown(prefix: String, suffix: String = "") {
         val current = _uiState.value.content
+        undoStack.addLast(current)
+        redoStack.clear()
         val newContent = if (current.isEmpty()) {
             "$prefix$suffix"
         } else if (current.endsWith("\n")) {
@@ -113,7 +166,13 @@ class NoteEditorViewModel(
         } else {
             "$current\n$prefix$suffix"
         }
-        _uiState.update { it.copy(content = newContent) }
+        _uiState.update {
+            it.copy(
+                content = newContent,
+                canUndo = true,
+                canRedo = false
+            )
+        }
     }
 
     fun saveNote() {

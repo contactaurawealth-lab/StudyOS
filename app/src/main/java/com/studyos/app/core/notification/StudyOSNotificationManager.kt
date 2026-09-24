@@ -101,21 +101,38 @@ object StudyOSNotificationManager {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .setVibrate(longArrayOf(0, 350, 150, 350))
 
-        // Action 1: "Start Timer"
-        val timerIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(MainActivity.EXTRA_ROUTE, Screen.StudyTimer.route)
-            putExtra(MainActivity.EXTRA_AUTO_START_TIMER, true)
-            subjectId?.let { putExtra(MainActivity.EXTRA_SUBJECT_ID, it) }
-            chapterId?.let { putExtra(MainActivity.EXTRA_CHAPTER_ID, it) }
+        if (route?.startsWith("exams") == true) {
+            val examIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(MainActivity.EXTRA_ROUTE, route)
+            }
+            val examPendingIntent = PendingIntent.getActivity(
+                context,
+                notificationId + 500_000,
+                examIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(0, "📝 Open Exam", examPendingIntent)
+        } else {
+            // Action 1: "Start Timer"
+            val timerIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(MainActivity.EXTRA_ROUTE, Screen.StudyTimer.route)
+                putExtra(MainActivity.EXTRA_AUTO_START_TIMER, true)
+                subjectId?.let { putExtra(MainActivity.EXTRA_SUBJECT_ID, it) }
+                chapterId?.let { putExtra(MainActivity.EXTRA_CHAPTER_ID, it) }
+            }
+            val timerPendingIntent = PendingIntent.getActivity(
+                context,
+                notificationId + 500_000,
+                timerIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(0, "▶️ Start Timer", timerPendingIntent)
         }
-        val timerPendingIntent = PendingIntent.getActivity(
-            context,
-            notificationId + 500_000,
-            timerIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
 
         // Action 2: "Snooze 10m"
         val snoozeIntent = Intent(context, StudyOSAlarmReceiver::class.java).apply {
@@ -135,7 +152,6 @@ object StudyOSNotificationManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        builder.addAction(0, "▶️ Start Timer", timerPendingIntent)
         builder.addAction(0, "⏰ Snooze 10m", snoozePendingIntent)
 
         try {

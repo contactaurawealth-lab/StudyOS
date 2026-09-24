@@ -174,7 +174,8 @@ class ExamViewModel(
                 targetScore = targetScore,
                 notes = notes
             )
-            alarmScheduler?.scheduleExamReminder(savedExam.id, savedExam.name, savedExam.targetDate)
+            val isMock = savedExam.notes?.contains("[MOCK_TEST]") == true
+            alarmScheduler?.scheduleExamReminder(savedExam.id, savedExam.name, savedExam.targetDate, isMockTest = isMock)
             context?.let {
                 com.studyos.app.core.widget.ExamCountdownWidgetProvider.triggerUpdate(it)
             }
