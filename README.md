@@ -2,6 +2,7 @@
 
 > A minimal exam-focused study system designed to help students plan, revise, and prepare for exams.
 
+[![Release](https://img.shields.io/badge/Release-v1.3.0%20Exam%20Edition-F59E0B?style=flat-square)](https://github.com/contactaurawealth-lab/studyos-exam/releases/tag/v1.3.0)
 [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20(API%2026%2B)-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20Material%203-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
