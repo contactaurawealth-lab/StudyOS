@@ -75,6 +75,8 @@ import com.studyos.app.domain.usecase.UpdateTaskUseCase
 
 class StudyOSAppContainer(private val context: Context) {
 
+    val appContext: Context get() = context.applicationContext
+
     // Database & DataStore
     val database: StudyOSDatabase by lazy {
         StudyOSDatabase.getDatabase(context)

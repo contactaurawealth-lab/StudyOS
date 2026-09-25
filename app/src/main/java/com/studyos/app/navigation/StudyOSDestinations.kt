@@ -73,6 +73,22 @@ sealed class Screen(val route: String) {
         }
     }
 
+    object DocumentViewer : Screen("document-viewer?documentUri={documentUri}&noteId={noteId}&title={title}") {
+        fun createRoute(documentUri: String? = null, noteId: String? = null, title: String? = null): String {
+            val params = mutableListOf<String>()
+            if (!documentUri.isNullOrBlank()) {
+                val encoded = java.net.URLEncoder.encode(documentUri, "UTF-8")
+                params.add("documentUri=$encoded")
+            }
+            if (!noteId.isNullOrBlank()) params.add("noteId=$noteId")
+            if (!title.isNullOrBlank()) {
+                val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+                params.add("title=$encodedTitle")
+            }
+            return if (params.isNotEmpty()) "document-viewer?${params.joinToString("&")}" else "document-viewer"
+        }
+    }
+
     object FlashcardStudy : Screen("flashcards/study?chapterId={chapterId}&isDueOnly={isDueOnly}") {
         fun createRoute(chapterId: String? = null, isDueOnly: Boolean = false): String {
             val params = mutableListOf<String>()

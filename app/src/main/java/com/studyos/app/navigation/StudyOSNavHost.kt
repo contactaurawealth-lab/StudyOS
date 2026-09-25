@@ -120,6 +120,8 @@ import com.studyos.app.features.practice.viewmodel.ActiveRecallRunnerViewModel
 import com.studyos.app.features.practice.audiowalk.FeynmanAudioWalkScreen
 import com.studyos.app.features.practice.audiowalk.FeynmanAudioWalkViewModel
 import com.studyos.app.domain.model.ActiveRecallSessionType
+import com.studyos.app.features.document.ui.DocumentViewerScreen
+import com.studyos.app.features.document.viewmodel.DocumentViewerViewModel
 import com.studyos.app.theme.StudyOSTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -595,7 +597,10 @@ private fun StudyOSNavGraph(
                 onOpenSubject = { subjectId ->
                     navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
                 },
-                onOpenDrawer = onOpenDrawer
+                onOpenDrawer = onOpenDrawer,
+                onOpenDocumentViewer = { uri, noteId, title ->
+                    navController.navigate(Screen.DocumentViewer.createRoute(documentUri = uri, noteId = noteId, title = title))
+                }
             )
         }
 
@@ -789,6 +794,69 @@ private fun StudyOSNavGraph(
             NoteEditorScreen(
                 viewModel = noteViewModel,
                 onBack = { navController.popBackStack() },
+                onOpenQuiz = { quizId ->
+                    navController.navigate(Screen.QuizRunner.createRoute(quizId))
+                },
+                onOpenDocumentViewer = { nId, title ->
+                    navController.navigate(Screen.DocumentViewer.createRoute(noteId = nId, title = title))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.DocumentViewer.route,
+            arguments = listOf(
+                navArgument("documentUri") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("noteId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("title") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val documentUriEncoded = backStackEntry.arguments?.getString("documentUri")
+            val documentUri = documentUriEncoded?.let {
+                try {
+                    java.net.URLDecoder.decode(it, "UTF-8")
+                } catch (_: Exception) {
+                    it
+                }
+            }
+            val noteId = backStackEntry.arguments?.getString("noteId")
+            val titleEncoded = backStackEntry.arguments?.getString("title")
+            val title = titleEncoded?.let {
+                try {
+                    java.net.URLDecoder.decode(it, "UTF-8")
+                } catch (_: Exception) {
+                    it
+                }
+            }
+
+            val docViewModel = rememberDocumentViewerViewModel(
+                container = container,
+                documentUri = documentUri,
+                noteId = noteId,
+                title = title
+            )
+
+            DocumentViewerScreen(
+                viewModel = docViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenNoteEditor = { newNoteId ->
+                    navController.navigate(Screen.NoteEditor.createRoute(noteId = newNoteId))
+                },
+                onOpenFlashcardStudy = { chapterId ->
+                    navController.navigate(Screen.FlashcardStudy.createRoute(chapterId = chapterId))
+                },
                 onOpenQuiz = { quizId ->
                     navController.navigate(Screen.QuizRunner.createRoute(quizId))
                 }
@@ -1373,6 +1441,32 @@ private fun rememberFeynmanAudioWalkViewModel(
             chapterRepository = container.chapterRepository,
             aiProvider = container.aiProvider,
             getAiConfigUseCase = container.getAiConfigUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberDocumentViewerViewModel(
+    container: StudyOSAppContainer,
+    documentUri: String?,
+    noteId: String?,
+    title: String?
+): DocumentViewerViewModel {
+    val key = "DocumentViewerViewModel_${documentUri}_${noteId}_${title}"
+    return androidx.lifecycle.viewmodel.compose.viewModel(key = key) {
+        DocumentViewerViewModel(
+            context = container.appContext,
+            initialDocumentUri = documentUri,
+            initialNoteId = noteId,
+            initialTitle = title,
+            noteRepository = container.noteRepository,
+            subjectRepository = container.subjectRepository,
+            chapterRepository = container.chapterRepository,
+            saveFlashcardUseCase = container.saveFlashcardUseCase,
+            saveQuizUseCase = container.saveQuizUseCase,
+            aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
+            getAiConfigUseCase = container.getAiConfigUseCase,
+            getNoteUseCase = container.getNoteUseCase
         )
     }
 }

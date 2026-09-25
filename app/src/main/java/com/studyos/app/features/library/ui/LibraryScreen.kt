@@ -1,5 +1,8 @@
 package com.studyos.app.features.library.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +42,7 @@ import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Style
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -90,12 +94,21 @@ fun LibraryScreen(
     onStudyDeck: (chapterId: String) -> Unit = {},
     onOpenSubject: (subjectId: String) -> Unit = {},
     onOpenDrawer: () -> Unit = {},
+    onOpenDocumentViewer: (uri: String?, noteId: String?, title: String?) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
+
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            onOpenDocumentViewer(uri.toString(), null, null)
+        }
+    }
 
     if (uiState.isAddResourceDialogOpen) {
         AddResourceDialog(
@@ -129,6 +142,27 @@ fun LibraryScreen(
                     }
                 },
                 actions = {
+                    GlassIconButton(
+                        onClick = {
+                            documentPickerLauncher.launch(
+                                arrayOf(
+                                    "application/pdf",
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    "application/msword",
+                                    "text/*"
+                                )
+                            )
+                        },
+                        contentDescription = "Open Document Previewer (PDF, Word, MD, TXT)"
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Description,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
                     if (uiState.currentTab == LibraryTab.RESOURCES) {
                         GlassIconButton(
                             onClick = viewModel::openAddResourceDialog,
@@ -253,7 +287,8 @@ fun LibraryScreen(
                                 notes = uiState.notes,
                                 onOpenNote = onOpenNote,
                                 onTogglePin = viewModel::togglePinNote,
-                                onDelete = viewModel::deleteNote
+                                onDelete = viewModel::deleteNote,
+                                onPreviewNote = { noteId, title -> onOpenDocumentViewer(null, noteId, title) }
                             )
                             LibraryTab.FLASHCARDS -> DecksListSection(
                                 decks = uiState.decks,
@@ -266,7 +301,8 @@ fun LibraryScreen(
                             LibraryTab.RESOURCES -> ResourcesListSection(
                                 resources = uiState.resources,
                                 onAddResource = viewModel::openAddResourceDialog,
-                                onDeleteResource = viewModel::deleteResource
+                                onDeleteResource = viewModel::deleteResource,
+                                onPreviewResource = { uri, title -> onOpenDocumentViewer(uri, null, title) }
                             )
                         }
                     }
@@ -331,7 +367,8 @@ private fun NotesListSection(
     notes: List<LibraryNoteItem>,
     onOpenNote: (noteId: String, subjectId: String?, chapterId: String?) -> Unit,
     onTogglePin: (noteId: String, currentPinned: Boolean) -> Unit,
-    onDelete: (noteId: String) -> Unit
+    onDelete: (noteId: String) -> Unit,
+    onPreviewNote: (noteId: String, title: String) -> Unit = { _, _ -> }
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
@@ -389,6 +426,18 @@ private fun NotesListSection(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                GlassIconButton(
+                                    onClick = { onPreviewNote(item.note.id, item.note.title) },
+                                    contentDescription = "Preview in Google Docs View"
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Visibility,
+                                        contentDescription = null,
+                                        tint = colors.mutedText,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+
                                 GlassIconButton(
                                     onClick = { onTogglePin(item.note.id, item.note.isPinned) },
                                     contentDescription = "Pin Note"
@@ -700,7 +749,8 @@ private fun FormulasListSection(
 private fun ResourcesListSection(
     resources: List<LibraryResourceItem>,
     onAddResource: () -> Unit,
-    onDeleteResource: (com.studyos.app.core.database.entity.ResourceEntity) -> Unit
+    onDeleteResource: (com.studyos.app.core.database.entity.ResourceEntity) -> Unit,
+    onPreviewResource: (uri: String, title: String) -> Unit = { _, _ -> }
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
@@ -778,7 +828,19 @@ private fun ResourcesListSection(
                             )
                         }
 
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            GlassIconButton(
+                                onClick = { onPreviewResource(item.resource.uriOrPath, item.resource.title) },
+                                contentDescription = "Preview in Document Viewer"
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Visibility,
+                                    contentDescription = null,
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
                             GlassIconButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(item.resource.uriOrPath))

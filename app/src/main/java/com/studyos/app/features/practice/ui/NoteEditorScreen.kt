@@ -1,6 +1,9 @@
 package com.studyos.app.features.practice.ui
 
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material.icons.outlined.FormatItalic
 import androidx.compose.material.icons.outlined.FormatListNumbered
@@ -35,6 +39,7 @@ import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Title
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -55,6 +60,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,8 +76,10 @@ import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSLoadingState
 import com.studyos.app.core.ui.component.StudyOSMarkdown
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
+import com.studyos.app.core.util.DocumentTextExtractor
 import com.studyos.app.features.practice.viewmodel.NoteEditorViewModel
 import com.studyos.app.theme.StudyOSTheme
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +87,7 @@ fun NoteEditorScreen(
     viewModel: NoteEditorViewModel,
     onBack: () -> Unit,
     onOpenQuiz: (quizId: String) -> Unit = {},
+    onOpenDocumentViewer: (noteId: String?, title: String?) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -91,6 +100,36 @@ fun NoteEditorScreen(
     var isPreviewMode by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // File picker launcher for importing documents directly into note (PDF, DOCX, TXT, MD)
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            coroutineScope.launch {
+                try {
+                    val extracted = DocumentTextExtractor.extract(context, uri)
+                    if (extracted.content.isNotBlank()) {
+                        if (uiState.title.isBlank()) {
+                            viewModel.onTitleChange(extracted.title)
+                        }
+                        val newContent = if (uiState.content.isBlank()) {
+                            extracted.content
+                        } else {
+                            "${uiState.content}\n\n${extracted.content}"
+                        }
+                        viewModel.onContentChange(newContent)
+                        snackbarHostState.showSnackbar("Imported ${extracted.title} (${extracted.wordCount} words, ${extracted.fileType})")
+                    } else {
+                        snackbarHostState.showSnackbar("Could not extract readable text from document.")
+                    }
+                } catch (e: Exception) {
+                    snackbarHostState.showSnackbar("Failed to import document: ${e.message}")
+                }
+            }
+        }
+    }
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
@@ -223,6 +262,28 @@ fun NoteEditorScreen(
                                 onDismissRequest = { showMoreMenu = false },
                                 modifier = Modifier.background(colors.surface)
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Import Document (PDF, Word, MD, TXT)", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        filePickerLauncher.launch("*/*")
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.FileUpload, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text("Google Docs Preview", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        onOpenDocumentViewer(uiState.noteId, uiState.title)
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.Visibility, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
+
                                 DropdownMenuItem(
                                     text = { Text("Share Note", style = typography.body, color = colors.primaryText) },
                                     onClick = {
