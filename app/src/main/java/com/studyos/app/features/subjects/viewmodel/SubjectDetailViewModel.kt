@@ -2,6 +2,8 @@ package com.studyos.app.features.subjects.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.studyos.app.core.database.dao.ResourceDao
+import com.studyos.app.core.database.entity.ResourceEntity
 import com.studyos.app.domain.model.Chapter
 import com.studyos.app.domain.model.ChapterStatus
 import com.studyos.app.domain.model.Note
@@ -46,7 +48,8 @@ class SubjectDetailViewModel(
     private val moveChapterUseCase: MoveChapterUseCase,
     private val renameSubjectUseCase: RenameSubjectUseCase,
     private val deleteSubjectUseCase: DeleteSubjectUseCase,
-    private val noteRepository: NoteRepository? = null
+    private val noteRepository: NoteRepository? = null,
+    private val resourceDao: ResourceDao? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubjectDetailUiState())
@@ -201,6 +204,22 @@ class SubjectDetailViewModel(
                 _uiState.update { it.copy(actionMessage = "Note uploaded & available for AI context") }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Failed to save note: ${e.message}") }
+            }
+        }
+    }
+
+    fun addResource(title: String, type: String, uriOrPath: String) {
+        viewModelScope.launch {
+            if (resourceDao == null) return@launch
+            try {
+                val resource = ResourceEntity(
+                    subjectId = subjectId,
+                    title = title.trim().ifBlank { "Subject Document" },
+                    type = type,
+                    uriOrPath = uriOrPath
+                )
+                resourceDao.insert(resource)
+            } catch (_: Exception) {
             }
         }
     }

@@ -115,18 +115,48 @@ fun SubjectDetailScreen(
 
     // File picker launcher for uploading notes/documents (PDF, DOCX, TXT, MD)
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
             coroutineScope.launch {
                 try {
-                    val extracted = com.studyos.app.core.util.DocumentTextExtractor.extract(context, uri)
-                    if (extracted.content.isNotBlank()) {
-                        viewModel.addOrUploadNote(title = extracted.title, content = extracted.content)
-                        snackbarHostState.showSnackbar("Imported ${extracted.title} (${extracted.wordCount} words, ${extracted.fileType}). Ready for AI!")
-                    } else {
-                        snackbarHostState.showSnackbar("Could not extract readable text from selected document.")
+                    // 1. Copy document to persistent internal storage to prevent permission expiration
+                    val stored = com.studyos.app.core.util.DocumentStorageManager.saveDocumentLocally(context, uri)
+
+                    // 2. Extract text from the persistent local copy
+                    val extracted = com.studyos.app.core.util.DocumentTextExtractor.extract(
+                        context,
+                        Uri.fromFile(stored.file),
+                        stored.cleanTitle
+                    )
+
+                    // 3. Format note with rich metadata header
+                    val noteHeader = buildString {
+                        append("> [!NOTE] **Source Document:** ${stored.originalFileName} (${stored.formattedSize} • ${stored.extension.uppercase()})\n")
+                        append("> 📂 *Saved offline. Open original file in Google Drive, Docs, Word, or PDF Reader from Knowledge Library Resources.*\n\n")
                     }
+                    val bodyContent = if (extracted.content.isNotBlank()) {
+                        extracted.content
+                    } else {
+                        "*(Document contains scanned pages or binary formatting. Open in external viewer via Resources to read full document.)*"
+                    }
+                    val fullContent = noteHeader + bodyContent
+
+                    // 4. Save to Subject Notes for AI context & revision
+                    viewModel.addOrUploadNote(title = stored.cleanTitle, content = fullContent)
+
+                    // 5. Index in Subject Resources so original file can be opened in external apps
+                    viewModel.addResource(
+                        title = stored.originalFileName,
+                        type = when (stored.extension.lowercase()) {
+                            "pdf" -> "PDF"
+                            "md", "markdown" -> "MARKDOWN"
+                            else -> "DOCUMENT"
+                        },
+                        uriOrPath = stored.persistentPath
+                    )
+
+                    snackbarHostState.showSnackbar("Uploaded ${stored.originalFileName} (${stored.formattedSize}) to Notes & Resources!")
                 } catch (e: Exception) {
                     snackbarHostState.showSnackbar("Failed to process document: ${e.message}")
                 }
@@ -262,7 +292,14 @@ fun SubjectDetailScreen(
                                     },
                                     onClick = {
                                         menuExpanded = false
-                                        filePickerLauncher.launch("*/*")
+                                        filePickerLauncher.launch(
+                                            arrayOf(
+                                                "application/pdf",
+                                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                                "application/msword",
+                                                "text/*"
+                                            )
+                                        )
                                     }
                                 )
                                 DropdownMenuItem(
@@ -534,7 +571,16 @@ fun SubjectDetailScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 StudyOSOutlinedButton(
                                     text = "Upload file",
-                                    onClick = { filePickerLauncher.launch("*/*") }
+                                    onClick = {
+                                        filePickerLauncher.launch(
+                                            arrayOf(
+                                                "application/pdf",
+                                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                                "application/msword",
+                                                "text/*"
+                                            )
+                                        )
+                                    }
                                 )
                                 StudyOSButton(
                                     text = "+ Add Note",
@@ -551,7 +597,18 @@ fun SubjectDetailScreen(
                                 title = "No notes uploaded yet",
                                 description = "Upload lecture slides, markdown guides, or text notes to allow your AI tutor to learn from your actual class materials.",
                                 actionButtonText = "Upload Note / Document",
-                                onActionClick = { filePickerLauncher.launch("*/*") }
+                                onActionClick = {
+                                    filePickerLauncher.launch(
+                                        arrayOf(
+                                            "application/pdf",
+                                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                            "application/msword",
+                                            "text/*",
+                                            "application/vnd.ms-powerpoint",
+                                            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                        )
+                                    )
+                                }
                             )
                         } else {
                             LazyColumn(
@@ -601,7 +658,14 @@ fun SubjectDetailScreen(
                 },
                 onUploadFile = {
                     showAddNoteDialog = false
-                    filePickerLauncher.launch("*/*")
+                    filePickerLauncher.launch(
+                        arrayOf(
+                            "application/pdf",
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            "application/msword",
+                            "text/*"
+                        )
+                    )
                 },
                 onSaveNote = { title, content ->
                     viewModel.addOrUploadNote(title = title, content = content)

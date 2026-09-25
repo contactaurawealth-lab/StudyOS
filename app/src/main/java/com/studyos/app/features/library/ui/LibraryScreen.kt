@@ -55,7 +55,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -903,10 +905,39 @@ private fun AddResourceDialog(
     onDismiss: () -> Unit,
     onAdd: (title: String, type: String, uriOrPath: String, subjectId: String?) -> Unit
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var title by remember { mutableStateOf("") }
     var uriOrPath by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("LINK") }
     var selectedSubjectId by remember { mutableStateOf<String?>(subjects.firstOrNull()?.id) }
+    var isImportingFile by remember { mutableStateOf(false) }
+    var statusNotice by remember { mutableStateOf<String?>(null) }
+
+    val filePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            isImportingFile = true
+            scope.launch {
+                try {
+                    val stored = com.studyos.app.core.util.DocumentStorageManager.saveDocumentLocally(context, uri)
+                    title = stored.cleanTitle
+                    uriOrPath = stored.persistentPath
+                    selectedType = when (stored.extension.lowercase()) {
+                        "pdf" -> "PDF"
+                        "md", "markdown" -> "MARKDOWN"
+                        else -> "DOCUMENT"
+                    }
+                    statusNotice = "Saved ${stored.originalFileName} (${stored.formattedSize}) to offline vault"
+                } catch (e: Exception) {
+                    statusNotice = "Failed to copy file: ${e.localizedMessage}"
+                } finally {
+                    isImportingFile = false
+                }
+            }
+        }
+    }
 
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
@@ -916,6 +947,49 @@ private fun AddResourceDialog(
         title = { Text("Add Study Resource", style = typography.subsectionTitle, color = colors.primaryText) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // 1-Tap Document Picker
+                StudyOSButton(
+                    text = if (isImportingFile) "Copying to Offline Vault..." else "Browse & Attach Document",
+                    enabled = !isImportingFile,
+                    onClick = {
+                        filePicker.launch(
+                            arrayOf(
+                                "application/pdf",
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                "application/msword",
+                                "text/*",
+                                "application/vnd.ms-powerpoint",
+                                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                                "application/vnd.ms-excel",
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (statusNotice != null) {
+                    Text(
+                        text = statusNotice!!,
+                        style = typography.caption.copy(fontSize = 11.sp),
+                        color = colors.accent
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.weight(1f).height(1.dp).background(colors.border))
+                    Text(
+                        text = " OR ENTER DETAILS ",
+                        style = typography.caption.copy(fontSize = 10.sp, letterSpacing = 1.sp),
+                        color = colors.mutedText,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    Box(modifier = Modifier.weight(1f).height(1.dp).background(colors.border))
+                }
+
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -933,8 +1007,11 @@ private fun AddResourceDialog(
                 )
 
                 Text("Resource Type", style = typography.caption, color = colors.mutedText)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("LINK", "PDF", "DOCUMENT").forEach { type ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("LINK", "PDF", "DOCUMENT", "MARKDOWN").forEach { type ->
                         val isSelected = selectedType == type
                         Box(
                             modifier = Modifier
@@ -948,6 +1025,31 @@ private fun AddResourceDialog(
                                 style = typography.caption,
                                 color = if (isSelected) colors.background else colors.secondaryText
                             )
+                        }
+                    }
+                }
+
+                if (subjects.isNotEmpty()) {
+                    Text("Attach to Subject", style = typography.caption, color = colors.mutedText)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        subjects.forEach { subject ->
+                            val isSel = selectedSubjectId == subject.id
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSel) colors.accent else colors.surface)
+                                    .clickable { selectedSubjectId = subject.id }
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = subject.name,
+                                    style = typography.caption.copy(fontSize = 11.sp),
+                                    color = if (isSel) colors.background else colors.secondaryText
+                                )
+                            }
                         }
                     }
                 }

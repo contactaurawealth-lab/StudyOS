@@ -104,23 +104,25 @@ fun NoteEditorScreen(
 
     // File picker launcher for importing documents directly into note (PDF, DOCX, TXT, MD)
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
             coroutineScope.launch {
                 try {
-                    val extracted = DocumentTextExtractor.extract(context, uri)
+                    val stored = com.studyos.app.core.util.DocumentStorageManager.saveDocumentLocally(context, uri)
+                    val extracted = DocumentTextExtractor.extract(context, Uri.fromFile(stored.file), stored.cleanTitle)
                     if (extracted.content.isNotBlank()) {
                         if (uiState.title.isBlank()) {
-                            viewModel.onTitleChange(extracted.title)
+                            viewModel.onTitleChange(stored.cleanTitle)
                         }
+                        val noteHeader = "> [!NOTE] **Source File:** ${stored.originalFileName} (${stored.formattedSize} • ${stored.extension.uppercase()})\n\n"
                         val newContent = if (uiState.content.isBlank()) {
-                            extracted.content
+                            noteHeader + extracted.content
                         } else {
-                            "${uiState.content}\n\n${extracted.content}"
+                            "${uiState.content}\n\n$noteHeader${extracted.content}"
                         }
                         viewModel.onContentChange(newContent)
-                        snackbarHostState.showSnackbar("Imported ${extracted.title} (${extracted.wordCount} words, ${extracted.fileType})")
+                        snackbarHostState.showSnackbar("Imported ${stored.originalFileName} (${extracted.wordCount} words) & saved offline")
                     } else {
                         snackbarHostState.showSnackbar("Could not extract readable text from document.")
                     }
@@ -266,7 +268,14 @@ fun NoteEditorScreen(
                                     text = { Text("Import Document (PDF, Word, MD, TXT)", style = typography.body, color = colors.primaryText) },
                                     onClick = {
                                         showMoreMenu = false
-                                        filePickerLauncher.launch("*/*")
+                                        filePickerLauncher.launch(
+                                            arrayOf(
+                                                "application/pdf",
+                                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                                "application/msword",
+                                                "text/*"
+                                            )
+                                        )
                                     },
                                     leadingIcon = {
                                         Icon(Icons.Outlined.FileUpload, null, tint = colors.accent, modifier = Modifier.size(18.dp))

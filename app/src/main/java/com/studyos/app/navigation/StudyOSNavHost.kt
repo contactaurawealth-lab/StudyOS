@@ -1144,7 +1144,8 @@ private fun rememberSubjectDetailViewModel(container: StudyOSAppContainer, subje
             moveChapterUseCase = container.moveChapterUseCase,
             renameSubjectUseCase = container.renameSubjectUseCase,
             deleteSubjectUseCase = container.deleteSubjectUseCase,
-            noteRepository = container.noteRepository
+            noteRepository = container.noteRepository,
+            resourceDao = container.database.resourceDao()
         )
     }
 }
