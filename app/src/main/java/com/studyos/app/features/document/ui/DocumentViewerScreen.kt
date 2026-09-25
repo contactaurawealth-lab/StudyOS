@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,7 +42,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import com.studyos.app.core.util.DocumentOpener
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FormatColorFill
@@ -127,6 +130,8 @@ fun DocumentViewerScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -157,7 +162,36 @@ fun DocumentViewerScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            viewModel.loadUri(uri)
+            DocumentOpener.openDocumentSmart(
+                context = context,
+                uri = uri,
+                onOpenInApp = {
+                    viewModel.loadUri(uri)
+                }
+            )
+        }
+    }
+
+    // Open in other external app (Drive, Docs, Word, Acrobat)
+    val handleOpenInOtherApp: () -> Unit = {
+        if (uiState.documentUri != null) {
+            val uri = Uri.parse(uiState.documentUri)
+            DocumentOpener.openInExternalApp(context, uri)
+        } else {
+            try {
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, uiState.documentTitle)
+                    putExtra(Intent.EXTRA_TEXT, uiState.fullTextContent)
+                }
+                val chooser = Intent.createChooser(sendIntent, "Open or share with")
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(chooser)
+            } catch (e: Exception) {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Unable to open in other app: ${e.localizedMessage}")
+                }
+            }
         }
     }
 
@@ -223,6 +257,7 @@ fun DocumentViewerScreen(
                         }
                     }
                 },
+                onOpenInOtherApp = handleOpenInOtherApp,
                 onShare = {
                     val shareText = "${uiState.documentTitle}\n\n${uiState.fullTextContent}"
                     val sendIntent = Intent(Intent.ACTION_SEND).apply {
@@ -235,8 +270,11 @@ fun DocumentViewerScreen(
             )
         },
         bottomBar = {
+            val isMarkdown = uiState.fileType.equals("MD", ignoreCase = true) || uiState.fileType.equals("MARKDOWN", ignoreCase = true)
             GoogleDocsBottomActionHub(
                 isAiWorking = uiState.isAiWorking,
+                canOpenInOtherApp = uiState.documentUri != null && !isMarkdown,
+                onOpenInOtherApp = handleOpenInOtherApp,
                 onConvertToNote = {
                     viewModel.saveAsNote { noteId ->
                         onOpenNoteEditor(noteId)
@@ -308,6 +346,59 @@ fun DocumentViewerScreen(
                     },
                     theme = currentTheme
                 )
+            }
+
+            // Open in Other App Banner for PDF, Word, and non-markdown documents
+            val isDocNotMd = uiState.documentUri != null &&
+                    !uiState.fileType.equals("MD", ignoreCase = true) &&
+                    !uiState.fileType.equals("MARKDOWN", ignoreCase = true) &&
+                    !uiState.isLoading
+            if (isDocNotMd) {
+                Surface(
+                    color = colors.accent.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .clickable { handleOpenInOtherApp() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Open in Other App",
+                                style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                color = colors.primaryText
+                            )
+                            Text(
+                                text = "Tap to view in Google Drive, Docs, Word, or PDF Reader",
+                                style = typography.caption.copy(fontSize = 11.sp),
+                                color = colors.secondaryText
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.accent)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "OPEN",
+                                style = typography.caption.copy(fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White)
+                            )
+                        }
+                    }
+                }
             }
 
             // Main Paper Canvas Body
@@ -411,6 +502,7 @@ private fun GoogleDocsTopBar(
     onToggleSearch: () -> Unit,
     onOptionsClick: () -> Unit,
     onToggleTts: () -> Unit,
+    onOpenInOtherApp: () -> Unit,
     onShare: () -> Unit
 ) {
     val colors = StudyOSTheme.colors
@@ -517,6 +609,18 @@ private fun GoogleDocsTopBar(
                             imageVector = Icons.Outlined.Tune,
                             contentDescription = "Formatting & Display Options",
                             tint = colors.secondaryText,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onOpenInOtherApp,
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                            contentDescription = "Open in Other App (Drive, Docs, Word, Acrobat)",
+                            tint = colors.accent,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -1002,6 +1106,8 @@ private fun buildHighlightedDocumentText(
 @Composable
 private fun GoogleDocsBottomActionHub(
     isAiWorking: Boolean,
+    canOpenInOtherApp: Boolean = false,
+    onOpenInOtherApp: () -> Unit = {},
     onConvertToNote: () -> Unit,
     onGenerateFlashcards: () -> Unit,
     onGenerateQuiz: () -> Unit,
@@ -1051,8 +1157,17 @@ private fun GoogleDocsBottomActionHub(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Open in Other App (Drive, Docs, Word, Acrobat)
+                if (canOpenInOtherApp) {
+                    StudyOSButton(
+                        text = "Open in Other App",
+                        onClick = onOpenInOtherApp,
+                        modifier = Modifier.height(38.dp)
+                    )
+                }
+
                 // Convert to Note
-                StudyOSButton(
+                StudyOSOutlinedButton(
                     text = "Convert to Note",
                     onClick = onConvertToNote,
                     modifier = Modifier.height(38.dp)

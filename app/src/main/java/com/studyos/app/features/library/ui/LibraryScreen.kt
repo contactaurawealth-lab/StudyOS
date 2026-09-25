@@ -60,6 +60,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import com.studyos.app.core.util.DocumentOpener
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -102,11 +104,18 @@ fun LibraryScreen(
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
 
+    val context = LocalContext.current
     val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            onOpenDocumentViewer(uri.toString(), null, null)
+            DocumentOpener.openDocumentSmart(
+                context = context,
+                uri = uri,
+                onOpenInApp = {
+                    onOpenDocumentViewer(uri.toString(), null, null)
+                }
+            )
         }
     }
 
@@ -302,7 +311,15 @@ fun LibraryScreen(
                                 resources = uiState.resources,
                                 onAddResource = viewModel::openAddResourceDialog,
                                 onDeleteResource = viewModel::deleteResource,
-                                onPreviewResource = { uri, title -> onOpenDocumentViewer(uri, null, title) }
+                                onPreviewResource = { uriOrPath, title ->
+                                    DocumentOpener.openResource(
+                                        context = context,
+                                        uriOrPath = uriOrPath,
+                                        onOpenMarkdownInApp = {
+                                            onOpenDocumentViewer(uriOrPath, null, title)
+                                        }
+                                    )
+                                }
                             )
                         }
                     }
@@ -782,7 +799,12 @@ private fun ResourcesListSection(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(resources, key = { it.resource.id }) { item ->
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                val isMd = DocumentOpener.isMarkdownPath(item.resource.uriOrPath)
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onPreviewResource(item.resource.uriOrPath, item.resource.title) }
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -831,10 +853,10 @@ private fun ResourcesListSection(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             GlassIconButton(
                                 onClick = { onPreviewResource(item.resource.uriOrPath, item.resource.title) },
-                                contentDescription = "Preview in Document Viewer"
+                                contentDescription = if (isMd) "Open Markdown in StudyOS" else "Open in Other App (Drive, Docs, Word, Acrobat)"
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Visibility,
+                                    imageVector = if (isMd) Icons.Outlined.Visibility else Icons.AutoMirrored.Outlined.OpenInNew,
                                     contentDescription = null,
                                     tint = colors.accent,
                                     modifier = Modifier.size(16.dp)
