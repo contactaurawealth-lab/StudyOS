@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyOS — Socratic Operating System for Top Students</title>
+    <meta name="description" content="Master hard subjects with hands-free Socratic Audio Walk, document notes upload, multi-model AI tutor, native exam alarms, and spaced repetition.">
+    <link rel="icon" type="image/png" href="studyos_logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0A0B0E;
+            --surface-color: #12151D;
+            --card-color: #181C27;
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-gold: #D39A3A;
+            --accent-gold-glow: rgba(211, 154, 58, 0.25);
+            --text-primary: #F0F2F5;
+            --text-secondary: #9BA3AF;
+            --text-muted: #5E6573;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Glassmorphism Background Orbs */
+        .ambient-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(140px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+        .glow-1 { top: -200px; left: -100px; background: #D39A3A; }
+        .glow-2 { bottom: -200px; right: -100px; background: #3B82F6; }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .brand img {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+
+        .brand-text {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-outline {
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+            background: var(--surface-color);
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent-gold);
+            background: rgba(211, 154, 58, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--accent-gold);
+            color: #0A0B0E;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 20px var(--accent-gold-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(211, 154, 58, 0.4);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 90px 0 60px;
+            text-align: center;
+        }
+
+        .pill-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface-color);
+            border: 1px solid var(--accent-gold);
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -1.5px;
+            margin-bottom: 22px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, #FFF 30%, var(--accent-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 680px;
+            margin: 0 auto 36px;
+        }
+
+        .hero-cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .download-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* Features */
+        .section-header {
+            text-align: center;
+            margin: 80px 0 40px;
+        }
+
+        .section-header h2 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 80px;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            border-color: rgba(211, 154, 58, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 18px;
+        }
+
+        .card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        .badge-tag {
+            display: inline-block;
+            margin-top: 14px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--accent-gold);
+            background: rgba(211, 154, 58, 0.12);
+            padding: 3px 10px;
+            border-radius: 6px;
+        }
+
+        /* Socratic Audio Walk Highlight Banner */
+        .spotlight-banner {
+            background: linear-gradient(135deg, #181C27 0%, #12151D 100%);
+            border: 1px solid rgba(211, 154, 58, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 40px 0 80px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .spotlight-content {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .spotlight-content h3 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .spotlight-content p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+        }
+
+        .pulse-orb {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-gold) 0%, rgba(211, 154, 58, 0.2) 70%);
+            box-shadow: 0 0 40px var(--accent-gold-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 20px var(--accent-gold-glow); }
+            50% { transform: scale(1.08); box-shadow: 0 0 50px rgba(211, 154, 58, 0.6); }
+            100% { transform: scale(0.95); box-shadow: 0 0 20px var(--accent-gold-glow); }
+        }
+
+        /* Install Steps */
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin: 40px 0 80px;
+        }
+
+        .step-card {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .step-num {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent-gold);
+            font-family: var(--font-mono);
+            margin-bottom: 10px;
+        }
+
+        .step-card h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .step-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--card-border);
+            padding: 40px 0 50px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--accent-gold);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="container">
+        <!-- Navigation -->
+        <nav>
+            <a href="#" class="brand">
+                <img src="studyos_logo.png" alt="StudyOS Logo">
+                <span class="brand-text">StudyOS</span>
+            </a>
+            <div class="nav-actions">
+                <a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" class="btn-outline">GitHub</a>
+                <a href="/downloads/StudyOS.apk" class="btn-primary">Download APK</a>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="pill-badge">
+                <span>✦</span> v1.2.0 Production Release
+            </div>
+            <h1>The Socratic Operating System for <span>Top Students</span></h1>
+            <p>
+                StudyOS turns your daily routine into a connected retention loop. Upload lecture notes, conduct hands-free Socratic voice walks, schedule milestone alarms, and sync multi-model AI tutors.
+            </p>
+            <div class="hero-cta">
+                <a href="/downloads/StudyOS.apk" class="btn-primary" style="padding: 14px 32px; font-size: 1.1rem;">
+                    <span>📥</span> Download StudyOS APK
+                </a>
+                <a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" class="btn-outline" style="padding: 14px 28px; font-size: 1.1rem;">
+                    Source Code
+                </a>
+            </div>
+            <div class="download-meta">
+                app-release.apk • 13 MB • Android 8.0+ (API 26-34) • 100% Offline Capable
+            </div>
+        </section>
+
+        <!-- Socratic Audio Walk Highlight -->
+        <div class="spotlight-banner">
+            <div class="spotlight-content">
+                <div class="pill-badge" style="margin-bottom: 12px;">🎧 Hands-Free Revision</div>
+                <h3>Feynman Audio Walk Mode</h3>
+                <p>
+                    Plug in your earphones and tap "Start 15-Min Walk". The AI takes your uploaded lecture notes and Mistake Bank, quizzes you out loud via Text-To-Speech, listens through your microphone as you explain concepts in plain English, and provides immediate oral Socratic critique.
+                </p>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <span class="badge-tag">Android TextToSpeech</span>
+                    <span class="badge-tag">SpeechRecognizer</span>
+                    <span class="badge-tag">15-Min Session Clock</span>
+                    <span class="badge-tag">Lecture Audio Player (0.75x–2.0x)</span>
+                </div>
+            </div>
+            <div class="pulse-orb">
+                🎙️
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="section-header">
+            <h2>Everything Built for Deep Academic Retention</h2>
+            <p>Designed around the full Feynman learning loop: Notes → Flashcards → Practice Quiz → Mistake Analysis.</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="card">
+                <div class="card-icon">📑</div>
+                <h3>Lecture Document Ingestion</h3>
+                <p>Upload PDF, DOCX, TXT, and Markdown files directly into subjects. Pure-Kotlin offline text extraction feeds notes straight into AI reasoning context.</p>
+                <span class="badge-tag">PDF • DOCX • MD • TXT</span>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🤖</div>
+                <h3>Multi-Model AI Tutor</h3>
+                <p>Configure custom API keys and switch between Gemini 2.0 Flash, GPT-4o, Claude 3.5 Sonnet, and Llama 3.3 for personalized explanations and quiz generation.</p>
+                <span class="badge-tag">BYOK • Multi-Model</span>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">⏰</div>
+                <h3>Native Milestone Alarms</h3>
+                <p>Exact AlarmManager notifications at 24h, 4h, 1h, and exam start time with vibration patterns, loud alarm sound channels, and "Open Exam" shortcuts.</p>
+                <span class="badge-tag">Milestone Alarms</span>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🗂️</div>
+                <h3>CSV & Anki Deck Import</h3>
+                <p>Bulk import flashcard decks with automatic delimiter detection (tabs, commas, semicolons). Fast import via file picker or clipboard text.</p>
+                <span class="badge-tag">Anki TSV • CSV Bulk Import</span>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">✍️</div>
+                <h3>Markdown Editor with Undo/Redo</h3>
+                <p>Rich note taking with full Undo & Redo history stack, math formula preview ($$fx$$), checklists, code blocks, and AI summarization.</p>
+                <span class="badge-tag">Dual Undo/Redo Controls</span>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <h3>Zen Today & Mistake Bank</h3>
+                <p>Minimalist focus dashboard, SM-2 active recall retention algorithm, and a dedicated bank for converting missed exam questions into mastered concepts.</p>
+                <span class="badge-tag">SM-2 Spaced Repetition</span>
+            </div>
+        </div>
+
+        <!-- 3-Step Sideloading Guide -->
+        <div class="section-header">
+            <h2>Fast 30-Second Installation</h2>
+            <p>No Google Play account required. Sideload directly onto any Android device.</p>
+        </div>
+
+        <div class="steps-container">
+            <div class="step-card">
+                <div class="step-num">01</div>
+                <h4>Download APK</h4>
+                <p>Tap the download button to save the 13 MB release file (`StudyOS.apk`) onto your phone.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">02</div>
+                <h4>Open & Install</h4>
+                <p>Open your notification bar or Downloads folder and tap the `StudyOS.apk` file.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">03</div>
+                <h4>Allow Unknown Sources</h4>
+                <p>If prompted by Android, toggle "Allow from this source" and tap Install to launch.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>StudyOS v1.2.0 • Open-Source Academic Operating System</p>
+            <p style="margin-top: 8px;">
+                <a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank">GitHub Repository</a> • 
+                <a href="/downloads/StudyOS.apk">Direct APK Download</a>
+            </p>
+        </footer>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Student Guide & Documentation — StudyOS</title>
+  <meta name="description" content="Complete documentation and user handbook for StudyOS. Learn how the 25m AI study session works, how Exam Readiness is calculated, and how to use the Mistake Bank.">
+  
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- Ambient Glow Effects -->
+  <div class="ambient-mesh">
+    <div class="ambient-orb ambient-orb-1"></div>
+    <div class="ambient-orb ambient-orb-2"></div>
+    <div class="ambient-orb ambient-orb-3"></div>
+  </div>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-announcement">
+    <span class="announcement-badge">Documentation</span>
+    <span>Explore the mechanics behind StudyOS's cognitive algorithms.</span>
+    <a href="download.html">Download APK &rarr;</a>
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="nav-wrapper">
+    <header class="navbar">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <span>StudyOS</span>
+        <span class="brand-tag">Android</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="features.html" class="nav-link">Features</a></li>
+          <li><a href="mock-tests.html" class="nav-link">Mock Tests <span class="nav-badge-new">New</span></a></li>
+          <li><a href="download.html" class="nav-link">Download</a></li>
+          <li><a href="docs.html" class="nav-link active">Guide</a></li>
+          <li><a href="privacy.html" class="nav-link">Privacy</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="download.html" class="btn-nav-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Get APK</span>
+        </a>
+        <button class="mobile-toggle" aria-label="Open Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+  </div>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-drawer">
+    <div class="drawer-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <span>StudyOS</span>
+      </div>
+      <button class="drawer-close" style="background:transparent;border:none;color:#fff;cursor:pointer;padding:8px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <ul class="drawer-links">
+      <li><a href="index.html" class="drawer-link">Home <span>&rarr;</span></a></li>
+      <li><a href="features.html" class="drawer-link">Features <span>&rarr;</span></a></li>
+      <li><a href="mock-tests.html" class="drawer-link">Mock &amp; Tuition Tests <span>&rarr;</span></a></li>
+      <li><a href="download.html" class="drawer-link">Download APK <span>&rarr;</span></a></li>
+      <li><a href="docs.html" class="drawer-link active">Student Guide &amp; FAQ <span>&rarr;</span></a></li>
+      <li><a href="privacy.html" class="drawer-link">100% Offline Manifesto <span>&rarr;</span></a></li>
+    </ul>
+  </div>
+
+  <!-- Header -->
+  <section class="section" style="padding-top:60px; padding-bottom:40px; text-align:center;">
+    <div class="container">
+      <span class="section-eyebrow">Student Handbook</span>
+      <h1 class="hero-title" style="font-size:3.2rem;">
+        How StudyOS Works. <br>
+        <span class="text-gradient-gold">Engine Mechanics &amp; Guide.</span>
+      </h1>
+      <p class="hero-subtitle">
+        Understand the cognitive principles and deterministic algorithms powering your daily study sessions.
+      </p>
+    </div>
+  </section>
+
+  <!-- Core Guides -->
+  <section class="section" style="padding-top:10px;">
+    <div class="container">
+      <div class="grid-2">
+
+        <!-- Guide 1 -->
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3 class="card-title">1. The 25-Minute AI Study Session</h3>
+          <p class="card-desc">
+            Passive studying (re-reading notes or watching video lectures without testing) produces an illusion of competence. StudyOS enforces active cognitive retrieval:
+          </p>
+          <ul class="timer-checklist">
+            <li><strong>Learn (10m):</strong> Review textbook notes, theorems, or formulas without checking notifications.</li>
+            <li><strong>Recall (5m):</strong> Close your notes. The app prompts you to mentally reconstruct the key derivation or definitions.</li>
+            <li><strong>Practice (7m):</strong> Solve an unassisted sample problem under time pressure.</li>
+            <li><strong>Evaluate (3m):</strong> Grade your accuracy and log any misconceptions into the Mistake Bank.</li>
+          </ul>
+        </div>
+
+        <!-- Guide 2 -->
+        <div class="spotlight-card reveal" id="algorithms">
+          <div class="card-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          </div>
+          <h3 class="card-title">2. Exam Readiness Algorithm Formula</h3>
+          <p class="card-desc">
+            Your readiness score is computed deterministically using 7 weights:
+          </p>
+          <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; font-family:var(--font-mono); font-size:0.82rem; margin-bottom:12px; color:var(--accent);">
+            Readiness = (Syllabus &times; 0.30) + (Recall &times; 0.25) + (PracticeVelocity &times; 0.20) - (Mistakes &times; 2.5%) + ProximityBonus
+          </div>
+          <p class="card-desc" style="font-size:0.9rem;">
+            If you have 5 unresolved calculation mistakes, your readiness drops by 12.5% until you re-verify those problems in a practice session.
+          </p>
+        </div>
+
+        <!-- Guide 3 -->
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge" style="background:rgba(6, 182, 212, 0.1); border-color:rgba(6, 182, 212, 0.3); color:#06B6D4;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <h3 class="card-title">3. Scheduling Mock &amp; Tuition Tests</h3>
+          <p class="card-desc">
+            To add a tuition test or coaching mock paper:
+          </p>
+          <ul class="timer-checklist">
+            <li>Navigate to the <strong>Exams</strong> screen from the sidebar.</li>
+            <li>Tap the <strong>Mock &amp; Tuition</strong> tab filter.</li>
+            <li>Tap the <strong>+</strong> button. Enter test title (e.g. "Kinematics Unit Quiz").</li>
+            <li>Select the enrolled Subject to link the test to your syllabus.</li>
+            <li>Pick the Date and use the native <strong>Time Picker</strong> for exact start time.</li>
+          </ul>
+        </div>
+
+        <!-- Guide 4 -->
+        <div class="spotlight-card reveal">
+          <div class="card-icon-badge" style="background:rgba(239, 68, 68, 0.1); border-color:rgba(239, 68, 68, 0.3); color:var(--error);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          </div>
+          <h3 class="card-title">4. Categorizing Errors in the Mistake Bank</h3>
+          <p class="card-desc">
+            Whenever you score less than full marks in a mock test or practice quiz:
+          </p>
+          <ul class="timer-checklist">
+            <li>Open the <strong>Mistake Bank</strong> screen.</li>
+            <li>Add the problem text or capture a question snapshot.</li>
+            <li>Select the honest error cause (Concept, Memory, Calculation, Misread, or Careless).</li>
+            <li>When revising, filter by <em>Concept Gap</em> to fix theoretical misunderstandings first before exams.</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive FAQ Accordion -->
+  <section class="section" id="faq">
+    <div class="container container-narrow">
+      <div class="section-header reveal">
+        <span class="section-eyebrow">Common Questions</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-description">Everything you need to know about StudyOS's features, privacy, and architecture.</p>
+      </div>
+
+      <div class="faq-list reveal">
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Does StudyOS require an internet connection?</span>
+            <svg class="faq-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <div class="faq-answer">
+            <p>No. StudyOS is engineered from the ground up as an offline-first system. All your subjects, chapters, flashcards, mock tests, mistake logs, and algorithms run inside your device's local Room SQLite database. You can use it in airplane mode, subway commutes, or study halls without internet.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How does the Countdown Timer work when my screen is locked?</span>
+            <svg class="faq-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <div class="faq-answer">
+            <p>StudyOS registers system-level exact alarms with Android's native <code>AlarmManager</code>. When your timer reaches zero, Android triggers a high-priority notification channel with audio alerts and vibration, ensuring you never miss the end of your study or break session even during deep sleep.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How do I bring my own OpenAI or Gemini API key?</span>
+            <svg class="faq-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <div class="faq-answer">
+            <p>In the StudyOS Settings screen, tap <strong>AI Configuration</strong>. You can paste your own OpenAI or Google Gemini API key. The key is encrypted locally using Android Keystore and <code>EncryptedSharedPreferences</code>. StudyOS communicates directly with the AI API endpoint without passing through any intermediary proxy servers.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>What makes Mock &amp; Tuition Tests different from Major Exams?</span>
+            <svg class="faq-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Major exams (like final board or university papers) are terminal goals with high stakes. In contrast, tuition quizzes and mock papers are diagnostic tests meant to discover weak spots. StudyOS provides a separate tab filter, exact time-of-day pickers, and direct links to the Mistake Bank so that coaching tests help you improve rather than creating unnecessary panic.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Is my study data secure and private?</span>
+            <svg class="faq-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <div class="faq-answer">
+            <p>100%. StudyOS contains zero third-party analytics trackers, zero marketing telemetry, and no remote database sync. Everything remains on your device under your complete ownership.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            </div>
+            <span>StudyOS</span>
+          </div>
+          <p>The distraction-free Android study workspace for top scorers.</p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="features.html">Features</a></li>
+            <li><a href="mock-tests.html">Mock Tests</a></li>
+            <li><a href="download.html">Download</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="docs.html">User Guide</a></li>
+            <li><a href="docs.html#algorithms">Algorithms</a></li>
+            <li><a href="privacy.html">Privacy Manifesto</a></li>
+            <li><a href="download.html#install-guide">Installation</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Open Source</h5>
+          <ul>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" rel="noopener">GitHub Repo</a></li>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS/releases" target="_blank" rel="noopener">Releases</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 StudyOS. Built for serious exam preparation.</div>
+        <div><a href="privacy.html" style="color:var(--text-muted); text-decoration:none;">100% Offline</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

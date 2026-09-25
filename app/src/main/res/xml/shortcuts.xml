@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shortcut_timer"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_timer"
+        android:shortcutShortLabel="@string/shortcut_timer_short"
+        android:shortcutLongLabel="@string/shortcut_timer_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.studyos.app"
+            android:targetClass="com.studyos.app.MainActivity">
+            <extra
+                android:name="com.studyos.app.EXTRA_ROUTE"
+                android:value="timer" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_mistakes"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_mistakes"
+        android:shortcutShortLabel="@string/shortcut_mistakes_short"
+        android:shortcutLongLabel="@string/shortcut_mistakes_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.studyos.app"
+            android:targetClass="com.studyos.app.MainActivity">
+            <extra
+                android:name="com.studyos.app.EXTRA_ROUTE"
+                android:value="mistakes" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_today"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_today"
+        android:shortcutShortLabel="@string/shortcut_today_short"
+        android:shortcutLongLabel="@string/shortcut_today_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.studyos.app"
+            android:targetClass="com.studyos.app.MainActivity">
+            <extra
+                android:name="com.studyos.app.EXTRA_ROUTE"
+                android:value="today" />
+        </intent>
+    </shortcut>
+</shortcuts>

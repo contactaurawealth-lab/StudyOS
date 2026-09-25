@@ -1,0 +1,20 @@
+package com.studyos.app.domain.repository
+
+import com.studyos.app.domain.model.Subject
+import com.studyos.app.domain.model.SubjectWithProgress
+import kotlinx.coroutines.flow.Flow
+
+interface SubjectRepository {
+    fun getAllSubjects(): Flow<List<Subject>>
+    fun observeSubjects(): Flow<List<Subject>>
+    fun observeSubjectsWithProgress(): Flow<List<SubjectWithProgress>>
+    suspend fun getAllSubjectsOnce(): List<Subject>
+    fun getSubjectById(id: String): Flow<Subject?>
+    suspend fun getSubjectByIdOnce(id: String): Subject?
+    suspend fun findByName(name: String): Subject?
+    suspend fun saveSubject(subject: Subject)
+    suspend fun saveSubjects(subjects: List<Subject>)
+    suspend fun updateSubject(subject: Subject)
+    suspend fun deleteSubject(subject: Subject)
+    suspend fun deleteSubjectById(id: String)
+}
