@@ -174,6 +174,10 @@ cd studyos-exam
 
 StudyOS includes a dedicated, responsive web landing page in the `web/` directory.
 
+### Live Production Deployment
+- **Vercel Edge**: [https://studyos-exam-workspace.vercel.app](https://studyos-exam-workspace.vercel.app)
+- **GitHub Pages**: [https://contactaurawealth-lab.github.io/studyos-exam/](https://contactaurawealth-lab.github.io/studyos-exam/)
+
 ### Local Development
 ```bash
 cd web
