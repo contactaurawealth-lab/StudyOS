@@ -1140,6 +1140,51 @@
             justify-content: flex-end;
             gap: 10px;
         }
+
+        /* Isolated Widget Error Boundary Fallback */
+        .widget-error-fallback {
+            background: rgba(244, 63, 94, 0.08);
+            border: 1px dashed rgba(244, 63, 94, 0.35);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 8px;
+            margin: 8px 0;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .widget-error-fallback .err-title {
+            color: var(--accent-rose);
+            font-weight: 700;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .widget-error-fallback .err-desc {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+            max-width: 90%;
+        }
+
+        .widget-error-fallback .err-btn {
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            margin-top: 4px;
+            border-color: rgba(244, 63, 94, 0.4);
+            cursor: pointer;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -1165,11 +1210,11 @@
 
             <!-- Preset Selector Tabs -->
             <div class="preset-bar">
-                <button class="preset-btn active" onclick="switchPreset('academic')">Academic & Exam</button>
-                <button class="preset-btn" onclick="switchPreset('deepwork')">Deep Work & Code</button>
-                <button class="preset-btn" onclick="switchPreset('project')">Project Management</button>
-                <button class="preset-btn" onclick="switchPreset('writing')">Creative Writing</button>
-                <button class="preset-btn" onclick="switchPreset('omni')">Omni (All 12)</button>
+                <button class="preset-btn active" data-preset="academic" onclick="switchPreset('academic')">Academic & Exam</button>
+                <button class="preset-btn" data-preset="deepwork" onclick="switchPreset('deepwork')">Deep Work & Code</button>
+                <button class="preset-btn" data-preset="project" onclick="switchPreset('project')">Project Management</button>
+                <button class="preset-btn" data-preset="writing" onclick="switchPreset('writing')">Creative Writing</button>
+                <button class="preset-btn" data-preset="omni" onclick="switchPreset('omni')">Omni (All 12)</button>
             </div>
 
             <div class="header-actions">
@@ -1589,6 +1634,88 @@
 
     <script>
         // =========================================================================
+        // ZERO-CRASH WORKSPACE OS RUNTIME: ERROR BOUNDARIES & SHIELDS
+        // =========================================================================
+        
+        // Global Uncaught Exception & Promise Rejection Shield
+        window.addEventListener('error', function(event) {
+            console.warn('[Workspace OS Intercepted Error]:', event.error || event.message);
+            event.preventDefault();
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            console.warn('[Workspace OS Intercepted Promise Rejection]:', event.reason);
+            event.preventDefault();
+        });
+
+        // Safe Storage with Memory Fallback (Prevents Storage Quota & Private Browsing Crashes)
+        const memoryStorage = {};
+        const SafeStorage = {
+            getItem(key, defaultVal = '') {
+                try {
+                    return window.localStorage ? (window.localStorage.getItem(key) ?? defaultVal) : (memoryStorage[key] ?? defaultVal);
+                } catch (e) {
+                    return memoryStorage[key] ?? defaultVal;
+                }
+            },
+            setItem(key, val) {
+                try {
+                    if (window.localStorage) window.localStorage.setItem(key, val);
+                    memoryStorage[key] = val;
+                    return true;
+                } catch (e) {
+                    memoryStorage[key] = val;
+                    return false;
+                }
+            }
+        };
+
+        // Widget-Level Error Boundary
+        function safeExecute(widgetId, actionFn) {
+            try {
+                actionFn();
+            } catch (err) {
+                console.error(`[StudyOS Error Boundary] Exception in ${widgetId}:`, err);
+                renderWidgetFallback(widgetId, err);
+            }
+        }
+
+        function renderWidgetFallback(widgetId, error) {
+            const card = document.getElementById(widgetId);
+            if (!card) return;
+
+            // Remove any previous error fallback
+            const existing = card.querySelector('.widget-error-fallback');
+            if (existing) existing.remove();
+
+            const fallback = document.createElement('div');
+            fallback.className = 'widget-error-fallback';
+            fallback.innerHTML = `
+                <div class="err-title"><span>⚠️</span> Widget Render Protected</div>
+                <div class="err-desc">A state or calculation exception occurred in this slot. Your timer and other widgets remain active.</div>
+                <button class="ctrl-btn err-btn" onclick="recoverWidget('${widgetId}')">↻ Recover Widget</button>
+            `;
+            card.appendChild(fallback);
+        }
+
+        function recoverWidget(widgetId) {
+            try {
+                const card = document.getElementById(widgetId);
+                if (card) {
+                    const fallback = card.querySelector('.widget-error-fallback');
+                    if (fallback) fallback.remove();
+                }
+                if (widgetId === 'card-w1') resetTimer();
+                else if (widgetId === 'card-w10') { currentFcIndex = 0; rateFlashcard('good'); }
+                else if (widgetId === 'card-w11') { calcClear(); }
+                else if (widgetId === 'card-w3') { saveScratchpad(); }
+                triggerNotificationAlert('Widget Recovered', `${widgetId} safely restored.`);
+            } catch (e) {
+                console.warn('Recovery error caught:', e);
+            }
+        }
+
+        // =========================================================================
         // SUBSYSTEM 1: TIME MANAGEMENT & RING ENGINE
         // =========================================================================
         const CIRCUMFERENCE = 282.74; // 2 * PI * 45
@@ -1600,19 +1727,26 @@
         let audioCtx = null;
 
         function getAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) {
+                        audioCtx = new AudioContextClass();
+                    }
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume().catch(() => {});
+                }
+            } catch (e) {
+                console.warn('[AudioContext Shield]:', e);
             }
             return audioCtx;
         }
 
-        // Procedural Audio Synthesizer (528Hz bell, 880Hz pulse, 432Hz bowl, cascade)
         function playSynthesizedSound(type) {
             try {
                 const ctx = getAudioContext();
+                if (!ctx) return;
                 const now = ctx.currentTime;
 
                 if (type === 'gentle_bell') {
@@ -1680,90 +1814,117 @@
         }
 
         function triggerNotificationAlert(title, message) {
-            const banner = document.getElementById('alert-banner');
-            const msgEl = document.getElementById('alert-msg');
-            msgEl.textContent = title + ': ' + message;
-            banner.style.display = 'flex';
-            setTimeout(() => {
-                banner.style.display = 'none';
-            }, 4000);
+            try {
+                const banner = document.getElementById('alert-banner');
+                const msgEl = document.getElementById('alert-msg');
+                if (banner && msgEl) {
+                    msgEl.textContent = title + ': ' + message;
+                    banner.style.display = 'flex';
+                    setTimeout(() => { banner.style.display = 'none'; }, 4000);
+                }
 
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(title, { body: message, icon: 'studyos_logo.png' });
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(title, { body: message, icon: 'studyos_logo.png' });
+                }
+            } catch (e) {
+                console.warn('Notification banner error:', e);
             }
         }
 
+        // Defensively guarded ring rendering
         function updateRingUI() {
-            const circle = document.getElementById('ring-svg-circle');
-            const timeDisplay = document.getElementById('timer-time-display');
+            safeExecute('card-w1', () => {
+                const circle = document.getElementById('ring-svg-circle');
+                const timeDisplay = document.getElementById('timer-time-display');
+                if (!circle || !timeDisplay) return;
 
-            const progress = (totalSeconds - remainingSeconds) / totalSeconds;
-            const offset = CIRCUMFERENCE * (1 - progress);
-            circle.style.strokeDashoffset = offset.toFixed(2);
+                const safeTotal = (typeof totalSeconds === 'number' && totalSeconds > 0) ? totalSeconds : 1500;
+                const safeRemaining = (typeof remainingSeconds === 'number' && isFinite(remainingSeconds)) ? Math.max(0, remainingSeconds) : safeTotal;
+                
+                // Offset calculation: 0.00 at start (0 elapsed), 282.74 at complete
+                const progress = Math.min(Math.max((safeTotal - safeRemaining) / safeTotal, 0), 1);
+                const offset = CIRCUMFERENCE * progress;
+                circle.style.strokeDashoffset = (isFinite(offset) ? offset : 0).toFixed(2);
 
-            const mins = Math.floor(remainingSeconds / 60);
-            const secs = remainingSeconds % 60;
-            timeDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                const mins = Math.floor(safeRemaining / 60);
+                const secs = Math.floor(safeRemaining % 60);
+                timeDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            });
         }
 
         function toggleTimer() {
-            const btn = document.getElementById('btn-timer-toggle');
-            getAudioContext(); // user gesture unlock
+            safeExecute('card-w1', () => {
+                const btn = document.getElementById('btn-timer-toggle');
+                getAudioContext(); // user gesture unlock
 
-            if (!timerRunning) {
-                timerRunning = true;
-                btn.textContent = '❚❚ Pause';
-                btn.style.background = 'var(--surface-color)';
-                btn.style.color = 'var(--text-primary)';
-                triggerNotificationAlert('Focus Initiated', '25 minutes reserved for high-yield retention.');
+                if (!timerRunning) {
+                    timerRunning = true;
+                    if (btn) {
+                        btn.textContent = '❚❚ Pause';
+                        btn.style.background = 'var(--surface-color)';
+                        btn.style.color = 'var(--text-primary)';
+                    }
+                    triggerNotificationAlert('Focus Initiated', '25 minutes reserved for high-yield retention.');
 
-                timerInterval = setInterval(() => {
-                    if (remainingSeconds > 0) {
-                        remainingSeconds--;
-                        updateRingUI();
+                    timerInterval = setInterval(() => {
+                        if (remainingSeconds > 0) {
+                            remainingSeconds--;
+                            updateRingUI();
 
-                        // Notification Webhook triggers
-                        if (remainingSeconds === Math.floor(totalSeconds / 2)) {
-                            playSynthesizedSound(currentSound);
-                            triggerNotificationAlert('Halfway Checkpoint', '50% elapsed. Maintain deep focus.');
-                        } else if (remainingSeconds === 60) {
-                            playSynthesizedSound(currentSound);
-                            triggerNotificationAlert('One Minute Warning', '60 seconds remaining. Wrap up thought.');
+                            // Notification Webhook triggers
+                            if (remainingSeconds === Math.floor(totalSeconds / 2)) {
+                                playSynthesizedSound(currentSound);
+                                triggerNotificationAlert('Halfway Checkpoint', '50% elapsed. Maintain deep focus.');
+                            } else if (remainingSeconds === 60) {
+                                playSynthesizedSound(currentSound);
+                                triggerNotificationAlert('One Minute Warning', '60 seconds remaining. Wrap up thought.');
+                            }
+                        } else {
+                            clearInterval(timerInterval);
+                            timerRunning = false;
+                            if (btn) {
+                                btn.textContent = '▶ Start';
+                                btn.style.background = 'var(--accent-gold)';
+                                btn.style.color = '#0A0B0E';
+                            }
+                            playSynthesizedSound('chime_cascade');
+                            triggerNotificationAlert('Session Complete', 'Focus block ended. Transitioning to rest.');
                         }
-                    } else {
-                        clearInterval(timerInterval);
-                        timerRunning = false;
-                        btn.textContent = '▶ Start';
+                    }, 1000);
+                } else {
+                    clearInterval(timerInterval);
+                    timerRunning = false;
+                    if (btn) {
+                        btn.textContent = '▶ Resume';
                         btn.style.background = 'var(--accent-gold)';
                         btn.style.color = '#0A0B0E';
-                        playSynthesizedSound('chime_cascade');
-                        triggerNotificationAlert('Session Complete', 'Focus block ended. Transitioning to rest.');
                     }
-                }, 1000);
-            } else {
-                clearInterval(timerInterval);
-                timerRunning = false;
-                btn.textContent = '▶ Resume';
-                btn.style.background = 'var(--accent-gold)';
-                btn.style.color = '#0A0B0E';
-            }
+                }
+            });
         }
 
         function resetTimer() {
-            clearInterval(timerInterval);
-            timerRunning = false;
-            remainingSeconds = totalSeconds;
-            const btn = document.getElementById('btn-timer-toggle');
-            btn.textContent = '▶ Start';
-            btn.style.background = 'var(--accent-gold)';
-            btn.style.color = '#0A0B0E';
-            updateRingUI();
+            safeExecute('card-w1', () => {
+                if (timerInterval) clearInterval(timerInterval);
+                timerRunning = false;
+                remainingSeconds = totalSeconds;
+                const btn = document.getElementById('btn-timer-toggle');
+                if (btn) {
+                    btn.textContent = '▶ Start';
+                    btn.style.background = 'var(--accent-gold)';
+                    btn.style.color = '#0A0B0E';
+                }
+                updateRingUI();
+            });
         }
 
         function addMinutes(mins) {
-            remainingSeconds += mins * 60;
-            totalSeconds += mins * 60;
-            updateRingUI();
+            safeExecute('card-w1', () => {
+                const safeMins = (typeof mins === 'number' && isFinite(mins)) ? mins : 5;
+                remainingSeconds += safeMins * 60;
+                totalSeconds += safeMins * 60;
+                updateRingUI();
+            });
         }
 
         function changeSoundProfile(val) {
@@ -1813,72 +1974,91 @@
         };
 
         function switchPreset(key) {
-            const preset = PRESETS[key];
-            if (!preset) return;
+            try {
+                const preset = PRESETS[key] || PRESETS.academic;
 
-            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
-            if (event && event.target) event.target.classList.add('active');
+                // Safe button state toggling without fragile global event references
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    const match = btn.getAttribute('data-preset') === key;
+                    btn.classList.toggle('active', match);
+                });
 
-            document.getElementById('system-mode-badge').textContent = 'WORKSPACE AGENT: ' + preset.mode;
+                const badge = document.getElementById('system-mode-badge');
+                if (badge) badge.textContent = 'WORKSPACE AGENT: ' + (preset.mode || 'FOCUS');
 
-            WIDGET_IDS.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    if (preset.active.includes(id)) {
-                        el.style.display = 'flex';
-                    } else {
-                        el.style.display = 'none';
+                WIDGET_IDS.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.style.display = preset.active.includes(id) ? 'flex' : 'none';
                     }
-                }
-            });
+                });
+            } catch (err) {
+                console.error('[StudyOS Preset Switch Exception]:', err);
+            }
         }
 
         // Widget 2: Tasks
         function toggleTaskDone(cb) {
-            const item = cb.closest('.task-item');
-            if (cb.checked) {
-                item.classList.add('done');
-            } else {
-                item.classList.remove('done');
-            }
+            safeExecute('card-w2', () => {
+                const item = cb.closest('.task-item');
+                if (item) {
+                    if (cb.checked) item.classList.add('done');
+                    else item.classList.remove('done');
+                }
+            });
         }
 
         function handleTaskKey(e) {
-            if (e.key === 'Enter') addNewTask();
+            if (e && e.key === 'Enter') addNewTask();
         }
 
         function addNewTask() {
-            const input = document.getElementById('new-task-input');
-            const text = input.value.trim();
-            if (!text) return;
+            safeExecute('card-w2', () => {
+                const input = document.getElementById('new-task-input');
+                if (!input) return;
+                const text = input.value.trim();
+                if (!text) return;
 
-            const container = document.getElementById('task-list-container');
-            const item = document.createElement('div');
-            item.className = 'task-item';
-            item.innerHTML = `
-                <div class="task-left">
-                    <input type="checkbox" class="task-checkbox" onchange="toggleTaskDone(this)">
-                    <span class="task-text">${text}</span>
-                </div>
-                <span class="priority-badge p-mid">Mid</span>
-            `;
-            container.appendChild(item);
-            input.value = '';
+                const container = document.getElementById('task-list-container');
+                if (!container) return;
+
+                const item = document.createElement('div');
+                item.className = 'task-item';
+                item.innerHTML = `
+                    <div class="task-left">
+                        <input type="checkbox" class="task-checkbox" onchange="toggleTaskDone(this)">
+                        <span class="task-text">${escapeHtml(text)}</span>
+                    </div>
+                    <span class="priority-badge p-mid">Mid</span>
+                `;
+                container.appendChild(item);
+                input.value = '';
+            });
         }
 
         // Widget 3: Scratchpad
         function saveScratchpad() {
-            const val = document.getElementById('scratchpad-text').value;
-            localStorage.setItem('studyos_scratchpad', val);
-            const words = val.trim() ? val.trim().split(/\s+/).length : 0;
-            const chars = val.length;
-            document.getElementById('scratchpad-counter').textContent = `${words} words | ${chars} chars`;
+            safeExecute('card-w3', () => {
+                const textarea = document.getElementById('scratchpad-text');
+                if (!textarea) return;
+                const val = textarea.value;
+                SafeStorage.setItem('studyos_scratchpad', val);
+                const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+                const chars = val.length;
+                const counter = document.getElementById('scratchpad-counter');
+                if (counter) counter.textContent = `${words} words | ${chars} chars`;
+            });
         }
 
         function copyScratchpad() {
-            const val = document.getElementById('scratchpad-text').value;
-            navigator.clipboard.writeText(val).then(() => {
-                triggerNotificationAlert('Scratchpad Copied', 'Buffer saved to system clipboard.');
+            safeExecute('card-w3', () => {
+                const textarea = document.getElementById('scratchpad-text');
+                const val = textarea ? textarea.value : '';
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(val).then(() => {
+                        triggerNotificationAlert('Scratchpad Copied', 'Buffer saved to system clipboard.');
+                    }).catch(() => {});
+                }
             });
         }
 
@@ -1904,45 +2084,80 @@
         let currentFcIndex = 0;
 
         function flipFlashcard() {
-            document.getElementById('flashcard-element').classList.toggle('is-flipped');
+            safeExecute('card-w10', () => {
+                const el = document.getElementById('flashcard-element');
+                if (el) el.classList.toggle('is-flipped');
+            });
         }
 
         function rateFlashcard(rating) {
-            document.getElementById('flashcard-element').classList.remove('is-flipped');
-            setTimeout(() => {
-                currentFcIndex = (currentFcIndex + 1) % FLASHCARDS.length;
-                document.getElementById('fc-front-text').textContent = FLASHCARDS[currentFcIndex].q;
-                document.getElementById('fc-back-text').textContent = FLASHCARDS[currentFcIndex].a;
-                document.getElementById('fc-counter-badge').textContent = `Card ${currentFcIndex + 1} / ${FLASHCARDS.length}`;
-                triggerNotificationAlert('Card Rated', `Mastery: ${rating.toUpperCase()}. Scheduled via SM-2.`);
-            }, 250);
+            safeExecute('card-w10', () => {
+                const el = document.getElementById('flashcard-element');
+                if (el) el.classList.remove('is-flipped');
+                setTimeout(() => {
+                    if (Array.isArray(FLASHCARDS) && FLASHCARDS.length > 0) {
+                        currentFcIndex = (currentFcIndex + 1) % FLASHCARDS.length;
+                        const front = document.getElementById('fc-front-text');
+                        const back = document.getElementById('fc-back-text');
+                        const badge = document.getElementById('fc-counter-badge');
+                        if (front) front.textContent = FLASHCARDS[currentFcIndex].q || 'Empty Card';
+                        if (back) back.textContent = FLASHCARDS[currentFcIndex].a || 'No Answer';
+                        if (badge) badge.textContent = `Card ${currentFcIndex + 1} / ${FLASHCARDS.length}`;
+                    }
+                    triggerNotificationAlert('Card Rated', `Mastery: ${String(rating).toUpperCase()}. Scheduled via SM-2.`);
+                }, 250);
+            });
         }
 
-        // Widget 11: Calculator
+        // Widget 11: Scratchpad Calculator & Converter
         let calcVal = '0';
         function calcInput(char) {
-            if (calcVal === '0' && !isNaN(char)) calcVal = char;
-            else calcVal += char;
-            document.getElementById('calc-display').textContent = calcVal;
+            safeExecute('card-w11', () => {
+                if (calcVal === '0' && !isNaN(char)) calcVal = char;
+                else if (calcVal === 'Error') calcVal = char;
+                else calcVal += char;
+                const display = document.getElementById('calc-display');
+                if (display) display.textContent = calcVal;
+            });
         }
+
         function calcClear() {
-            calcVal = '0';
-            document.getElementById('calc-display').textContent = calcVal;
+            safeExecute('card-w11', () => {
+                calcVal = '0';
+                const display = document.getElementById('calc-display');
+                if (display) display.textContent = calcVal;
+            });
         }
+
         function calcEval() {
-            try {
-                calcVal = String(Function('"use strict";return (' + calcVal + ')')());
-            } catch (e) {
-                calcVal = 'Error';
-            }
-            document.getElementById('calc-display').textContent = calcVal;
+            safeExecute('card-w11', () => {
+                try {
+                    // Sanitize input: allow only digits and basic arithmetic operators
+                    const clean = calcVal.replace(/[^0-9+\-*/().]/g, '');
+                    if (!clean || !/^[0-9(]/.test(clean)) {
+                        calcVal = '0';
+                    } else {
+                        const result = Function('"use strict"; return (' + clean + ')')();
+                        if (result !== undefined && isFinite(result)) {
+                            calcVal = String(Math.round(result * 1000000) / 1000000);
+                        } else {
+                            calcVal = 'Error';
+                        }
+                    }
+                } catch (e) {
+                    calcVal = 'Error';
+                }
+                const display = document.getElementById('calc-display');
+                if (display) display.textContent = calcVal;
+            });
         }
 
         // =========================================================================
         // SUBSYSTEM 3: DOCUMENT ROUTING & UNIVERSAL VIEWER BRIDGE
         // =========================================================================
         function routeDocument(fileName, mimeType) {
-            const ext = fileName.split('.').pop().toLowerCase();
+            const name = fileName || 'Untitled.txt';
+            const ext = name.split('.').pop().toLowerCase();
             let targetViewer = 'universal_preview_pane';
             let desktopAlts = ['System Default'];
             let actions = ['extract_summary'];
@@ -1969,28 +2184,35 @@
                 actions = ['explain_code', 'find_bugs', 'refactor_snippet'];
             }
 
-            return { fileName, mimeType: mimeType || 'application/octet-stream', targetViewer, desktopAlts, actions };
+            return { fileName: name, mimeType: mimeType || 'application/octet-stream', targetViewer, desktopAlts, actions };
         }
 
         function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            safeExecute('card-w6', () => {
+                if (!e || !e.target || !e.target.files) return;
+                const file = e.target.files[0];
+                if (!file) return;
 
-            const route = routeDocument(file.name, file.type);
-            document.getElementById('doc-current-name').textContent = route.fileName;
-            document.getElementById('doc-current-type').textContent = route.mimeType;
+                const route = routeDocument(file.name, file.type);
+                const nameEl = document.getElementById('doc-current-name');
+                const typeEl = document.getElementById('doc-current-type');
+                if (nameEl) nameEl.textContent = route.fileName;
+                if (typeEl) typeEl.textContent = route.mimeType;
 
-            const container = document.getElementById('doc-actions-container');
-            container.innerHTML = '';
-            route.actions.forEach(action => {
-                const btn = document.createElement('button');
-                btn.className = 'chip-ai';
-                btn.textContent = '⚡ ' + action.replace(/_/g, ' ').toUpperCase();
-                btn.onclick = () => triggerAiAction(action);
-                container.appendChild(btn);
+                const container = document.getElementById('doc-actions-container');
+                if (container) {
+                    container.innerHTML = '';
+                    route.actions.forEach(action => {
+                        const btn = document.createElement('button');
+                        btn.className = 'chip-ai';
+                        btn.textContent = '⚡ ' + action.replace(/_/g, ' ').toUpperCase();
+                        btn.onclick = () => triggerAiAction(action);
+                        container.appendChild(btn);
+                    });
+                }
+
+                triggerNotificationAlert('Document Routed', `Dispatched ${file.name} to ${route.targetViewer}`);
             });
-
-            triggerNotificationAlert('Document Routed', `Dispatched ${file.name} to ${route.targetViewer}`);
         }
 
         function triggerAiAction(actionName) {
@@ -2000,85 +2222,96 @@
         // Widget 9: Ambient Soundscapes using Procedural Web Audio Generators
         const activeSoundNodes = {};
         function toggleAmbientSound(type) {
-            const ctx = getAudioContext();
-            const btn = document.getElementById(`snd-${type === 'whitenoise' ? 'white' : type}-btn`);
+            safeExecute('card-w9', () => {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const btn = document.getElementById(`snd-${type === 'whitenoise' ? 'white' : type}-btn`);
 
-            if (activeSoundNodes[type]) {
-                // Stop sound
-                activeSoundNodes[type].stop();
-                delete activeSoundNodes[type];
-                btn.classList.remove('playing');
-                btn.textContent = 'Play';
-            } else {
-                // Start procedural sound
-                if (type === 'whitenoise') {
-                    const bufferSize = ctx.sampleRate * 2;
-                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                    const output = buffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) {
-                        output[i] = Math.random() * 2 - 1;
+                if (activeSoundNodes[type]) {
+                    // Stop sound
+                    try { activeSoundNodes[type].stop(); } catch (e) {}
+                    delete activeSoundNodes[type];
+                    if (btn) {
+                        btn.classList.remove('playing');
+                        btn.textContent = 'Play';
                     }
-                    const whiteNoise = ctx.createBufferSource();
-                    whiteNoise.buffer = buffer;
-                    whiteNoise.loop = true;
-                    const filter = ctx.createBiquadFilter();
-                    filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(600, ctx.currentTime);
-                    const gain = ctx.createGain();
-                    gain.gain.setValueAtTime(0.05, ctx.currentTime);
-                    whiteNoise.connect(filter);
-                    filter.connect(gain);
-                    gain.connect(ctx.destination);
-                    whiteNoise.start();
-                    activeSoundNodes[type] = whiteNoise;
-                } else if (type === 'binaural') {
-                    // 40Hz Gamma Binaural: 200Hz left, 240Hz right
-                    const oscL = ctx.createOscillator();
-                    const oscR = ctx.createOscillator();
-                    oscL.frequency.setValueAtTime(200, ctx.currentTime);
-                    oscR.frequency.setValueAtTime(240, ctx.currentTime);
-                    const gain = ctx.createGain();
-                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-                    oscL.connect(gain);
-                    oscR.connect(gain);
-                    gain.connect(ctx.destination);
-                    oscL.start();
-                    oscR.start();
-                    activeSoundNodes[type] = {
-                        stop: () => { oscL.stop(); oscR.stop(); }
-                    };
-                } else if (type === 'rain') {
-                    // Rain simulation using filtered noise with gentle resonant pulses
-                    const bufferSize = ctx.sampleRate * 2;
-                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                    const output = buffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) {
-                        output[i] = Math.random() * 2 - 1;
+                } else {
+                    // Start procedural sound
+                    if (type === 'whitenoise') {
+                        const bufferSize = ctx.sampleRate * 2;
+                        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                        const output = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            output[i] = Math.random() * 2 - 1;
+                        }
+                        const whiteNoise = ctx.createBufferSource();
+                        whiteNoise.buffer = buffer;
+                        whiteNoise.loop = true;
+                        const filter = ctx.createBiquadFilter();
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(600, ctx.currentTime);
+                        const gain = ctx.createGain();
+                        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                        whiteNoise.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(ctx.destination);
+                        whiteNoise.start();
+                        activeSoundNodes[type] = whiteNoise;
+                    } else if (type === 'binaural') {
+                        const oscL = ctx.createOscillator();
+                        const oscR = ctx.createOscillator();
+                        oscL.frequency.setValueAtTime(200, ctx.currentTime);
+                        oscR.frequency.setValueAtTime(240, ctx.currentTime);
+                        const gain = ctx.createGain();
+                        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                        oscL.connect(gain);
+                        oscR.connect(gain);
+                        gain.connect(ctx.destination);
+                        oscL.start();
+                        oscR.start();
+                        activeSoundNodes[type] = {
+                            stop: () => { try { oscL.stop(); oscR.stop(); } catch(e){} }
+                        };
+                    } else if (type === 'rain') {
+                        const bufferSize = ctx.sampleRate * 2;
+                        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                        const output = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            output[i] = Math.random() * 2 - 1;
+                        }
+                        const rainSource = ctx.createBufferSource();
+                        rainSource.buffer = buffer;
+                        rainSource.loop = true;
+                        const filter = ctx.createBiquadFilter();
+                        filter.type = 'bandpass';
+                        filter.frequency.setValueAtTime(1000, ctx.currentTime);
+                        filter.Q.setValueAtTime(0.8, ctx.currentTime);
+                        const gain = ctx.createGain();
+                        gain.gain.setValueAtTime(0.07, ctx.currentTime);
+                        rainSource.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(ctx.destination);
+                        rainSource.start();
+                        activeSoundNodes[type] = rainSource;
                     }
-                    const rainSource = ctx.createBufferSource();
-                    rainSource.buffer = buffer;
-                    rainSource.loop = true;
-                    const filter = ctx.createBiquadFilter();
-                    filter.type = 'bandpass';
-                    filter.frequency.setValueAtTime(1000, ctx.currentTime);
-                    filter.Q.setValueAtTime(0.8, ctx.currentTime);
-                    const gain = ctx.createGain();
-                    gain.gain.setValueAtTime(0.07, ctx.currentTime);
-                    rainSource.connect(filter);
-                    filter.connect(gain);
-                    gain.connect(ctx.destination);
-                    rainSource.start();
-                    activeSoundNodes[type] = rainSource;
+                    if (btn) {
+                        btn.classList.add('playing');
+                        btn.textContent = 'Pause';
+                    }
                 }
-                btn.classList.add('playing');
-                btn.textContent = 'Pause';
-            }
+            });
         }
 
         // =========================================================================
         // SUBSYSTEM 4: EXECUTION STATE MACHINE & JSON PROTOCOL INSPECTOR
         // =========================================================================
         function getCurrentStatePayload() {
+            const safeTotal = (typeof totalSeconds === 'number' && totalSeconds > 0) ? totalSeconds : 1500;
+            const safeRemaining = (typeof remainingSeconds === 'number' && isFinite(remainingSeconds)) ? Math.max(0, remainingSeconds) : safeTotal;
+            const progress = Math.min(Math.max((safeTotal - safeRemaining) / safeTotal, 0), 1);
+            const docName = document.getElementById('doc-current-name')?.textContent || 'Organic_Chemistry_Synthesis.pdf';
+            const docType = document.getElementById('doc-current-type')?.textContent || 'application/pdf';
+
             return {
                 "system_state": {
                     "active_mode": "focus",
@@ -2087,14 +2320,14 @@
                 "timer": {
                     "enabled": true,
                     "title": "Socratic Deep Focus Block",
-                    "duration_seconds": totalSeconds,
-                    "remaining_seconds": remainingSeconds,
+                    "duration_seconds": safeTotal,
+                    "remaining_seconds": safeRemaining,
                     "visual_geometry": {
                         "type": "svg_circle",
                         "radius": 45,
                         "stroke_width": 6,
                         "stroke_dasharray": "282.74",
-                        "stroke_dashoffset": (CIRCUMFERENCE * (1 - (totalSeconds - remainingSeconds) / totalSeconds)).toFixed(2),
+                        "stroke_dashoffset": (CIRCUMFERENCE * progress).toFixed(2),
                         "color_active": "#D39A3A",
                         "color_trail": "#181C27"
                     },
@@ -2112,16 +2345,16 @@
                     "controls": ["start", "pause", "resume", "reset", "add_5_mins", "toggle_chaining"]
                 },
                 "active_widgets": [
-                    { "id": "widget_focus_timer", "slot": 1, "title": "Focus Ring", "data": { "linked_to_timer": true, "remaining_seconds": remainingSeconds } },
-                    { "id": "widget_doc_viewer", "slot": 2, "title": "Primary Study Material", "data": { "current_document": document.getElementById('doc-current-name').textContent, "mime_type": document.getElementById('doc-current-type').textContent } },
+                    { "id": "widget_focus_timer", "slot": 1, "title": "Focus Ring", "data": { "linked_to_timer": true, "remaining_seconds": safeRemaining } },
+                    { "id": "widget_doc_viewer", "slot": 2, "title": "Primary Study Material", "data": { "current_document": docName, "mime_type": docType } },
                     { "id": "widget_metric_counter", "slot": 3, "title": "Exam Readiness Targets", "data": { "cards_reviewed": 28, "readiness_score": 84, "streak_days": 12 } },
                     { "id": "widget_flashcards", "slot": 4, "title": "Active Recall Deck", "data": { "deck_name": "High-Yield Reactions", "card_id": `c_${currentFcIndex + 1}` } },
                     { "id": "widget_concept_graph", "slot": 5, "title": "Socratic Concept Hierarchy", "data": { "root_node": "Carbonyl Chemistry" } }
                 ],
                 "document_routing": {
                     "active": true,
-                    "file_name": document.getElementById('doc-current-name').textContent,
-                    "mime_type": document.getElementById('doc-current-type').textContent,
+                    "file_name": docName,
+                    "mime_type": docType,
                     "target_viewer": "pdf_embed_pane",
                     "desktop_alternatives": ["Acrobat Reader", "Apple Preview"],
                     "available_actions": ["extract_summary", "generate_qa_cards", "highlight_key_takeaways"]
@@ -2130,34 +2363,62 @@
         }
 
         function openStateInspector() {
-            const payload = getCurrentStatePayload();
-            document.getElementById('inspector-json-display').textContent = JSON.stringify(payload, null, 2);
-            document.getElementById('inspector-modal').classList.add('open');
+            try {
+                const payload = getCurrentStatePayload();
+                const display = document.getElementById('inspector-json-display');
+                if (display) display.textContent = JSON.stringify(payload, null, 2);
+                const modal = document.getElementById('inspector-modal');
+                if (modal) modal.classList.add('open');
+            } catch (e) {
+                console.error('[StudyOS Inspector Error]', e);
+            }
         }
 
         function closeStateInspector() {
-            document.getElementById('inspector-modal').classList.remove('open');
+            const modal = document.getElementById('inspector-modal');
+            if (modal) modal.classList.remove('open');
         }
 
         function copyStateJson() {
-            const text = document.getElementById('inspector-json-display').textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                triggerNotificationAlert('Copied to Clipboard', 'Machine-executable JSON payload ready.');
-            });
+            try {
+                const display = document.getElementById('inspector-json-display');
+                const text = display ? display.textContent : '';
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        triggerNotificationAlert('Copied to Clipboard', 'Machine-executable JSON payload ready.');
+                    }).catch(() => {});
+                }
+            } catch (e) {
+                console.warn('Clipboard copy error:', e);
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         // Initialization
         window.addEventListener('DOMContentLoaded', () => {
-            const savedScratch = localStorage.getItem('studyos_scratchpad');
-            if (savedScratch) {
-                document.getElementById('scratchpad-text').value = savedScratch;
-                saveScratchpad();
-            }
-            switchPreset('academic');
-            updateRingUI();
+            try {
+                const savedScratch = SafeStorage.getItem('studyos_scratchpad', '');
+                const scratchEl = document.getElementById('scratchpad-text');
+                if (savedScratch && scratchEl) {
+                    scratchEl.value = savedScratch;
+                    saveScratchpad();
+                }
+                switchPreset('academic');
+                updateRingUI();
 
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission().catch(() => {});
+                }
+            } catch (e) {
+                console.warn('[StudyOS Initialization Caught Error]:', e);
             }
         });
     </script>

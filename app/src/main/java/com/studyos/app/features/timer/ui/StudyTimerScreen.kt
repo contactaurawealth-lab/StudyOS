@@ -1,11 +1,17 @@
 package com.studyos.app.features.timer.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -85,6 +91,14 @@ fun StudyTimerScreen(
     var chapterMenuExpanded by remember { mutableStateOf(false) }
     var isZenMode by remember { mutableStateOf(false) }
     var showMorePresets by remember { mutableStateOf(false) }
+    var showCoffeeOverlay by remember { mutableStateOf(false) }
+
+    // Auto-trigger Coffee Time break overlay when focus session completes
+    LaunchedEffect(uiState.status) {
+        if (uiState.status == TimerStatus.COMPLETED && uiState.pomodoroPhase == PomodoroPhase.FOCUS) {
+            showCoffeeOverlay = true
+        }
+    }
 
     // Auto-exit Zen mode when timer completes or is idle
     LaunchedEffect(uiState.status) {
@@ -600,10 +614,22 @@ fun StudyTimerScreen(
                 val accentColor = colors.accent
                 val trackColor = colors.surface
 
+                val infiniteBreathing = rememberInfiniteTransition(label = "TimerBreathing")
+                val breathingPulseScale by infiniteBreathing.animateFloat(
+                    initialValue = 0.985f,
+                    targetValue = 1.015f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 4000, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "breathingPulse"
+                )
+
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(if (isZenMode) 290.dp else 260.dp)
+                        .scale(if (uiState.status == TimerStatus.RUNNING) breathingPulseScale else 1f)
                         .clickable(enabled = uiState.status == TimerStatus.RUNNING || uiState.status == TimerStatus.PAUSED) {
                             isZenMode = !isZenMode
                         }
@@ -696,13 +722,13 @@ fun StudyTimerScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         val subtitleText = when (uiState.status) {
-                            TimerStatus.RUNNING -> if (uiState.mode == TimerMode.POMODORO) uiState.pomodoroPhase.label else "Stay in the zone"
-                            TimerStatus.PAUSED -> "Take a quick breath"
-                            TimerStatus.COMPLETED -> "Well done! Session logged"
+                            TimerStatus.RUNNING -> if (uiState.mode == TimerMode.POMODORO) "In the flow — let the world wait." else "One concept at a time. Steady and calm."
+                            TimerStatus.PAUSED -> "Take a breath. No rush, just steady pacing."
+                            TimerStatus.COMPLETED -> "☕ Coffee time — step away, take a breath."
                             TimerStatus.IDLE -> when (uiState.mode) {
-                                TimerMode.POMODORO -> "${uiState.pomodoroPhase.durationMinutes}m ${uiState.pomodoroPhase.label}"
-                                TimerMode.COUNTDOWN -> "${uiState.totalDurationSeconds / 60}m session"
-                                TimerMode.COUNT_UP -> "Open session"
+                                TimerMode.POMODORO -> "☕ ${uiState.pomodoroPhase.durationMinutes}m ${uiState.pomodoroPhase.label} • Quiet focus"
+                                TimerMode.COUNTDOWN -> "${uiState.totalDurationSeconds / 60}m serene session"
+                                TimerMode.COUNT_UP -> "Open flow session"
                             }
                         }
 
@@ -723,7 +749,14 @@ fun StudyTimerScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Minimalist Floating Ambient Audio Bar
+                MinimalistAmbientAudioBar(
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Session logged banner
                 AnimatedVisibility(
@@ -866,6 +899,23 @@ fun StudyTimerScreen(
             }
         }
     }
+
+    // Atmospheric "Coffee Time" Restorative Break Overlay
+    CoffeeTimeOverlay(
+        visible = showCoffeeOverlay,
+        onStartBreak = { durationMinutes ->
+            showCoffeeOverlay = false
+            viewModel.setCustomDurationMinutes(durationMinutes)
+            viewModel.startTimer()
+        },
+        onFinishForNow = {
+            showCoffeeOverlay = false
+            viewModel.resetTimer()
+        },
+        onDismiss = {
+            showCoffeeOverlay = false
+        }
+    )
 
     // Custom Duration Dialog
     if (uiState.showCustomDurationDialog) {

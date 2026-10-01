@@ -83,14 +83,18 @@ class ExamCountdownWidgetProvider : AppWidgetProvider() {
                 )
 
                 for (appWidgetId in appWidgetIds) {
-                    val views = RemoteViews(context.packageName, R.layout.widget_exam_countdown).apply {
-                        setTextViewText(R.id.widget_exam_title, examTitle)
-                        setTextViewText(R.id.widget_exam_subtitle, examSubtitle)
-                        setTextViewText(R.id.widget_exam_countdown_text, countdownBadge)
-                        setOnClickPendingIntent(R.id.widget_exam_root, pendingOpen)
-                        setOnClickPendingIntent(R.id.widget_exam_action_button, pendingOpen)
+                    try {
+                        val views = RemoteViews(context.packageName, R.layout.widget_exam_countdown).apply {
+                            setTextViewText(R.id.widget_exam_title, examTitle)
+                            setTextViewText(R.id.widget_exam_subtitle, examSubtitle)
+                            setTextViewText(R.id.widget_exam_countdown_text, countdownBadge)
+                            setOnClickPendingIntent(R.id.widget_exam_root, pendingOpen)
+                            setOnClickPendingIntent(R.id.widget_exam_action_button, pendingOpen)
+                        }
+                        appWidgetManager.updateAppWidget(appWidgetId, views)
+                    } catch (t: Throwable) {
+                        android.util.Log.e("ExamCountdownWidgetProvider", "Fault protected in widget update: $appWidgetId", t)
                     }
-                    appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
             }
         }

@@ -118,14 +118,18 @@ class DailyPlanWidgetProvider : AppWidgetProvider() {
                 )
 
                 for (appWidgetId in appWidgetIds) {
-                    val views = RemoteViews(context.packageName, R.layout.widget_daily_plan).apply {
-                        setTextViewText(R.id.widget_title, sessionTitle)
-                        setTextViewText(R.id.widget_subtitle, sessionSubtitle)
-                        setTextViewText(R.id.widget_streak_or_time, streakText)
-                        setOnClickPendingIntent(R.id.widget_root, pendingOpen)
-                        setOnClickPendingIntent(R.id.widget_action_button, pendingTimer)
+                    try {
+                        val views = RemoteViews(context.packageName, R.layout.widget_daily_plan).apply {
+                            setTextViewText(R.id.widget_title, sessionTitle)
+                            setTextViewText(R.id.widget_subtitle, sessionSubtitle)
+                            setTextViewText(R.id.widget_streak_or_time, streakText)
+                            setOnClickPendingIntent(R.id.widget_root, pendingOpen)
+                            setOnClickPendingIntent(R.id.widget_action_button, pendingTimer)
+                        }
+                        appWidgetManager.updateAppWidget(appWidgetId, views)
+                    } catch (t: Throwable) {
+                        android.util.Log.e("DailyPlanWidgetProvider", "Fault protected in widget update: $appWidgetId", t)
                     }
-                    appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
             }
         }
