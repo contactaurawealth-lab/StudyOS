@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<voice-interaction-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="com.studyos.app.core.assistant.StudyOSVoiceInteractionSessionService"
+    android:recognitionService="com.studyos.app.core.assistant.StudyOSRecognitionService"
+    android:settingsActivity="com.studyos.app.MainActivity"
+    android:supportsAssist="true"
+    android:supportsLocalInteraction="true" />

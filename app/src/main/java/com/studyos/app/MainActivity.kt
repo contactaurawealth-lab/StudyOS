@@ -79,6 +79,12 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        if (intent.getBooleanExtra("OPEN_AI_CHAT", false)) {
+            val convId = intent.getStringExtra("CONVERSATION_ID")
+            pendingRoute.value = Screen.Ai.createRoute(conversationId = convId)
+            return
+        }
+
         // Handle shared document / file via ACTION_SEND or ACTION_VIEW
         val uri: android.net.Uri? = when (intent.action) {
             Intent.ACTION_SEND -> {

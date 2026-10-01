@@ -24,12 +24,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -42,17 +50,27 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.studyos.app.StudyOSApplication
+import com.studyos.app.core.assistant.AssistantCustomization
+import com.studyos.app.core.assistant.AssistantPersona
+import com.studyos.app.core.assistant.AssistantThemeGlow
+import com.studyos.app.core.assistant.StudyOSAssistantManager
 import com.studyos.app.core.model.AppTheme
 import com.studyos.app.core.notification.StudyOSNotificationManager
 import com.studyos.app.core.ui.component.StudyOSButton
@@ -60,9 +78,13 @@ import com.studyos.app.core.ui.component.StudyOSDialog
 import com.studyos.app.core.ui.component.StudyOSDivider
 import com.studyos.app.core.ui.component.StudyOSIconButton
 import com.studyos.app.core.ui.component.StudyOSListItem
+import com.studyos.app.core.ui.component.StudyOSOutlinedButton
 import com.studyos.app.core.ui.component.StudyOSSectionHeader
+import com.studyos.app.features.assistant.AssistantOverlayActivity
 import com.studyos.app.features.settings.viewmodel.SettingsViewModel
 import com.studyos.app.theme.StudyOSTheme
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -86,6 +108,17 @@ fun SettingsScreen(
     var showRestoreConfirmDialog by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
+
+    val scope = rememberCoroutineScope()
+    val app = context.applicationContext as? StudyOSApplication
+    val assistantCustomization by (app?.container?.preferencesDataSource?.assistantCustomization ?: flowOf(AssistantCustomization())).collectAsState(initial = AssistantCustomization())
+    var isDefaultAssistant by remember { mutableStateOf(StudyOSAssistantManager.isDefaultAssistant(context)) }
+    var showAssistantCustomizationDialog by remember { mutableStateOf(false) }
+    var showOemInstructionsDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isDefaultAssistant = StudyOSAssistantManager.isDefaultAssistant(context)
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -416,6 +449,126 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Digital Assistant (Power Button) Section
+            StudyOSSectionHeader(
+                title = "Digital Assistant (Power Button)",
+                description = "Trigger StudyOS Gemini-style assistant over any app by long-pressing your phone's power button or swiping from the bottom corner."
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shapes.surface)
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, shapes.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isDefaultAssistant) Color(0xFF00E676).copy(alpha = 0.15f) else colors.accent.copy(alpha = 0.15f)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isDefaultAssistant) Icons.Outlined.CheckCircle else Icons.Outlined.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = if (isDefaultAssistant) Color(0xFF00E676) else colors.accent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "System Default Assistant",
+                                    style = typography.body.copy(fontWeight = FontWeight.SemiBold),
+                                    color = colors.primaryText
+                                )
+                                Text(
+                                    text = if (isDefaultAssistant) "Active • Ready for power button press" else "Not selected as default assistant",
+                                    style = typography.caption,
+                                    color = if (isDefaultAssistant) Color(0xFF00E676) else colors.secondaryText
+                                )
+                            }
+                        }
+
+                        StudyOSOutlinedButton(
+                            text = if (isDefaultAssistant) "Change" else "Enable",
+                            onClick = {
+                                StudyOSAssistantManager.openAssistantSettings(context)
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    StudyOSDivider()
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Assistant Customization & Preview
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Assistant Theme & Persona",
+                                style = typography.body.copy(fontWeight = FontWeight.Medium),
+                                color = colors.primaryText
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${assistantCustomization.themeGlow.title} • ${assistantCustomization.persona.title}",
+                                style = typography.caption,
+                                color = colors.secondaryText
+                            )
+                        }
+
+                        StudyOSOutlinedButton(
+                            text = "Customize",
+                            onClick = { showAssistantCustomizationDialog = true }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StudyOSButton(
+                            text = "Test Assistant",
+                            onClick = {
+                                val testIntent = Intent(context, AssistantOverlayActivity::class.java).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                }
+                                context.startActivity(testIntent)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        StudyOSOutlinedButton(
+                            text = "Device Setup Guide",
+                            onClick = { showOemInstructionsDialog = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
             // Data & Backup Section
             StudyOSSectionHeader(
                 title = "Data & Backup",
@@ -684,6 +837,246 @@ fun SettingsScreen(
             },
             dismissButtonText = "Cancel",
             onDismiss = { showResetConfirmDialog = false }
+        )
+    }
+
+    if (showAssistantCustomizationDialog) {
+        var tempCustomization by remember { mutableStateOf(assistantCustomization) }
+        StudyOSDialog(
+            onDismissRequest = { showAssistantCustomizationDialog = false },
+            title = "Customize Assistant",
+            content = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = "GLOW ACCENT THEME",
+                        style = typography.caption.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = colors.mutedText
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistantThemeGlow.entries.forEach { glow ->
+                            val isSel = tempCustomization.themeGlow == glow
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSel) glow.accentColor.copy(alpha = 0.2f) else colors.surface)
+                                    .border(
+                                        width = if (isSel) 1.5.dp else 1.dp,
+                                        color = if (isSel) glow.accentColor else colors.border,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable { tempCustomization = tempCustomization.copy(themeGlow = glow) }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(Brush.linearGradient(listOf(glow.startColor, glow.endColor)))
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = glow.title,
+                                        style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                        color = colors.primaryText
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "AI TUTOR PERSONA",
+                        style = typography.caption.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = colors.mutedText
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    AssistantPersona.entries.forEach { persona ->
+                        val isSel = tempCustomization.persona == persona
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { tempCustomization = tempCustomization.copy(persona = persona) }
+                                .padding(vertical = 6.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (isSel) Icons.Outlined.CheckCircle else Icons.Outlined.AutoAwesome,
+                                contentDescription = null,
+                                tint = if (isSel) colors.accent else colors.mutedText,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = persona.title,
+                                style = if (isSel) typography.bodyMedium else typography.body,
+                                color = colors.primaryText
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    StudyOSDivider()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Screen Context",
+                                style = typography.bodyMedium,
+                                color = colors.primaryText
+                            )
+                            Text(
+                                text = "Capture text on screen for contextual study queries",
+                                style = typography.caption,
+                                color = colors.secondaryText
+                            )
+                        }
+                        Switch(
+                            checked = tempCustomization.autoCaptureScreen,
+                            onCheckedChange = { tempCustomization = tempCustomization.copy(autoCaptureScreen = it) },
+                            colors = SwitchDefaults.colors(checkedTrackColor = colors.accent)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Haptic Vibration",
+                                style = typography.bodyMedium,
+                                color = colors.primaryText
+                            )
+                            Text(
+                                text = "Subtle vibration when activated and on answer completion",
+                                style = typography.caption,
+                                color = colors.secondaryText
+                            )
+                        }
+                        Switch(
+                            checked = tempCustomization.hapticFeedback,
+                            onCheckedChange = { tempCustomization = tempCustomization.copy(hapticFeedback = it) },
+                            colors = SwitchDefaults.colors(checkedTrackColor = colors.accent)
+                        )
+                    }
+                }
+            },
+            confirmButtonText = "Save Changes",
+            onConfirm = {
+                scope.launch {
+                    app?.container?.preferencesDataSource?.updateAssistantCustomization(tempCustomization)
+                }
+                showAssistantCustomizationDialog = false
+            },
+            dismissButtonText = "Cancel",
+            onDismiss = { showAssistantCustomizationDialog = false }
+        )
+    }
+
+    if (showOemInstructionsDialog) {
+        StudyOSDialog(
+            onDismissRequest = { showOemInstructionsDialog = false },
+            title = "Power Button Gesture Setup",
+            content = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = "To trigger StudyOS by holding your power/side button, verify your device's gesture settings:",
+                        style = typography.caption,
+                        color = colors.secondaryText
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Google Pixel & Motorola (Stock Android)",
+                        style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = colors.accent
+                    )
+                    Text(
+                        text = "Settings > System > Gestures > Press and hold power button > Choose 'Digital assistant'",
+                        style = typography.caption,
+                        color = colors.primaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Samsung Galaxy (One UI)",
+                        style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = colors.accent
+                    )
+                    Text(
+                        text = "Settings > Advanced features > Side button > Press and hold > Choose 'Digital assistant'",
+                        style = typography.caption,
+                        color = colors.primaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Xiaomi / Redmi / POCO (HyperOS / MIUI)",
+                        style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = colors.accent
+                    )
+                    Text(
+                        text = "Settings > Additional settings > Gesture shortcuts > Launch Google Assistant > Turn on 'Press and hold power button for 0.5s'",
+                        style = typography.caption,
+                        color = colors.primaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "OnePlus / OPPO / Realme",
+                        style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = colors.accent
+                    )
+                    Text(
+                        text = "Settings > System settings > Power button > Press and hold > Voice Assistant",
+                        style = typography.caption,
+                        color = colors.primaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    StudyOSButton(
+                        text = "Open System Gesture Settings",
+                        onClick = {
+                            StudyOSAssistantManager.openPowerButtonGestureSettings(context)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButtonText = "Done",
+            onConfirm = { showOemInstructionsDialog = false }
         )
     }
 }

@@ -10,6 +10,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import com.studyos.app.core.assistant.AssistantCustomization
+import com.studyos.app.core.assistant.AssistantPersona
+import com.studyos.app.core.assistant.AssistantThemeGlow
 import com.studyos.app.core.model.AppState
 import com.studyos.app.core.model.AppTheme
 import com.studyos.app.domain.model.AiConfig
@@ -40,6 +43,7 @@ interface PreferencesDataSource {
     val appBlockerEnabled: Flow<Boolean> get() = flowOf(false)
     val blockedPackages: Flow<Set<String>> get() = flowOf(emptySet())
     val appBlockerPasscode: Flow<String> get() = flowOf("")
+    val assistantCustomization: Flow<AssistantCustomization> get() = flowOf(AssistantCustomization())
     suspend fun setThemePreference(theme: AppTheme)
     suspend fun setOnboardingCompleted(completed: Boolean)
     suspend fun resetOnboarding()
@@ -54,6 +58,7 @@ interface PreferencesDataSource {
     suspend fun setAppBlockerEnabled(enabled: Boolean) {}
     suspend fun setBlockedPackages(packages: Set<String>) {}
     suspend fun setAppBlockerPasscode(passcode: String) {}
+    suspend fun updateAssistantCustomization(customization: AssistantCustomization) {}
 }
 
 class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDataSource {
@@ -78,6 +83,12 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         val APP_BLOCKER_ENABLED = booleanPreferencesKey("app_blocker_enabled")
         val BLOCKED_PACKAGES = androidx.datastore.preferences.core.stringSetPreferencesKey("blocked_packages")
         val APP_BLOCKER_PASSCODE = stringPreferencesKey("app_blocker_passcode")
+        val ASSISTANT_THEME_GLOW = stringPreferencesKey("assistant_theme_glow")
+        val ASSISTANT_PERSONA = stringPreferencesKey("assistant_persona")
+        val ASSISTANT_AUTO_LISTEN = booleanPreferencesKey("assistant_auto_listen")
+        val ASSISTANT_SPEAK_RESPONSES = booleanPreferencesKey("assistant_speak_responses")
+        val ASSISTANT_AUTO_CAPTURE_SCREEN = booleanPreferencesKey("assistant_auto_capture_screen")
+        val ASSISTANT_HAPTIC_FEEDBACK = booleanPreferencesKey("assistant_haptic_feedback")
     }
 
     override val appState: Flow<AppState> = context.dataStore.data
@@ -423,6 +434,45 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
             preferences[PreferencesKeys.APP_BLOCKER_PASSCODE] = passcode
         }
         syncAppBlockerManager()
+    }
+
+    override val assistantCustomization: Flow<AssistantCustomization> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { prefs ->
+            val themeStr = prefs[PreferencesKeys.ASSISTANT_THEME_GLOW] ?: AssistantThemeGlow.GEMINI_AURORA.name
+            val personaStr = prefs[PreferencesKeys.ASSISTANT_PERSONA] ?: AssistantPersona.SOCRATIC_TUTOR.name
+            val themeGlow = try {
+                AssistantThemeGlow.valueOf(themeStr)
+            } catch (_: Exception) {
+                AssistantThemeGlow.GEMINI_AURORA
+            }
+            val persona = try {
+                AssistantPersona.valueOf(personaStr)
+            } catch (_: Exception) {
+                AssistantPersona.SOCRATIC_TUTOR
+            }
+
+            AssistantCustomization(
+                themeGlow = themeGlow,
+                persona = persona,
+                autoListenOnLaunch = prefs[PreferencesKeys.ASSISTANT_AUTO_LISTEN] ?: true,
+                speakResponses = prefs[PreferencesKeys.ASSISTANT_SPEAK_RESPONSES] ?: false,
+                autoCaptureScreen = prefs[PreferencesKeys.ASSISTANT_AUTO_CAPTURE_SCREEN] ?: true,
+                hapticFeedback = prefs[PreferencesKeys.ASSISTANT_HAPTIC_FEEDBACK] ?: true
+            )
+        }
+
+    override suspend fun updateAssistantCustomization(customization: AssistantCustomization) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.ASSISTANT_THEME_GLOW] = customization.themeGlow.name
+            prefs[PreferencesKeys.ASSISTANT_PERSONA] = customization.persona.name
+            prefs[PreferencesKeys.ASSISTANT_AUTO_LISTEN] = customization.autoListenOnLaunch
+            prefs[PreferencesKeys.ASSISTANT_SPEAK_RESPONSES] = customization.speakResponses
+            prefs[PreferencesKeys.ASSISTANT_AUTO_CAPTURE_SCREEN] = customization.autoCaptureScreen
+            prefs[PreferencesKeys.ASSISTANT_HAPTIC_FEEDBACK] = customization.hapticFeedback
+        }
     }
 
     private suspend fun syncAppBlockerManager() {
