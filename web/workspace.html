@@ -1,0 +1,2165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyOS — Workspace Operating System</title>
+    <meta name="description" content="Intelligent Workspace Operating System with Time Management Ring Engine, Dynamic 12-Widget Dashboard Synthesizer, Document Routing Bridge, and Execution State Protocol.">
+    <link rel="icon" type="image/png" href="studyos_logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0A0B0E;
+            --surface-color: #12151D;
+            --card-color: #181C27;
+            --card-hover: #1F2432;
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-border-active: rgba(211, 154, 58, 0.4);
+            --accent-gold: #D39A3A;
+            --accent-gold-glow: rgba(211, 154, 58, 0.25);
+            --accent-blue: #3B82F6;
+            --accent-emerald: #10B981;
+            --accent-purple: #8B5CF6;
+            --accent-rose: #F43F5E;
+            --text-primary: #F0F2F5;
+            --text-secondary: #9BA3AF;
+            --text-muted: #5E6573;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Glassmorphism Ambient Glows */
+        .ambient-glow {
+            position: fixed;
+            width: 550px;
+            height: 550px;
+            border-radius: 50%;
+            filter: blur(150px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.12;
+            transition: all 0.5s ease;
+        }
+        .glow-1 { top: -150px; left: -100px; background: var(--accent-gold); }
+        .glow-2 { bottom: -200px; right: -100px; background: var(--accent-blue); }
+
+        /* App Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(10, 11, 14, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 12px 24px;
+        }
+
+        .header-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand-cluster {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            border: 1px solid var(--card-border);
+        }
+
+        .brand-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .os-badge {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(211, 154, 58, 0.15);
+            color: var(--accent-gold);
+            border: 1px solid rgba(211, 154, 58, 0.3);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .os-badge::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-emerald);
+            box-shadow: 0 0 8px var(--accent-emerald);
+        }
+
+        /* Preset Navigation Tabs */
+        .preset-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface-color);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            overflow-x: auto;
+        }
+
+        .preset-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .preset-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .preset-btn.active {
+            color: #0A0B0E;
+            background: var(--accent-gold);
+            font-weight: 700;
+            box-shadow: 0 2px 10px var(--accent-gold-glow);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-main);
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid var(--card-border);
+            background: var(--surface-color);
+            color: var(--text-primary);
+        }
+
+        .btn-action:hover {
+            border-color: var(--accent-gold);
+            background: rgba(211, 154, 58, 0.1);
+        }
+
+        .btn-action.primary {
+            background: var(--accent-gold);
+            color: #0A0B0E;
+            border-color: var(--accent-gold);
+            font-weight: 700;
+        }
+
+        .btn-action.primary:hover {
+            background: #e2a644;
+        }
+
+        /* Subsystem Alert Toast / Banner */
+        #alert-banner {
+            position: fixed;
+            top: 70px;
+            right: 24px;
+            z-index: 100;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            background: rgba(24, 28, 39, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--accent-gold);
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px var(--accent-gold-glow);
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Workspace Grid Container */
+        main {
+            flex: 1;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 12-Widget Grid Layout */
+        .widget-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+
+        /* Widget Base Styling */
+        .widget-card {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            backdrop-filter: blur(12px);
+        }
+
+        .widget-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .widget-title-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .widget-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        .widget-id-pill {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .widget-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+        }
+
+        /* Grid Spans */
+        .col-span-12 { grid-column: span 12; }
+        .col-span-8  { grid-column: span 8; }
+        .col-span-7  { grid-column: span 7; }
+        .col-span-6  { grid-column: span 6; }
+        .col-span-5  { grid-column: span 5; }
+        .col-span-4  { grid-column: span 4; }
+        .col-span-3  { grid-column: span 3; }
+
+        @media (max-width: 1200px) {
+            .col-span-8, .col-span-7, .col-span-6, .col-span-5, .col-span-4 { grid-column: span 6; }
+        }
+        @media (max-width: 768px) {
+            .col-span-12, .col-span-8, .col-span-7, .col-span-6, .col-span-5, .col-span-4, .col-span-3 { grid-column: span 12; }
+            .header-inner { flex-direction: column; align-items: stretch; }
+            .preset-bar { overflow-x: auto; }
+        }
+
+        /* ==========================================================================
+           WIDGET 1: FOCUS RING TIMER (Subsystem 1 Engine)
+           ========================================================================== */
+        .timer-display-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .ring-svg-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .ring-svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .ring-trail {
+            fill: none;
+            stroke: var(--surface-color);
+            stroke-width: 6;
+        }
+
+        .ring-progress {
+            fill: none;
+            stroke: var(--accent-gold);
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-dasharray: 282.74;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.8s ease, stroke 0.3s ease;
+            filter: drop-shadow(0 0 8px var(--accent-gold-glow));
+        }
+
+        .ring-center-content {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ring-time-text {
+            font-family: var(--font-mono);
+            font-size: 2.3rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: var(--text-primary);
+        }
+
+        .ring-mode-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .timer-controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .ctrl-btn {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ctrl-btn:hover {
+            border-color: var(--accent-gold);
+            background: rgba(211, 154, 58, 0.1);
+        }
+
+        .ctrl-btn.primary {
+            background: var(--accent-gold);
+            color: #0A0B0E;
+            border-color: var(--accent-gold);
+            font-weight: 700;
+        }
+
+        .timer-meta-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-top: 16px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        /* Sound Alert Selector */
+        .sound-select {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.78rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        /* ==========================================================================
+           WIDGET 2: SMART TASK CHECKLIST
+           ========================================================================== */
+        .task-list-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+        }
+
+        .task-item:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .task-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-checkbox {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 5px;
+            border: 1.5px solid var(--text-muted);
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .task-checkbox:checked {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+
+        .task-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: #0A0B0E;
+            font-size: 12px;
+            font-weight: 800;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .task-text {
+            font-size: 0.88rem;
+            transition: color 0.2s ease;
+        }
+
+        .task-item.done .task-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .priority-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .p-high { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+        .p-mid  { background: rgba(211, 154, 58, 0.15); color: var(--accent-gold); border: 1px solid rgba(211, 154, 58, 0.3); }
+        .p-low  { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .task-add-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .task-input {
+            flex: 1;
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .task-input:focus {
+            border-color: var(--accent-gold);
+        }
+
+        /* ==========================================================================
+           WIDGET 3: RAPID SCRATCHPAD
+           ========================================================================== */
+        .scratchpad-area {
+            width: 100%;
+            height: 180px;
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 12px;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        .scratchpad-area:focus {
+            border-color: var(--accent-gold);
+        }
+
+        .scratchpad-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* ==========================================================================
+           WIDGET 4: CHRONOLOGICAL AGENDA
+           ========================================================================== */
+        .agenda-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .agenda-timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .agenda-node {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .agenda-node::before {
+            content: '';
+            position: absolute;
+            left: -17px;
+            top: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            border: 2px solid var(--card-color);
+        }
+
+        .agenda-node.active::before {
+            background: var(--accent-gold);
+            box-shadow: 0 0 8px var(--accent-gold);
+        }
+
+        .agenda-time {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .agenda-desc {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* ==========================================================================
+           WIDGET 5: HABIT & STREAK TRACKER
+           ========================================================================== */
+        .habit-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .habit-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--surface-color);
+            border-radius: 8px;
+        }
+
+        .habit-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .days-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot-day {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dot-day.done {
+            background: var(--accent-emerald);
+            color: #0A0B0E;
+            border-color: var(--accent-emerald);
+            font-weight: 700;
+        }
+
+        /* ==========================================================================
+           WIDGET 6: UNIVERSAL DOCUMENT VIEWER (Subsystem 3 Bridge)
+           ========================================================================== */
+        .doc-viewer-zone {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .dropzone-box {
+            border: 2px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 18px;
+            text-align: center;
+            background: var(--surface-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dropzone-box:hover, .dropzone-box.dragover {
+            border-color: var(--accent-gold);
+            background: rgba(211, 154, 58, 0.05);
+        }
+
+        .doc-meta-card {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .doc-file-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .doc-filename {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+        }
+
+        .doc-type-pill {
+            font-size: 0.7rem;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .ai-action-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .chip-ai {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            font-size: 0.72rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip-ai:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            background: rgba(211, 154, 58, 0.1);
+        }
+
+        /* ==========================================================================
+           WIDGET 7: EISENHOWER PRIORITY MATRIX
+           ========================================================================== */
+        .eisenhower-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .quadrant-box {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px;
+            min-height: 100px;
+        }
+
+        .quad-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .q-do { color: var(--accent-rose); }
+        .q-schedule { color: var(--accent-blue); }
+        .q-delegate { color: var(--accent-gold); }
+        .q-eliminate { color: var(--text-muted); }
+
+        .quad-items {
+            font-size: 0.78rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: var(--text-secondary);
+        }
+
+        /* ==========================================================================
+           WIDGET 8: METRIC & TARGET COUNTER
+           ========================================================================== */
+        .metric-cards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .metric-row {
+            background: var(--surface-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .metric-val {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--accent-gold);
+            font-weight: 700;
+        }
+
+        .metric-progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .metric-progress-fill {
+            height: 100%;
+            background: var(--accent-gold);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* ==========================================================================
+           WIDGET 9: AMBIENT SOUNDSCAPE PLAYER (Web Audio Synthesis)
+           ========================================================================== */
+        .sound-tracks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sound-track-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface-color);
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        .sound-track-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .sound-toggle-btn {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sound-toggle-btn.playing {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        /* ==========================================================================
+           WIDGET 10: DYNAMIC FLASHCARD DECK (3D CSS Flip)
+           ========================================================================== */
+        .flashcard-3d-scene {
+            perspective: 800px;
+            min-height: 150px;
+            cursor: pointer;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .flashcard-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-face {
+            position: absolute;
+            inset: 0;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: var(--surface-color);
+        }
+
+        .flashcard-back {
+            transform: rotateY(180deg);
+            background: #1B2130;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .card-prompt {
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .card-answer {
+            font-size: 0.88rem;
+            color: #93C5FD;
+            line-height: 1.4;
+        }
+
+        .flashcard-rating-bar {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+
+        .rate-btn {
+            flex: 1;
+            padding: 5px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            background: var(--surface-color);
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .rate-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--text-primary);
+        }
+
+        /* ==========================================================================
+           WIDGET 11: SCRATCHPAD CALCULATOR & CONVERTER
+           ========================================================================== */
+        .calc-screen {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            text-align: right;
+            color: var(--accent-emerald);
+            margin-bottom: 8px;
+            min-height: 42px;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .calc-btn {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 8px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .calc-btn:hover {
+            border-color: var(--accent-gold);
+        }
+
+        .calc-btn.op {
+            color: var(--accent-gold);
+            font-weight: 700;
+        }
+
+        /* ==========================================================================
+           WIDGET 12: CONCEPT GRAPH / NESTED OUTLINE
+           ========================================================================== */
+        .concept-tree {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.82rem;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: var(--surface-color);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-gold);
+        }
+
+        .tree-subnode {
+            margin-left: 20px;
+            border-left-color: var(--accent-blue);
+        }
+
+        /* ==========================================================================
+           STATE INSPECTOR MODAL (Subsystem 4 JSON Protocol)
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 850px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .json-code-view {
+            background: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #A5B4FC;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 480px;
+        }
+
+        .modal-footer {
+            padding: 14px 24px;
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Alert Notification Banner -->
+    <div id="alert-banner">
+        <span id="alert-icon">⚡</span>
+        <span id="alert-msg">Notification Triggered</span>
+    </div>
+
+    <!-- Top Header -->
+    <header>
+        <div class="header-inner">
+            <div class="brand-cluster">
+                <a href="/" class="brand-link">
+                    <img src="studyos_logo.png" alt="StudyOS" class="brand-logo">
+                    <span class="brand-name">StudyOS</span>
+                </a>
+                <div class="os-badge" id="system-mode-badge">WORKSPACE AGENT: FOCUS</div>
+            </div>
+
+            <!-- Preset Selector Tabs -->
+            <div class="preset-bar">
+                <button class="preset-btn active" onclick="switchPreset('academic')">Academic & Exam</button>
+                <button class="preset-btn" onclick="switchPreset('deepwork')">Deep Work & Code</button>
+                <button class="preset-btn" onclick="switchPreset('project')">Project Management</button>
+                <button class="preset-btn" onclick="switchPreset('writing')">Creative Writing</button>
+                <button class="preset-btn" onclick="switchPreset('omni')">Omni (All 12)</button>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn-action" onclick="openStateInspector()">
+                    <span>{ }</span> Inspect Protocol JSON
+                </button>
+                <a href="/" class="btn-action primary">
+                    Return to Portal
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Dashboard Grid -->
+    <main>
+        <div class="widget-grid" id="workspace-grid">
+
+            <!-- WIDGET 1: FOCUS RING TIMER -->
+            <div class="widget-card col-span-4" id="card-w1">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Focus Ring Timer</span>
+                        <span class="widget-id-pill">widget_focus_timer</span>
+                    </div>
+                    <span class="widget-badge" id="timer-badge">Slot 1</span>
+                </div>
+                <div class="timer-display-box">
+                    <div class="ring-svg-container">
+                        <svg class="ring-svg" viewBox="0 0 100 100">
+                            <circle class="ring-trail" cx="50" cy="50" r="45"></circle>
+                            <circle class="ring-progress" id="ring-svg-circle" cx="50" cy="50" r="45"></circle>
+                        </svg>
+                        <div class="ring-center-content">
+                            <div class="ring-time-text" id="timer-time-display">25:00</div>
+                            <div class="ring-mode-label" id="timer-mode-display">POMODORO FOCUS</div>
+                        </div>
+                    </div>
+
+                    <div class="timer-controls-row">
+                        <button class="ctrl-btn primary" id="btn-timer-toggle" onclick="toggleTimer()">▶ Start</button>
+                        <button class="ctrl-btn" onclick="resetTimer()">↺ Reset</button>
+                        <button class="ctrl-btn" onclick="addMinutes(5)">+5m</button>
+                    </div>
+
+                    <div class="timer-meta-strip">
+                        <span>Alert Tone:</span>
+                        <select class="sound-select" id="sound-profile-select" onchange="changeSoundProfile(this.value)">
+                            <option value="gentle_bell">528Hz Gentle Bell</option>
+                            <option value="digital_pulse">880Hz Digital Pulse</option>
+                            <option value="singing_bowl">432Hz Singing Bowl</option>
+                            <option value="chime_cascade">Chime Cascade</option>
+                        </select>
+                        <button class="ctrl-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="testCurrentSound()">Test</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 2: SMART TASK CHECKLIST -->
+            <div class="widget-card col-span-4" id="card-w2">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Smart Task Checklist</span>
+                        <span class="widget-id-pill">widget_task_list</span>
+                    </div>
+                    <span class="widget-badge">Slot 2</span>
+                </div>
+                <div class="task-list-items" id="task-list-container">
+                    <div class="task-item">
+                        <div class="task-left">
+                            <input type="checkbox" class="task-checkbox" onchange="toggleTaskDone(this)">
+                            <span class="task-text">Derive Michaelis-Menten Kinetics</span>
+                        </div>
+                        <span class="priority-badge p-high">High</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-left">
+                            <input type="checkbox" class="task-checkbox" onchange="toggleTaskDone(this)">
+                            <span class="task-text">Review Spaced Repetition deck</span>
+                        </div>
+                        <span class="priority-badge p-mid">Mid</span>
+                    </div>
+                    <div class="task-item done">
+                        <div class="task-left">
+                            <input type="checkbox" class="task-checkbox" checked onchange="toggleTaskDone(this)">
+                            <span class="task-text">Morning Feynman Audio Walk</span>
+                        </div>
+                        <span class="priority-badge p-low">Done</span>
+                    </div>
+                </div>
+                <div class="task-add-row">
+                    <input type="text" class="task-input" id="new-task-input" placeholder="Add rapid task..." onkeypress="handleTaskKey(event)">
+                    <button class="ctrl-btn" onclick="addNewTask()">Add</button>
+                </div>
+            </div>
+
+            <!-- WIDGET 3: RAPID SCRATCHPAD -->
+            <div class="widget-card col-span-4" id="card-w3">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Rapid Scratchpad</span>
+                        <span class="widget-id-pill">widget_scratchpad</span>
+                    </div>
+                    <span class="widget-badge">Auto-Saved</span>
+                </div>
+                <textarea class="scratchpad-area" id="scratchpad-text" placeholder="Dump raw thoughts, formulas, or copy-paste clipboard buffers here..." oninput="saveScratchpad()"></textarea>
+                <div class="scratchpad-footer">
+                    <span id="scratchpad-counter">0 words | 0 chars</span>
+                    <button class="ctrl-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyScratchpad()">Copy Buffer</button>
+                </div>
+            </div>
+
+            <!-- WIDGET 6: UNIVERSAL DOCUMENT VIEWER -->
+            <div class="widget-card col-span-6" id="card-w6">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Universal Document Viewer & AI Actions</span>
+                        <span class="widget-id-pill">widget_doc_viewer</span>
+                    </div>
+                    <span class="widget-badge" id="doc-active-badge">Active</span>
+                </div>
+                <div class="doc-viewer-zone">
+                    <div class="doc-meta-card">
+                        <div class="doc-file-info">
+                            <span class="doc-filename" id="doc-current-name">Organic_Chemistry_Synthesis.pdf</span>
+                            <span class="doc-type-pill" id="doc-current-type">application/pdf</span>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">
+                            Primary Target: <code style="color: #93C5FD;">pdf_embed_pane</code> | Desktop: Apple Preview / Adobe Acrobat
+                        </div>
+                        <div class="ai-action-chips" id="doc-actions-container">
+                            <button class="chip-ai" onclick="triggerAiAction('extract_summary')">⚡ Extract Executive Summary</button>
+                            <button class="chip-ai" onclick="triggerAiAction('generate_qa_cards')">🗂 Generate Q&A Cards</button>
+                            <button class="chip-ai" onclick="triggerAiAction('highlight_key_takeaways')">💡 Key Takeaways</button>
+                        </div>
+                    </div>
+                    <div class="dropzone-box" onclick="document.getElementById('file-upload-input').click()">
+                        <input type="file" id="file-upload-input" style="display: none;" onchange="handleFileUpload(event)">
+                        <div style="font-size: 0.85rem; font-weight: 600;">Drag & drop document or click to inspect format</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Supports PDF, Markdown, Office Docs, Images (OCR), and Source Code</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 8: METRIC & TARGET COUNTER -->
+            <div class="widget-card col-span-6" id="card-w8">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Exam Readiness Targets</span>
+                        <span class="widget-id-pill">widget_metric_counter</span>
+                    </div>
+                    <span class="widget-badge">Real-Time</span>
+                </div>
+                <div class="metric-cards-list">
+                    <div class="metric-row">
+                        <div class="metric-header">
+                            <span class="metric-label">Spaced Cards Mastered</span>
+                            <span class="metric-val" id="metric-cards">28 / 50 cards</span>
+                        </div>
+                        <div class="metric-progress-bar">
+                            <div class="metric-progress-fill" style="width: 56%;"></div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-header">
+                            <span class="metric-label">Mock Readiness Radar</span>
+                            <span class="metric-val" id="metric-readiness">84% Readiness</span>
+                        </div>
+                        <div class="metric-progress-bar">
+                            <div class="metric-progress-fill" style="width: 84%; background: var(--accent-emerald);"></div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-header">
+                            <span class="metric-label">Consecutive Study Streak</span>
+                            <span class="metric-val" id="metric-streak">12 Days</span>
+                        </div>
+                        <div class="metric-progress-bar">
+                            <div class="metric-progress-fill" style="width: 85%; background: var(--accent-blue);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 10: DYNAMIC FLASHCARD DECK -->
+            <div class="widget-card col-span-6" id="card-w10">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Dynamic Flashcard Deck (SM-2)</span>
+                        <span class="widget-id-pill">widget_flashcards</span>
+                    </div>
+                    <span class="widget-badge" id="fc-counter-badge">Card 1 / 4</span>
+                </div>
+                <div class="flashcard-3d-scene" onclick="flipFlashcard()">
+                    <div class="flashcard-inner" id="flashcard-element">
+                        <div class="flashcard-face flashcard-front">
+                            <div class="card-prompt" id="fc-front-text">What reagent converts a secondary alcohol into a ketone without over-oxidizing?</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 10px;">Tap card to flip answer</div>
+                        </div>
+                        <div class="flashcard-face flashcard-back">
+                            <div class="card-answer" id="fc-back-text">Pyridinium Chlorochromate (PCC) in CH2Cl2 or Dess-Martin Periodinane (DMP).</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 10px;">Tap card to flip prompt</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flashcard-rating-bar">
+                    <button class="rate-btn" onclick="rateFlashcard('again')">Again (1d)</button>
+                    <button class="rate-btn" onclick="rateFlashcard('hard')">Hard (2d)</button>
+                    <button class="rate-btn" onclick="rateFlashcard('good')">Good (4d)</button>
+                    <button class="rate-btn" onclick="rateFlashcard('easy')">Easy (7d)</button>
+                </div>
+            </div>
+
+            <!-- WIDGET 12: CONCEPT GRAPH / NESTED OUTLINE -->
+            <div class="widget-card col-span-6" id="card-w12">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Concept Graph Hierarchy</span>
+                        <span class="widget-id-pill">widget_concept_graph</span>
+                    </div>
+                    <span class="widget-badge">Socratic</span>
+                </div>
+                <div class="concept-tree">
+                    <div class="tree-node">
+                        <span style="color: var(--accent-gold); font-weight: 700;">●</span>
+                        <span><strong>Carbonyl Chemistry</strong> (Master Node)</span>
+                    </div>
+                    <div class="tree-node tree-subnode">
+                        <span style="color: var(--accent-emerald);">✓</span>
+                        <span>Nucleophilic Addition Mechanism (Mastered)</span>
+                    </div>
+                    <div class="tree-node tree-subnode">
+                        <span style="color: var(--accent-gold);">⚡</span>
+                        <span>Enolate Formations & Alkylation (Active Review)</span>
+                    </div>
+                    <div class="tree-node tree-subnode">
+                        <span style="color: var(--text-muted);">○</span>
+                        <span>Crossed Aldol Condensation (Queued)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 9: AMBIENT SOUNDSCAPE PLAYER -->
+            <div class="widget-card col-span-4" id="card-w9">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Ambient Focus Soundscape</span>
+                        <span class="widget-id-pill">widget_sound_player</span>
+                    </div>
+                    <span class="widget-badge">Web Audio</span>
+                </div>
+                <div class="sound-tracks-list">
+                    <div class="sound-track-item">
+                        <div class="sound-track-info">🌧 Rainfall & Thunder</div>
+                        <button class="sound-toggle-btn" id="snd-rain-btn" onclick="toggleAmbientSound('rain')">Play</button>
+                    </div>
+                    <div class="sound-track-item">
+                        <div class="sound-track-info">🌊 White Noise Static</div>
+                        <button class="sound-toggle-btn" id="snd-white-btn" onclick="toggleAmbientSound('whitenoise')">Play</button>
+                    </div>
+                    <div class="sound-track-item">
+                        <div class="sound-track-info">🧠 40Hz Gamma Binaural</div>
+                        <button class="sound-toggle-btn" id="snd-binaural-btn" onclick="toggleAmbientSound('binaural')">Play</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 4: CHRONOLOGICAL AGENDA -->
+            <div class="widget-card col-span-4" id="card-w4">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Chronological Agenda</span>
+                        <span class="widget-id-pill">widget_agenda</span>
+                    </div>
+                    <span class="widget-badge">Today</span>
+                </div>
+                <div class="agenda-timeline">
+                    <div class="agenda-node active">
+                        <div class="agenda-time">17:50 - 18:40</div>
+                        <div class="agenda-desc">Deep Work Focus Block (Organic Synthesis)</div>
+                    </div>
+                    <div class="agenda-node">
+                        <div class="agenda-time">18:40 - 18:55</div>
+                        <div class="agenda-desc">Consolidation Rest & Hydration</div>
+                    </div>
+                    <div class="agenda-node">
+                        <div class="agenda-time">19:00 - 20:00</div>
+                        <div class="agenda-desc">Timed Mock Diagnostic Exam (Physics)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 5: HABIT & STREAK TRACKER -->
+            <div class="widget-card col-span-4" id="card-w5">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Habit & Streak Tracker</span>
+                        <span class="widget-id-pill">widget_habit_tracker</span>
+                    </div>
+                    <span class="widget-badge">7-Day</span>
+                </div>
+                <div class="habit-grid">
+                    <div class="habit-row">
+                        <span class="habit-name">Feynman Audio Walk</span>
+                        <div class="days-dots">
+                            <span class="dot-day done">M</span>
+                            <span class="dot-day done">T</span>
+                            <span class="dot-day done">W</span>
+                            <span class="dot-day done">T</span>
+                            <span class="dot-day done">F</span>
+                            <span class="dot-day done">S</span>
+                            <span class="dot-day" onclick="this.classList.toggle('done')">S</span>
+                        </div>
+                    </div>
+                    <div class="habit-row">
+                        <span class="habit-name">50 Flashcards Target</span>
+                        <div class="days-dots">
+                            <span class="dot-day done">M</span>
+                            <span class="dot-day done">T</span>
+                            <span class="dot-day done">W</span>
+                            <span class="dot-day done">T</span>
+                            <span class="dot-day done">F</span>
+                            <span class="dot-day" onclick="this.classList.toggle('done')">S</span>
+                            <span class="dot-day" onclick="this.classList.toggle('done')">S</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 7: EISENHOWER PRIORITY MATRIX -->
+            <div class="widget-card col-span-6" id="card-w7">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Eisenhower Priority Matrix</span>
+                        <span class="widget-id-pill">widget_eisenhower_matrix</span>
+                    </div>
+                    <span class="widget-badge">Triage</span>
+                </div>
+                <div class="eisenhower-grid">
+                    <div class="quadrant-box">
+                        <div class="quad-title q-do">Do First (Urgent & Important)</div>
+                        <div class="quad-items">
+                            <div>• Review missed questions in Diagnostic 3</div>
+                            <div>• Finish thermodynamics synthesis summary</div>
+                        </div>
+                    </div>
+                    <div class="quadrant-box">
+                        <div class="quad-title q-schedule">Schedule (Not Urgent, Important)</div>
+                        <div class="quad-items">
+                            <div>• Plan next week's exam timetable</div>
+                            <div>• Read chapter 8 research paper</div>
+                        </div>
+                    </div>
+                    <div class="quadrant-box">
+                        <div class="quad-title q-delegate">Delegate / Automate</div>
+                        <div class="quad-items">
+                            <div>• Export flashcard decks to CSV backup</div>
+                        </div>
+                    </div>
+                    <div class="quadrant-box">
+                        <div class="quad-title q-eliminate">Eliminate (Distractions)</div>
+                        <div class="quad-items">
+                            <div>• Clear unneeded browser tabs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDGET 11: SCRATCHPAD CALCULATOR & CONVERTER -->
+            <div class="widget-card col-span-6" id="card-w11">
+                <div class="widget-header">
+                    <div class="widget-title-group">
+                        <span class="widget-title">Scratchpad Calculator & Tape</span>
+                        <span class="widget-id-pill">widget_calc_converter</span>
+                    </div>
+                    <span class="widget-badge">Math Tape</span>
+                </div>
+                <div class="calc-screen" id="calc-display">0</div>
+                <div class="calc-grid">
+                    <button class="calc-btn" onclick="calcInput('7')">7</button>
+                    <button class="calc-btn" onclick="calcInput('8')">8</button>
+                    <button class="calc-btn" onclick="calcInput('9')">9</button>
+                    <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+                    <button class="calc-btn" onclick="calcInput('4')">4</button>
+                    <button class="calc-btn" onclick="calcInput('5')">5</button>
+                    <button class="calc-btn" onclick="calcInput('6')">6</button>
+                    <button class="calc-btn op" onclick="calcInput('*')">×</button>
+                    <button class="calc-btn" onclick="calcInput('1')">1</button>
+                    <button class="calc-btn" onclick="calcInput('2')">2</button>
+                    <button class="calc-btn" onclick="calcInput('3')">3</button>
+                    <button class="calc-btn op" onclick="calcInput('-')">-</button>
+                    <button class="calc-btn" onclick="calcClear()">C</button>
+                    <button class="calc-btn" onclick="calcInput('0')">0</button>
+                    <button class="calc-btn op" onclick="calcEval()">=</button>
+                    <button class="calc-btn op" onclick="calcInput('+')">+</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- State Inspector Modal (Subsystem 4 Protocol) -->
+    <div class="modal-overlay" id="inspector-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title">Workspace Operating System State Schema (Section 4)</div>
+                <button class="modal-close" onclick="closeStateInspector()">✕</button>
+            </div>
+            <div class="modal-body">
+                <pre class="json-code-view" id="inspector-json-display"></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-action" onclick="copyStateJson()">Copy JSON</button>
+                <button class="btn-action primary" onclick="closeStateInspector()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // SUBSYSTEM 1: TIME MANAGEMENT & RING ENGINE
+        // =========================================================================
+        const CIRCUMFERENCE = 282.74; // 2 * PI * 45
+        let totalSeconds = 1500;
+        let remainingSeconds = 1500;
+        let timerRunning = false;
+        let timerInterval = null;
+        let currentSound = 'gentle_bell';
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Procedural Audio Synthesizer (528Hz bell, 880Hz pulse, 432Hz bowl, cascade)
+        function playSynthesizedSound(type) {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+
+                if (type === 'gentle_bell') {
+                    // 528 Hz single tone (soft focus exit)
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(528, now);
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.6, now + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 1.9);
+                } else if (type === 'digital_pulse') {
+                    // 880 Hz dual beep (fast-paced sprints)
+                    [0, 0.15].forEach(delay => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(880, now + delay);
+                        gain.gain.setValueAtTime(0.2, now + delay);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.08);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + delay);
+                        osc.stop(now + delay + 0.09);
+                    });
+                } else if (type === 'singing_bowl') {
+                    // Resonant multi-harmonic acoustic chime (432Hz deep work)
+                    [432, 864, 1296].forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now);
+                        const amp = 0.4 / (idx + 1);
+                        gain.gain.setValueAtTime(0, now);
+                        gain.gain.linearRampToValueAtTime(amp, now + 0.1);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.8);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 3.0);
+                    });
+                } else if (type === 'chime_cascade') {
+                    // Triple ascending tone (523Hz -> 659Hz -> 784Hz)
+                    [523.25, 659.25, 783.99].forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        const start = now + (idx * 0.14);
+                        osc.frequency.setValueAtTime(freq, start);
+                        gain.gain.setValueAtTime(0.3, start);
+                        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.8);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(start);
+                        osc.stop(start + 0.85);
+                    });
+                }
+            } catch (e) {
+                console.warn('Audio synthesis note:', e);
+            }
+        }
+
+        function triggerNotificationAlert(title, message) {
+            const banner = document.getElementById('alert-banner');
+            const msgEl = document.getElementById('alert-msg');
+            msgEl.textContent = title + ': ' + message;
+            banner.style.display = 'flex';
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 4000);
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body: message, icon: 'studyos_logo.png' });
+            }
+        }
+
+        function updateRingUI() {
+            const circle = document.getElementById('ring-svg-circle');
+            const timeDisplay = document.getElementById('timer-time-display');
+
+            const progress = (totalSeconds - remainingSeconds) / totalSeconds;
+            const offset = CIRCUMFERENCE * (1 - progress);
+            circle.style.strokeDashoffset = offset.toFixed(2);
+
+            const mins = Math.floor(remainingSeconds / 60);
+            const secs = remainingSeconds % 60;
+            timeDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('btn-timer-toggle');
+            getAudioContext(); // user gesture unlock
+
+            if (!timerRunning) {
+                timerRunning = true;
+                btn.textContent = '❚❚ Pause';
+                btn.style.background = 'var(--surface-color)';
+                btn.style.color = 'var(--text-primary)';
+                triggerNotificationAlert('Focus Initiated', '25 minutes reserved for high-yield retention.');
+
+                timerInterval = setInterval(() => {
+                    if (remainingSeconds > 0) {
+                        remainingSeconds--;
+                        updateRingUI();
+
+                        // Notification Webhook triggers
+                        if (remainingSeconds === Math.floor(totalSeconds / 2)) {
+                            playSynthesizedSound(currentSound);
+                            triggerNotificationAlert('Halfway Checkpoint', '50% elapsed. Maintain deep focus.');
+                        } else if (remainingSeconds === 60) {
+                            playSynthesizedSound(currentSound);
+                            triggerNotificationAlert('One Minute Warning', '60 seconds remaining. Wrap up thought.');
+                        }
+                    } else {
+                        clearInterval(timerInterval);
+                        timerRunning = false;
+                        btn.textContent = '▶ Start';
+                        btn.style.background = 'var(--accent-gold)';
+                        btn.style.color = '#0A0B0E';
+                        playSynthesizedSound('chime_cascade');
+                        triggerNotificationAlert('Session Complete', 'Focus block ended. Transitioning to rest.');
+                    }
+                }, 1000);
+            } else {
+                clearInterval(timerInterval);
+                timerRunning = false;
+                btn.textContent = '▶ Resume';
+                btn.style.background = 'var(--accent-gold)';
+                btn.style.color = '#0A0B0E';
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            remainingSeconds = totalSeconds;
+            const btn = document.getElementById('btn-timer-toggle');
+            btn.textContent = '▶ Start';
+            btn.style.background = 'var(--accent-gold)';
+            btn.style.color = '#0A0B0E';
+            updateRingUI();
+        }
+
+        function addMinutes(mins) {
+            remainingSeconds += mins * 60;
+            totalSeconds += mins * 60;
+            updateRingUI();
+        }
+
+        function changeSoundProfile(val) {
+            currentSound = val;
+            playSynthesizedSound(val);
+        }
+
+        function testCurrentSound() {
+            getAudioContext();
+            playSynthesizedSound(currentSound);
+        }
+
+        // =========================================================================
+        // SUBSYSTEM 2: DYNAMIC 12-WIDGET DASHBOARD SYNTHESIZER
+        // =========================================================================
+        const WIDGET_IDS = [
+            'card-w1', 'card-w2', 'card-w3', 'card-w4', 'card-w5', 'card-w6',
+            'card-w7', 'card-w8', 'card-w9', 'card-w10', 'card-w11', 'card-w12'
+        ];
+
+        const PRESETS = {
+            academic: {
+                name: 'Academic Study & Exam Prep',
+                mode: 'FOCUS',
+                active: ['card-w1', 'card-w6', 'card-w8', 'card-w10', 'card-w12']
+            },
+            deepwork: {
+                name: 'Deep Work & Coding',
+                mode: 'FOCUS',
+                active: ['card-w1', 'card-w2', 'card-w3', 'card-w6', 'card-w9']
+            },
+            project: {
+                name: 'Project & Team Management',
+                mode: 'PLANNING',
+                active: ['card-w2', 'card-w4', 'card-w5', 'card-w7', 'card-w8']
+            },
+            writing: {
+                name: 'Creative Writing & Brainstorming',
+                mode: 'TRIAGE',
+                active: ['card-w1', 'card-w3', 'card-w6', 'card-w9', 'card-w12']
+            },
+            omni: {
+                name: 'Omni View (All 12 Widgets)',
+                mode: 'OMNI',
+                active: WIDGET_IDS
+            }
+        };
+
+        function switchPreset(key) {
+            const preset = PRESETS[key];
+            if (!preset) return;
+
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+
+            document.getElementById('system-mode-badge').textContent = 'WORKSPACE AGENT: ' + preset.mode;
+
+            WIDGET_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (preset.active.includes(id)) {
+                        el.style.display = 'flex';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // Widget 2: Tasks
+        function toggleTaskDone(cb) {
+            const item = cb.closest('.task-item');
+            if (cb.checked) {
+                item.classList.add('done');
+            } else {
+                item.classList.remove('done');
+            }
+        }
+
+        function handleTaskKey(e) {
+            if (e.key === 'Enter') addNewTask();
+        }
+
+        function addNewTask() {
+            const input = document.getElementById('new-task-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const container = document.getElementById('task-list-container');
+            const item = document.createElement('div');
+            item.className = 'task-item';
+            item.innerHTML = `
+                <div class="task-left">
+                    <input type="checkbox" class="task-checkbox" onchange="toggleTaskDone(this)">
+                    <span class="task-text">${text}</span>
+                </div>
+                <span class="priority-badge p-mid">Mid</span>
+            `;
+            container.appendChild(item);
+            input.value = '';
+        }
+
+        // Widget 3: Scratchpad
+        function saveScratchpad() {
+            const val = document.getElementById('scratchpad-text').value;
+            localStorage.setItem('studyos_scratchpad', val);
+            const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+            const chars = val.length;
+            document.getElementById('scratchpad-counter').textContent = `${words} words | ${chars} chars`;
+        }
+
+        function copyScratchpad() {
+            const val = document.getElementById('scratchpad-text').value;
+            navigator.clipboard.writeText(val).then(() => {
+                triggerNotificationAlert('Scratchpad Copied', 'Buffer saved to system clipboard.');
+            });
+        }
+
+        // Widget 10: Dynamic Flashcards
+        const FLASHCARDS = [
+            {
+                q: "What reagent converts a secondary alcohol into a ketone without over-oxidizing?",
+                a: "Pyridinium Chlorochromate (PCC) in CH2Cl2 or Dess-Martin Periodinane (DMP)."
+            },
+            {
+                q: "State the First Law of Thermodynamics in differential mathematical form.",
+                a: "dU = δQ - δW (Internal energy change equals heat added minus work done by system)."
+            },
+            {
+                q: "What is the primary role of DNA Topoisomerase II during replication?",
+                a: "Relieves torsional supercoiling ahead of the replication fork by making transient double-strand breaks."
+            },
+            {
+                q: "Define Heisenberg's Uncertainty Principle relation.",
+                a: "Δx · Δp ≥ ℏ / 2 (Position and momentum cannot both be precisely measured simultaneously)."
+            }
+        ];
+        let currentFcIndex = 0;
+
+        function flipFlashcard() {
+            document.getElementById('flashcard-element').classList.toggle('is-flipped');
+        }
+
+        function rateFlashcard(rating) {
+            document.getElementById('flashcard-element').classList.remove('is-flipped');
+            setTimeout(() => {
+                currentFcIndex = (currentFcIndex + 1) % FLASHCARDS.length;
+                document.getElementById('fc-front-text').textContent = FLASHCARDS[currentFcIndex].q;
+                document.getElementById('fc-back-text').textContent = FLASHCARDS[currentFcIndex].a;
+                document.getElementById('fc-counter-badge').textContent = `Card ${currentFcIndex + 1} / ${FLASHCARDS.length}`;
+                triggerNotificationAlert('Card Rated', `Mastery: ${rating.toUpperCase()}. Scheduled via SM-2.`);
+            }, 250);
+        }
+
+        // Widget 11: Calculator
+        let calcVal = '0';
+        function calcInput(char) {
+            if (calcVal === '0' && !isNaN(char)) calcVal = char;
+            else calcVal += char;
+            document.getElementById('calc-display').textContent = calcVal;
+        }
+        function calcClear() {
+            calcVal = '0';
+            document.getElementById('calc-display').textContent = calcVal;
+        }
+        function calcEval() {
+            try {
+                calcVal = String(Function('"use strict";return (' + calcVal + ')')());
+            } catch (e) {
+                calcVal = 'Error';
+            }
+            document.getElementById('calc-display').textContent = calcVal;
+        }
+
+        // =========================================================================
+        // SUBSYSTEM 3: DOCUMENT ROUTING & UNIVERSAL VIEWER BRIDGE
+        // =========================================================================
+        function routeDocument(fileName, mimeType) {
+            const ext = fileName.split('.').pop().toLowerCase();
+            let targetViewer = 'universal_preview_pane';
+            let desktopAlts = ['System Default'];
+            let actions = ['extract_summary'];
+
+            if (ext === 'pdf' || mimeType === 'application/pdf') {
+                targetViewer = 'pdf_embed_pane';
+                desktopAlts = ['Apple Preview', 'Adobe Acrobat', 'Foxit Reader'];
+                actions = ['extract_summary', 'generate_qa_cards', 'highlight_key_takeaways'];
+            } else if (['md', 'txt', 'rtf'].includes(ext)) {
+                targetViewer = 'monaco_markdown_editor';
+                desktopAlts = ['Obsidian', 'VS Code', 'Typora'];
+                actions = ['format_to_outline', 'extract_action_items', 'synthesize_to_scratchpad'];
+            } else if (['docx', 'pptx', 'xlsx', 'csv'].includes(ext)) {
+                targetViewer = 'office_grid_embed_viewer';
+                desktopAlts = ['Microsoft 365', 'LibreOffice'];
+                actions = ['parse_table_data', 'summarize_slides', 'audit_formulas'];
+            } else if (['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(ext)) {
+                targetViewer = 'lightbox_ocr_viewer';
+                desktopAlts = ['OS Default Image Viewer'];
+                actions = ['run_ocr_to_markdown', 'explain_diagram', 'isolate_handwriting'];
+            } else if (['py', 'js', 'ts', 'html', 'css', 'json', 'kt'].includes(ext)) {
+                targetViewer = 'monaco_code_viewer';
+                desktopAlts = ['VS Code', 'Cursor', 'Android Studio'];
+                actions = ['explain_code', 'find_bugs', 'refactor_snippet'];
+            }
+
+            return { fileName, mimeType: mimeType || 'application/octet-stream', targetViewer, desktopAlts, actions };
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const route = routeDocument(file.name, file.type);
+            document.getElementById('doc-current-name').textContent = route.fileName;
+            document.getElementById('doc-current-type').textContent = route.mimeType;
+
+            const container = document.getElementById('doc-actions-container');
+            container.innerHTML = '';
+            route.actions.forEach(action => {
+                const btn = document.createElement('button');
+                btn.className = 'chip-ai';
+                btn.textContent = '⚡ ' + action.replace(/_/g, ' ').toUpperCase();
+                btn.onclick = () => triggerAiAction(action);
+                container.appendChild(btn);
+            });
+
+            triggerNotificationAlert('Document Routed', `Dispatched ${file.name} to ${route.targetViewer}`);
+        }
+
+        function triggerAiAction(actionName) {
+            triggerNotificationAlert('Agent Execution', `Running ${actionName} on active document...`);
+        }
+
+        // Widget 9: Ambient Soundscapes using Procedural Web Audio Generators
+        const activeSoundNodes = {};
+        function toggleAmbientSound(type) {
+            const ctx = getAudioContext();
+            const btn = document.getElementById(`snd-${type === 'whitenoise' ? 'white' : type}-btn`);
+
+            if (activeSoundNodes[type]) {
+                // Stop sound
+                activeSoundNodes[type].stop();
+                delete activeSoundNodes[type];
+                btn.classList.remove('playing');
+                btn.textContent = 'Play';
+            } else {
+                // Start procedural sound
+                if (type === 'whitenoise') {
+                    const bufferSize = ctx.sampleRate * 2;
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = ctx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+                    whiteNoise.loop = true;
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(600, ctx.currentTime);
+                    const gain = ctx.createGain();
+                    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+                    whiteNoise.start();
+                    activeSoundNodes[type] = whiteNoise;
+                } else if (type === 'binaural') {
+                    // 40Hz Gamma Binaural: 200Hz left, 240Hz right
+                    const oscL = ctx.createOscillator();
+                    const oscR = ctx.createOscillator();
+                    oscL.frequency.setValueAtTime(200, ctx.currentTime);
+                    oscR.frequency.setValueAtTime(240, ctx.currentTime);
+                    const gain = ctx.createGain();
+                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                    oscL.connect(gain);
+                    oscR.connect(gain);
+                    gain.connect(ctx.destination);
+                    oscL.start();
+                    oscR.start();
+                    activeSoundNodes[type] = {
+                        stop: () => { oscL.stop(); oscR.stop(); }
+                    };
+                } else if (type === 'rain') {
+                    // Rain simulation using filtered noise with gentle resonant pulses
+                    const bufferSize = ctx.sampleRate * 2;
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const rainSource = ctx.createBufferSource();
+                    rainSource.buffer = buffer;
+                    rainSource.loop = true;
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(1000, ctx.currentTime);
+                    filter.Q.setValueAtTime(0.8, ctx.currentTime);
+                    const gain = ctx.createGain();
+                    gain.gain.setValueAtTime(0.07, ctx.currentTime);
+                    rainSource.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+                    rainSource.start();
+                    activeSoundNodes[type] = rainSource;
+                }
+                btn.classList.add('playing');
+                btn.textContent = 'Pause';
+            }
+        }
+
+        // =========================================================================
+        // SUBSYSTEM 4: EXECUTION STATE MACHINE & JSON PROTOCOL INSPECTOR
+        // =========================================================================
+        function getCurrentStatePayload() {
+            return {
+                "system_state": {
+                    "active_mode": "focus",
+                    "timestamp": new Date().toISOString()
+                },
+                "timer": {
+                    "enabled": true,
+                    "title": "Socratic Deep Focus Block",
+                    "duration_seconds": totalSeconds,
+                    "remaining_seconds": remainingSeconds,
+                    "visual_geometry": {
+                        "type": "svg_circle",
+                        "radius": 45,
+                        "stroke_width": 6,
+                        "stroke_dasharray": "282.74",
+                        "stroke_dashoffset": (CIRCUMFERENCE * (1 - (totalSeconds - remainingSeconds) / totalSeconds)).toFixed(2),
+                        "color_active": "#D39A3A",
+                        "color_trail": "#181C27"
+                    },
+                    "alert_profile": {
+                        "sound": currentSound,
+                        "volume": 0.8,
+                        "frequency_hz": currentSound === 'gentle_bell' ? 528 : (currentSound === 'digital_pulse' ? 880 : 432)
+                    },
+                    "notification_hooks": [
+                        { "trigger": "on_start", "message": "Focus block initiated: 25 minutes reserved for high-yield recall." },
+                        { "trigger": "on_halfway", "message": "750 seconds elapsed. Maintain active retention." },
+                        { "trigger": "on_one_minute_warning", "message": "60 seconds remaining. Wrap up current concept." },
+                        { "trigger": "on_complete", "message": "Deep work session concluded. Transitioning to 5-minute rest." }
+                    ],
+                    "controls": ["start", "pause", "resume", "reset", "add_5_mins", "toggle_chaining"]
+                },
+                "active_widgets": [
+                    { "id": "widget_focus_timer", "slot": 1, "title": "Focus Ring", "data": { "linked_to_timer": true, "remaining_seconds": remainingSeconds } },
+                    { "id": "widget_doc_viewer", "slot": 2, "title": "Primary Study Material", "data": { "current_document": document.getElementById('doc-current-name').textContent, "mime_type": document.getElementById('doc-current-type').textContent } },
+                    { "id": "widget_metric_counter", "slot": 3, "title": "Exam Readiness Targets", "data": { "cards_reviewed": 28, "readiness_score": 84, "streak_days": 12 } },
+                    { "id": "widget_flashcards", "slot": 4, "title": "Active Recall Deck", "data": { "deck_name": "High-Yield Reactions", "card_id": `c_${currentFcIndex + 1}` } },
+                    { "id": "widget_concept_graph", "slot": 5, "title": "Socratic Concept Hierarchy", "data": { "root_node": "Carbonyl Chemistry" } }
+                ],
+                "document_routing": {
+                    "active": true,
+                    "file_name": document.getElementById('doc-current-name').textContent,
+                    "mime_type": document.getElementById('doc-current-type').textContent,
+                    "target_viewer": "pdf_embed_pane",
+                    "desktop_alternatives": ["Acrobat Reader", "Apple Preview"],
+                    "available_actions": ["extract_summary", "generate_qa_cards", "highlight_key_takeaways"]
+                }
+            };
+        }
+
+        function openStateInspector() {
+            const payload = getCurrentStatePayload();
+            document.getElementById('inspector-json-display').textContent = JSON.stringify(payload, null, 2);
+            document.getElementById('inspector-modal').classList.add('open');
+        }
+
+        function closeStateInspector() {
+            document.getElementById('inspector-modal').classList.remove('open');
+        }
+
+        function copyStateJson() {
+            const text = document.getElementById('inspector-json-display').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                triggerNotificationAlert('Copied to Clipboard', 'Machine-executable JSON payload ready.');
+            });
+        }
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedScratch = localStorage.getItem('studyos_scratchpad');
+            if (savedScratch) {
+                document.getElementById('scratchpad-text').value = savedScratch;
+                saveScratchpad();
+            }
+            switchPreset('academic');
+            updateRingUI();
+
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        });
+    </script>
+</body>
+</html>
