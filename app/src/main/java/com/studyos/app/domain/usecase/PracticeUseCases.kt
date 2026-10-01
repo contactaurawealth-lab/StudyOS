@@ -327,13 +327,29 @@ class ResolveMistakeUseCase(private val mistakeRepository: MistakeRepository) {
 
 class ConvertMistakeToFlashcardUseCase(
     private val mistakeRepository: MistakeRepository,
-    private val flashcardRepository: FlashcardRepository
+    private val flashcardRepository: FlashcardRepository,
+    private val subjectRepository: SubjectRepository? = null,
+    private val chapterRepository: ChapterRepository? = null
 ) {
-    suspend operator fun invoke(mistake: Mistake): Flashcard {
+    suspend operator fun invoke(mistake: Mistake): Flashcard? {
         val answerText = if (!mistake.explanation.isNullOrBlank()) {
             "${mistake.correctAnswer}\n\nExplanation: ${mistake.explanation}"
         } else {
             mistake.correctAnswer
+        }
+
+        // Verify that subject exists before inserting to prevent SQLiteConstraintException
+        val subjectExists = subjectRepository?.getSubjectByIdOnce(mistake.subjectId) != null
+        if (subjectRepository != null && !subjectExists) {
+            // Cannot create flashcard without a valid parent subject
+            return null
+        }
+
+        // Verify chapter exists; if not found, use null to satisfy foreign key constraint
+        val verifiedChapterId = if (mistake.chapterId != null && chapterRepository != null) {
+            if (chapterRepository.getChapterById(mistake.chapterId) != null) mistake.chapterId else null
+        } else {
+            mistake.chapterId
         }
 
         val flashcard = Flashcard(
@@ -341,12 +357,16 @@ class ConvertMistakeToFlashcardUseCase(
             question = mistake.question,
             answer = answerText,
             subjectId = mistake.subjectId,
-            chapterId = mistake.chapterId,
+            chapterId = verifiedChapterId,
             difficulty = FlashcardDifficulty.HARD
         )
-        flashcardRepository.saveFlashcard(flashcard)
-        mistakeRepository.resolveMistake(mistake.id)
-        return flashcard
+        return try {
+            flashcardRepository.saveFlashcard(flashcard)
+            mistakeRepository.resolveMistake(mistake.id)
+            flashcard
+        } catch (_: Exception) {
+            null
+        }
     }
 }
 

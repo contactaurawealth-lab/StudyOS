@@ -503,7 +503,7 @@ class PracticeUseCasesTest {
         val flashcard = convertMistake(mistake)
 
         assertNotNull(flashcard)
-        assertEquals("What is ATP?", flashcard.question)
+        assertEquals("What is ATP?", flashcard!!.question)
         assertTrue(flashcard.answer.contains("Adenosine triphosphate"))
 
         // Mistake must now be resolved

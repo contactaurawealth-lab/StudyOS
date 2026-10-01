@@ -133,8 +133,12 @@ class MistakeBankViewModel(
 
     fun convertToFlashcard(mistake: Mistake) {
         viewModelScope.launch {
-            convertMistakeToFlashcardUseCase(mistake)
-            _uiState.update { it.copy(infoMessage = "Converted mistake into flashcard!") }
+            val result = convertMistakeToFlashcardUseCase(mistake)
+            if (result != null) {
+                _uiState.update { it.copy(infoMessage = "Converted mistake into flashcard!") }
+            } else {
+                _uiState.update { it.copy(infoMessage = "Could not convert mistake (parent subject not found).") }
+            }
         }
     }
 

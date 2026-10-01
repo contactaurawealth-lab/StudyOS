@@ -3,6 +3,8 @@
     <cache-path name="cache_backups" path="backups/" />
     <cache-path name="cache_docs" path="." />
     <files-path name="mistake_photos" path="mistake_photos/" />
+    <files-path name="note_documents" path="note_documents/" />
+    <files-path name="documents" path="documents/" />
     <files-path name="files_docs" path="." />
     <external-files-path name="external_docs" path="." />
 </paths>

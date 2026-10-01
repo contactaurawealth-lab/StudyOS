@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Notifications
@@ -97,6 +98,7 @@ fun TodayScreen(
     onOpenFlashcards: () -> Unit = {},
     onOpenRevision: () -> Unit = {},
     onOpenTimer: () -> Unit = {},
+    onOpenBlocker: () -> Unit = {},
     onStartAiSession: (subjectId: String?, chapterId: String?) -> Unit = { _, _ -> },
     onOpenDrawer: () -> Unit = {},
     onOpenSearch: () -> Unit = {},
@@ -282,6 +284,13 @@ fun TodayScreen(
                                 onClick = { menuExpanded = false; onOpenRevision() },
                                 leadingIcon = {
                                     Icon(Icons.Outlined.Bolt, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("App Blocker", style = typography.body, color = colors.primaryText) },
+                                onClick = { menuExpanded = false; onOpenBlocker() },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.Lock, null, tint = colors.accent, modifier = Modifier.size(18.dp))
                                 }
                             )
                             StudyOSDivider()

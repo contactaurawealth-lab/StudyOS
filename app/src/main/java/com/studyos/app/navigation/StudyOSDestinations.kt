@@ -124,6 +124,9 @@ sealed class Screen(val route: String) {
     // Study Timer
     object StudyTimer : Screen("timer")
 
+    // Focus App Blocker
+    object AppBlocker : Screen("app-blocker")
+
     // AI Study Session
     object AiStudySession : Screen("ai-study-session?subjectId={subjectId}&chapterId={chapterId}") {
         fun createRoute(subjectId: String? = null, chapterId: String? = null): String {

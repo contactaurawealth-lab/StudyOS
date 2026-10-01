@@ -444,7 +444,12 @@ class StudyOSAppContainer(private val context: Context) {
     }
 
     val convertMistakeToFlashcardUseCase: com.studyos.app.domain.usecase.ConvertMistakeToFlashcardUseCase by lazy {
-        com.studyos.app.domain.usecase.ConvertMistakeToFlashcardUseCase(mistakeRepository, flashcardRepository)
+        com.studyos.app.domain.usecase.ConvertMistakeToFlashcardUseCase(
+            mistakeRepository,
+            flashcardRepository,
+            subjectRepository,
+            chapterRepository
+        )
     }
 
     val getChapterPracticeSummaryUseCase: com.studyos.app.domain.usecase.GetChapterPracticeSummaryUseCase by lazy {

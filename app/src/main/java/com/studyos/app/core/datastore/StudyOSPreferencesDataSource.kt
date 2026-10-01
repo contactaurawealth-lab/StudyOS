@@ -16,6 +16,8 @@ import com.studyos.app.domain.model.AiConfig
 import com.studyos.app.domain.model.NamedApiKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
@@ -35,6 +37,9 @@ interface PreferencesDataSource {
     val dailyReminderEnabled: Flow<Boolean>
     val dailyReminderTime: Flow<String>
     val revisionRemindersEnabled: Flow<Boolean>
+    val appBlockerEnabled: Flow<Boolean> get() = flowOf(false)
+    val blockedPackages: Flow<Set<String>> get() = flowOf(emptySet())
+    val appBlockerPasscode: Flow<String> get() = flowOf("")
     suspend fun setThemePreference(theme: AppTheme)
     suspend fun setOnboardingCompleted(completed: Boolean)
     suspend fun resetOnboarding()
@@ -46,6 +51,9 @@ interface PreferencesDataSource {
     suspend fun setDailyReminderEnabled(enabled: Boolean)
     suspend fun setDailyReminderTime(time: String)
     suspend fun setRevisionRemindersEnabled(enabled: Boolean)
+    suspend fun setAppBlockerEnabled(enabled: Boolean) {}
+    suspend fun setBlockedPackages(packages: Set<String>) {}
+    suspend fun setAppBlockerPasscode(passcode: String) {}
 }
 
 class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDataSource {
@@ -67,6 +75,9 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         val DAILY_REMINDER_ENABLED = booleanPreferencesKey("daily_reminder_enabled")
         val DAILY_REMINDER_TIME = stringPreferencesKey("daily_reminder_time")
         val REVISION_REMINDERS_ENABLED = booleanPreferencesKey("revision_reminders_enabled")
+        val APP_BLOCKER_ENABLED = booleanPreferencesKey("app_blocker_enabled")
+        val BLOCKED_PACKAGES = androidx.datastore.preferences.core.stringSetPreferencesKey("blocked_packages")
+        val APP_BLOCKER_PASSCODE = stringPreferencesKey("app_blocker_passcode")
     }
 
     override val appState: Flow<AppState> = context.dataStore.data
@@ -367,5 +378,60 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.REVISION_REMINDERS_ENABLED] = enabled
         }
+    }
+
+    override val appBlockerEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.APP_BLOCKER_ENABLED] ?: false
+        }
+
+    override val blockedPackages: Flow<Set<String>> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.BLOCKED_PACKAGES] ?: emptySet()
+        }
+
+    override val appBlockerPasscode: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.APP_BLOCKER_PASSCODE] ?: ""
+        }
+
+    override suspend fun setAppBlockerEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_BLOCKER_ENABLED] = enabled
+        }
+        syncAppBlockerManager()
+    }
+
+    override suspend fun setBlockedPackages(packages: Set<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BLOCKED_PACKAGES] = packages
+        }
+        syncAppBlockerManager()
+    }
+
+    override suspend fun setAppBlockerPasscode(passcode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_BLOCKER_PASSCODE] = passcode
+        }
+        syncAppBlockerManager()
+    }
+
+    private suspend fun syncAppBlockerManager() {
+        try {
+            val prefs = context.dataStore.data.firstOrNull() ?: return
+            val enabled = prefs[PreferencesKeys.APP_BLOCKER_ENABLED] ?: false
+            val pkgs = prefs[PreferencesKeys.BLOCKED_PACKAGES] ?: emptySet()
+            val code = prefs[PreferencesKeys.APP_BLOCKER_PASSCODE] ?: ""
+            com.studyos.app.core.blocker.AppBlockerManager.syncFromPreferences(enabled, pkgs, code)
+        } catch (_: Exception) {}
     }
 }

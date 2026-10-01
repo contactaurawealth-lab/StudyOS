@@ -75,6 +75,34 @@ object DocumentStorageManager {
     }
 
     /**
+     * Saves raw text content directly into the local vault as a Markdown (.md) document.
+     */
+    suspend fun saveTextLocally(context: Context, text: String, title: String = "Shared Note"): StoredDocument = withContext(Dispatchers.IO) {
+        val docsDir = File(context.filesDir, DOCUMENTS_DIR).apply {
+            if (!exists()) mkdirs()
+        }
+        val sanitized = title.replace("[^a-zA-Z0-9._-]".toRegex(), "_").take(40)
+        val fileName = "${sanitized}_${System.currentTimeMillis()}.md"
+        val targetFile = File(docsDir, fileName)
+        targetFile.writeText(text)
+        val contentUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            targetFile
+        )
+        StoredDocument(
+            file = targetFile,
+            originalFileName = fileName,
+            cleanTitle = title,
+            extension = "md",
+            sizeBytes = targetFile.length(),
+            mimeType = "text/markdown",
+            contentUri = contentUri,
+            persistentPath = targetFile.absolutePath
+        )
+    }
+
+    /**
      * Formats bytes into human-readable string (e.g., 2.4 MB, 180 KB).
      */
     fun formatFileSize(bytes: Long): String {

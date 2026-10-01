@@ -122,12 +122,12 @@ object ExamReadinessEngine {
 
         // Days until exam
         val now = System.currentTimeMillis()
-        val daysUntil = exam?.let {
-            ((it.targetDate - now) / ONE_DAY_MS).coerceAtLeast(0)
-        }
+        val daysUntil = exam?.getDaysRemaining(now)?.coerceAtLeast(0)
 
         // Generate Short Explanatory Insight
         val insight = when {
+            daysUntil == 0L -> "Exam is TODAY! Stay calm and review your highest-yield flashcards."
+            daysUntil != null && daysUntil <= 2L -> "Exam in $daysUntil days! Focus on weak topics and active recall."
             syllabusAvg < 50 -> "Syllabus coverage is low; prioritize learning new chapters."
             recallAvg < 50 && syllabusAvg >= 70 -> "Your syllabus is mostly complete, but recall needs revision."
             weakCount >= 2 -> "$weakCount chapters require attention before exam day."
@@ -205,7 +205,8 @@ object ExamReadinessEngine {
         val lowestSubject = subjectList.minByOrNull { it.readinessPercentage }
         val primaryInsight = when {
             nearestExam != null && examDays != null && examDays <= 7 ->
-                "${nearestExam.name} in $examDays days: focus on ${lowestSubject?.subjectName ?: "weak topics"}."
+                if (examDays == 0L) "${nearestExam.name} is TODAY! Focus on highest-yield recall."
+                else "${nearestExam.name} in $examDays days: focus on ${lowestSubject?.subjectName ?: "weak topics"}."
             lowestSubject != null && lowestSubject.readinessPercentage < 60 ->
                 "${lowestSubject.subjectName} needs review (${lowestSubject.readinessPercentage}% readiness)."
             avgReadiness >= 75 -> "Strong multi-subject readiness across active courses."

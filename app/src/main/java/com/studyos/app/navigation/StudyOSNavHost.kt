@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.School
@@ -122,6 +123,9 @@ import com.studyos.app.features.practice.audiowalk.FeynmanAudioWalkViewModel
 import com.studyos.app.domain.model.ActiveRecallSessionType
 import com.studyos.app.features.document.ui.DocumentViewerScreen
 import com.studyos.app.features.document.viewmodel.DocumentViewerViewModel
+import com.studyos.app.features.blocker.AppBlockerScreen
+import com.studyos.app.features.blocker.AppBlockerViewModel
+import androidx.compose.material.icons.outlined.Security
 import com.studyos.app.theme.StudyOSTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -370,6 +374,7 @@ private val SecondaryDrawerItems = listOf(
     DrawerNavigationItem("Notifications", Screen.NotificationCenter.route, Icons.Outlined.Notifications),
     DrawerNavigationItem("AI Assistant", Screen.Ai.createRoute(), Icons.Outlined.Psychology),
     DrawerNavigationItem("Tasks", Screen.Tasks.route, Icons.Outlined.CheckCircle),
+    DrawerNavigationItem("App Blocker", Screen.AppBlocker.route, Icons.Outlined.Lock),
     DrawerNavigationItem("Exams", Screen.Exams.route, Icons.Outlined.School),
     DrawerNavigationItem("Settings", Screen.Settings.route, Icons.Outlined.Settings)
 )
@@ -442,6 +447,9 @@ private fun StudyOSNavGraph(
                 },
                 onOpenTimer = {
                     navController.navigate(Screen.StudyTimer.route)
+                },
+                onOpenBlocker = {
+                    navController.navigate(Screen.AppBlocker.route)
                 },
                 onStartAiSession = { subjectId, chapterId ->
                     navController.navigate(Screen.AiStudySession.createRoute(subjectId, chapterId))
@@ -860,6 +868,14 @@ private fun StudyOSNavGraph(
                 onOpenQuiz = { quizId ->
                     navController.navigate(Screen.QuizRunner.createRoute(quizId))
                 }
+            )
+        }
+
+        composable(Screen.AppBlocker.route) {
+            val appBlockerViewModel = rememberAppBlockerViewModel(container)
+            AppBlockerScreen(
+                viewModel = appBlockerViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -1468,6 +1484,16 @@ private fun rememberDocumentViewerViewModel(
             aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
             getAiConfigUseCase = container.getAiConfigUseCase,
             getNoteUseCase = container.getNoteUseCase
+        )
+    }
+}
+
+@Composable
+private fun rememberAppBlockerViewModel(container: StudyOSAppContainer): AppBlockerViewModel {
+    return androidx.lifecycle.viewmodel.compose.viewModel {
+        AppBlockerViewModel(
+            context = container.appContext,
+            preferencesDataSource = container.preferencesDataSource
         )
     }
 }

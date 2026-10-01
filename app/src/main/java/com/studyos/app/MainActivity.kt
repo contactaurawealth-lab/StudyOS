@@ -33,9 +33,7 @@ class MainActivity : ComponentActivity() {
         // Create default notification channel
         StudyOSNotificationManager.createNotificationChannel(this)
 
-        extractRouteFromIntent(intent)?.let {
-            pendingRoute.value = it
-        }
+        handleIncomingIntent(intent)
 
         val appContainer = (application as StudyOSApplication).container
         checkAutoStartTimer(intent, appContainer)
@@ -71,8 +69,73 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         val appContainer = (application as StudyOSApplication).container
         checkAutoStartTimer(intent, appContainer)
+        handleIncomingIntent(intent)
+    }
+
+    private fun handleIncomingIntent(intent: Intent?) {
+        if (intent == null) return
         extractRouteFromIntent(intent)?.let {
             pendingRoute.value = it
+            return
+        }
+
+        // Handle shared document / file via ACTION_SEND or ACTION_VIEW
+        val uri: android.net.Uri? = when (intent.action) {
+            Intent.ACTION_SEND -> {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM, android.net.Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                }
+            }
+            Intent.ACTION_VIEW -> intent.data
+            else -> null
+        }
+
+        if (uri != null) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val stored = com.studyos.app.core.util.DocumentStorageManager.saveDocumentLocally(this@MainActivity, uri)
+                    withContext(Dispatchers.Main) {
+                        pendingRoute.value = Screen.DocumentViewer.createRoute(
+                            documentUri = stored.persistentPath,
+                            title = stored.cleanTitle
+                        )
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        pendingRoute.value = Screen.DocumentViewer.createRoute(
+                            documentUri = uri.toString(),
+                            title = "Shared Document"
+                        )
+                    }
+                }
+            }
+            return
+        }
+
+        // Handle shared plain text via ACTION_SEND
+        if (intent.action == Intent.ACTION_SEND) {
+            val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (!text.isNullOrBlank()) {
+                val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT) ?: "Shared Study Note"
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val stored = com.studyos.app.core.util.DocumentStorageManager.saveTextLocally(
+                            this@MainActivity,
+                            text,
+                            subject
+                        )
+                        withContext(Dispatchers.Main) {
+                            pendingRoute.value = Screen.DocumentViewer.createRoute(
+                                documentUri = stored.persistentPath,
+                                title = stored.cleanTitle
+                            )
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
         }
     }
 

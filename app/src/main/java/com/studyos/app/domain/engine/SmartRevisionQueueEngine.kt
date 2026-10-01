@@ -57,87 +57,76 @@ object SmartRevisionQueueEngine {
                 .firstOrNull { exam -> exam.subjectIds.contains(subject.id) || exam.subjectIds.isEmpty() }
             val daysToExam = relevantExam?.getDaysRemaining(now)
 
-            when {
-                // Exam within 14 days and chapter not mastered
-                daysToExam != null && daysToExam <= 14 && (intel == null || intel.overallPercentage < 85) -> {
-                    items.add(
-                        PriorityQueueItem(
-                            id = "exam_${chapter.id}",
-                            title = chapter.name,
-                            subjectName = subject.name,
-                            reason = "Exam approaching (${daysToExam}d left)",
-                            reasonType = RevisionQueueReasonType.EXAM_APPROACHING,
-                            priorityScore = 95 - daysToExam.toInt() * 2,
-                            subjectId = subject.id,
-                            chapterId = chapter.id
-                        )
-                    )
+            // Multi-factor cognitive risk evaluation
+            val activeFactors = mutableListOf<Pair<RevisionQueueReasonType, Pair<Int, String>>>()
+
+            // 1. Check Exam Approaching
+            if (daysToExam != null && daysToExam <= 14 && (intel == null || intel.overallPercentage < 85)) {
+                val score = 95 - daysToExam.toInt() * 2
+                val reason = if (daysToExam == 0L) "Exam TODAY!" else "Exam approaching (${daysToExam}d left)"
+                activeFactors.add(RevisionQueueReasonType.EXAM_APPROACHING to (score to reason))
+            }
+
+            // 2. Recall Overdue
+            if (chRecallDue.isNotEmpty()) {
+                val score = 88 + chRecallDue.size.coerceAtMost(10)
+                val reason = "Recall overdue (${chRecallDue.size} prompts due)"
+                activeFactors.add(RevisionQueueReasonType.RECALL_OVERDUE to (score to reason))
+            }
+
+            // 3. High Mistake Rate
+            if (chMistakes.size >= 2) {
+                val score = 82 + chMistakes.size * 2
+                val reason = "High mistake rate (${chMistakes.size} unreviewed)"
+                activeFactors.add(RevisionQueueReasonType.HIGH_MISTAKE_RATE to (score to reason))
+            }
+
+            // 4. Weak Concept Gap
+            if (intel?.status == IntelligentChapterStatus.NEEDS_ATTENTION) {
+                val score = 78
+                val reason = "Weak concept gap (${intel.overallPercentage}% mastery)"
+                activeFactors.add(RevisionQueueReasonType.WEAK_CONCEPT_GAP to (score to reason))
+            }
+
+            // 5. Neglected Topic (has progress but haven't studied in over 7 days)
+            if (chapter.progress in 1..99 && (now - chapter.updatedAt) > 7 * ONE_DAY_MS) {
+                val daysInactive = ((now - chapter.updatedAt) / ONE_DAY_MS).toInt()
+                val score = 65 + daysInactive.coerceAtMost(15)
+                val reason = "Neglected chapter ($daysInactive days inactive)"
+                activeFactors.add(RevisionQueueReasonType.NEGLECTED_TOPIC to (score to reason))
+            }
+
+            if (activeFactors.isNotEmpty()) {
+                // Sort factors by score descending
+                activeFactors.sortByDescending { it.second.first }
+                val primary = activeFactors.first()
+                val primaryType = primary.first
+                val baseScore = primary.second.first
+
+                // Composite score bonus for multiple co-occurring risk factors
+                val secondaryBonus = (activeFactors.size - 1) * 3
+                val compositeScore = (baseScore + secondaryBonus).coerceIn(0, 100)
+
+                // Combined descriptive reason if secondary cognitive risks exist
+                val combinedReason = if (activeFactors.size > 1) {
+                    val secondaryNotes = activeFactors.drop(1).joinToString(" • ") { it.second.second }
+                    "${primary.second.second} • $secondaryNotes"
+                } else {
+                    primary.second.second
                 }
 
-                // Recall Overdue
-                chRecallDue.isNotEmpty() -> {
-                    items.add(
-                        PriorityQueueItem(
-                            id = "recall_${chapter.id}",
-                            title = chapter.name,
-                            subjectName = subject.name,
-                            reason = "Recall overdue (${chRecallDue.size} prompts due)",
-                            reasonType = RevisionQueueReasonType.RECALL_OVERDUE,
-                            priorityScore = 88 + chRecallDue.size.coerceAtMost(10),
-                            subjectId = subject.id,
-                            chapterId = chapter.id
-                        )
+                items.add(
+                    PriorityQueueItem(
+                        id = "rev_${chapter.id}",
+                        title = chapter.name,
+                        subjectName = subject.name,
+                        reason = combinedReason,
+                        reasonType = primaryType,
+                        priorityScore = compositeScore,
+                        subjectId = subject.id,
+                        chapterId = chapter.id
                     )
-                }
-
-                // High Mistake Rate
-                chMistakes.size >= 2 -> {
-                    items.add(
-                        PriorityQueueItem(
-                            id = "mistake_${chapter.id}",
-                            title = chapter.name,
-                            subjectName = subject.name,
-                            reason = "High mistake rate (${chMistakes.size} unreviewed)",
-                            reasonType = RevisionQueueReasonType.HIGH_MISTAKE_RATE,
-                            priorityScore = 82 + chMistakes.size * 2,
-                            subjectId = subject.id,
-                            chapterId = chapter.id
-                        )
-                    )
-                }
-
-                // Weak Concept Gap
-                intel?.status == IntelligentChapterStatus.NEEDS_ATTENTION -> {
-                    items.add(
-                        PriorityQueueItem(
-                            id = "weak_${chapter.id}",
-                            title = chapter.name,
-                            subjectName = subject.name,
-                            reason = "Weak concept gap (${intel.overallPercentage}% mastery)",
-                            reasonType = RevisionQueueReasonType.WEAK_CONCEPT_GAP,
-                            priorityScore = 78,
-                            subjectId = subject.id,
-                            chapterId = chapter.id
-                        )
-                    )
-                }
-
-                // Neglected Topic (has progress but haven't studied in over 7 days)
-                chapter.progress in 1..99 && (now - chapter.updatedAt) > 7 * ONE_DAY_MS -> {
-                    val daysInactive = ((now - chapter.updatedAt) / ONE_DAY_MS).toInt()
-                    items.add(
-                        PriorityQueueItem(
-                            id = "neglected_${chapter.id}",
-                            title = chapter.name,
-                            subjectName = subject.name,
-                            reason = "Neglected chapter ($daysInactive days inactive)",
-                            reasonType = RevisionQueueReasonType.NEGLECTED_TOPIC,
-                            priorityScore = 65 + daysInactive.coerceAtMost(15),
-                            subjectId = subject.id,
-                            chapterId = chapter.id
-                        )
-                    )
-                }
+                )
             }
         }
 
