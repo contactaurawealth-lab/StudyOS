@@ -81,6 +81,24 @@ class StudyTimerViewModel(
 
     init {
         loadSubjects()
+        observeFocusService()
+    }
+
+    private fun observeFocusService() {
+        viewModelScope.launch {
+            com.studyos.app.core.service.FocusService.activeSessionState.collect { sessionData ->
+                if (sessionData != null && _uiState.value.status != TimerStatus.RUNNING) {
+                    _uiState.update {
+                        it.copy(
+                            status = if (sessionData.isRunning) TimerStatus.RUNNING else TimerStatus.PAUSED,
+                            remainingSeconds = sessionData.remainingSeconds,
+                            elapsedSeconds = sessionData.elapsedSeconds,
+                            totalDurationSeconds = sessionData.totalSeconds
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun loadSubjects() {
@@ -244,6 +262,19 @@ class StudyTimerViewModel(
         _uiState.update { it.copy(status = TimerStatus.RUNNING, isSessionSaved = false) }
         updateTimerNotification(isPaused = false)
 
+        try {
+            com.studyos.app.core.service.FocusService.startFocusService(
+                context = context,
+                subjectId = current.selectedSubject?.id,
+                chapterId = current.selectedChapter?.id,
+                sessionTitle = current.selectedSubject?.name ?: current.sessionTitle,
+                totalSeconds = current.totalDurationSeconds,
+                remainingSeconds = current.remainingSeconds,
+                elapsedSeconds = current.elapsedSeconds,
+                isCountUp = current.mode == TimerMode.COUNT_UP
+            )
+        } catch (_: Exception) {}
+
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (true) {
@@ -366,6 +397,9 @@ class StudyTimerViewModel(
         timerJob = null
         _uiState.update { it.copy(status = TimerStatus.PAUSED) }
         updateTimerNotification(isPaused = true)
+        try {
+            com.studyos.app.core.service.FocusService.pauseFocusService(context)
+        } catch (_: Exception) {}
     }
 
     fun resumeTimer() {
@@ -388,6 +422,9 @@ class StudyTimerViewModel(
             )
         }
         StudyOSNotificationManager.cancelTimerNotification(context)
+        try {
+            com.studyos.app.core.service.FocusService.stopFocusService(context)
+        } catch (_: Exception) {}
     }
 
     fun stopAndLogSession() {
@@ -398,6 +435,9 @@ class StudyTimerViewModel(
         val elapsed = _uiState.value.elapsedSeconds
         _uiState.update { it.copy(status = TimerStatus.COMPLETED) }
         StudyOSNotificationManager.cancelTimerNotification(context)
+        try {
+            com.studyos.app.core.service.FocusService.stopFocusService(context)
+        } catch (_: Exception) {}
         saveSessionToDatabase(elapsed)
     }
 

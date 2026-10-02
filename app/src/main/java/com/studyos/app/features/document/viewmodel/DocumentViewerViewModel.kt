@@ -193,6 +193,7 @@ class DocumentViewerViewModel(
 
                 // 2. If PDF, render high-DPI page bitmaps
                 if (isPdf) {
+                    PdfPageRenderer.recycleAll(_uiState.value.renderedPages)
                     pdfPagesList = try {
                         PdfPageRenderer.renderPdfPages(currentContext, uri)
                     } catch (e: Exception) {
@@ -511,5 +512,10 @@ class DocumentViewerViewModel(
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        PdfPageRenderer.recycleAll(_uiState.value.renderedPages)
     }
 }

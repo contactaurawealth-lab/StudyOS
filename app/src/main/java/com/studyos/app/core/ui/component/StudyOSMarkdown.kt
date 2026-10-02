@@ -56,7 +56,8 @@ private sealed class MarkdownBlock {
 @Composable
 fun StudyOSMarkdown(
     content: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onWikiLinkClick: (String) -> Unit = {}
 ) {
     val blocks = remember(content) { parseMarkdown(content) }
 
@@ -70,7 +71,7 @@ fun StudyOSMarkdown(
                     is MarkdownBlock.BulletList -> MarkdownBulletList(block)
                     is MarkdownBlock.NumberedList -> MarkdownNumberedList(block)
                     is MarkdownBlock.BlockQuote -> MarkdownBlockQuote(block)
-                    is MarkdownBlock.Paragraph -> MarkdownParagraph(block)
+                    is MarkdownBlock.Paragraph -> MarkdownParagraph(block, onWikiLinkClick)
                 }
 
                 if (index < blocks.lastIndex) {
@@ -290,14 +291,23 @@ private fun MarkdownBlockQuote(quote: MarkdownBlock.BlockQuote) {
 }
 
 @Composable
-private fun MarkdownParagraph(paragraph: MarkdownBlock.Paragraph) {
+private fun MarkdownParagraph(
+    paragraph: MarkdownBlock.Paragraph,
+    onWikiLinkClick: (String) -> Unit = {}
+) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
+    val annotated = formatInlineMarkdown(paragraph.text)
 
-    Text(
-        text = formatInlineMarkdown(paragraph.text),
-        style = typography.body.copy(lineHeight = 22.sp),
-        color = colors.primaryText
+    androidx.compose.foundation.text.ClickableText(
+        text = annotated,
+        style = typography.body.copy(lineHeight = 22.sp, color = colors.primaryText),
+        onClick = { offset ->
+            annotated.getStringAnnotations(tag = "WIKILINK", start = offset, end = offset)
+                .firstOrNull()?.let { annotation ->
+                    onWikiLinkClick(annotation.item)
+                }
+        }
     )
 }
 
@@ -311,6 +321,32 @@ private fun formatInlineMarkdown(text: String): AnnotatedString {
 
         while (cursor < length) {
             when {
+                // WikiLinks [[Target]] or [[Target|Label]]
+                text.startsWith("[[", cursor) -> {
+                    val endIdx = text.indexOf("]]", cursor + 2)
+                    if (endIdx != -1) {
+                        val rawInside = text.substring(cursor + 2, endIdx)
+                        val parts = rawInside.split("|")
+                        val target = parts[0].trim()
+                        val label = if (parts.size > 1) parts[1].trim() else target
+
+                        pushStringAnnotation(tag = "WIKILINK", annotation = target)
+                        pushStyle(
+                            SpanStyle(
+                                color = colors.accent,
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                            )
+                        )
+                        append(label)
+                        pop()
+                        pop()
+                        cursor = endIdx + 2
+                    } else {
+                        append(text[cursor])
+                        cursor++
+                    }
+                }
                 // Inline code `code`
                 text.startsWith("`", cursor) && !text.startsWith("```", cursor) -> {
                     val endIdx = text.indexOf("`", cursor + 1)

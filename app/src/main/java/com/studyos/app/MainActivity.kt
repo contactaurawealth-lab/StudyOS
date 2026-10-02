@@ -38,6 +38,20 @@ class MainActivity : ComponentActivity() {
         val appContainer = (application as StudyOSApplication).container
         checkAutoStartTimer(intent, appContainer)
 
+        lifecycleScope.launch {
+            com.studyos.app.core.util.KeyboardShortcutManager.actions.collect { action ->
+                when (action) {
+                    com.studyos.app.core.util.KeyboardAction.NewNote -> {
+                        pendingRoute.value = Screen.NoteEditor.createRoute()
+                    }
+                    com.studyos.app.core.util.KeyboardAction.OpenAiAssistant -> {
+                        pendingRoute.value = Screen.Ai.createRoute()
+                    }
+                    else -> {}
+                }
+            }
+        }
+
         setContent {
             val appState by appContainer.preferencesDataSource.appState.collectAsState(
                 initial = AppState(isLoading = true)
@@ -182,6 +196,12 @@ class MainActivity : ComponentActivity() {
         if (!sessionId.isNullOrBlank()) return Screen.StudySession.createRoute(sessionId)
 
         return null
+    }
+
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        val handled = com.studyos.app.core.util.KeyboardShortcutManager.handleKeyEvent(event)
+        if (handled) return true
+        return super.dispatchKeyEvent(event)
     }
 
     companion object {

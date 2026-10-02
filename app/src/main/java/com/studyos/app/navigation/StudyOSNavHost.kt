@@ -5,6 +5,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -400,10 +402,18 @@ private fun StudyOSNavGraph(
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        enterTransition = { fadeIn(animationSpec = tween(200)) },
-        exitTransition = { fadeOut(animationSpec = tween(180)) },
-        popEnterTransition = { fadeIn(animationSpec = tween(200)) },
-        popExitTransition = { fadeOut(animationSpec = tween(180)) }
+        enterTransition = {
+            slideInHorizontally(initialOffsetX = { it / 6 }, animationSpec = tween(260)) + fadeIn(animationSpec = tween(260))
+        },
+        exitTransition = {
+            slideOutHorizontally(targetOffsetX = { -it / 6 }, animationSpec = tween(220)) + fadeOut(animationSpec = tween(220))
+        },
+        popEnterTransition = {
+            slideInHorizontally(initialOffsetX = { -it / 6 }, animationSpec = tween(260)) + fadeIn(animationSpec = tween(260))
+        },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { it / 6 }, animationSpec = tween(220)) + fadeOut(animationSpec = tween(220))
+        }
     ) {
         // Onboarding
         composable(Screen.OnboardingWelcome.route) {
@@ -608,6 +618,9 @@ private fun StudyOSNavGraph(
                 onOpenDrawer = onOpenDrawer,
                 onOpenDocumentViewer = { uri, noteId, title ->
                     navController.navigate(Screen.DocumentViewer.createRoute(documentUri = uri, noteId = noteId, title = title))
+                },
+                onOpenKnowledgeGraph = {
+                    navController.navigate(Screen.KnowledgeGraph.route)
                 }
             )
         }
@@ -618,6 +631,9 @@ private fun StudyOSNavGraph(
                 viewModel = progressViewModel,
                 onSubjectClick = { subjectId ->
                     navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                },
+                onStartMicroSprint = { subjectId ->
+                    navController.navigate(Screen.ActiveRecallRunner.createRoute(sessionType = "QUICK_5"))
                 }
             )
         }
@@ -807,6 +823,22 @@ private fun StudyOSNavGraph(
                 },
                 onOpenDocumentViewer = { nId, title ->
                     navController.navigate(Screen.DocumentViewer.createRoute(noteId = nId, title = title))
+                },
+                onOpenKnowledgeGraph = {
+                    navController.navigate(Screen.KnowledgeGraph.route)
+                },
+                onOpenWikiLink = { targetTitle ->
+                    val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+                    coroutineScope.launch {
+                        val found = container.database.noteDao().getNoteByTitleOnce(targetTitle)
+                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            if (found != null) {
+                                navController.navigate(Screen.NoteEditor.createRoute(noteId = found.id))
+                            } else {
+                                navController.navigate(Screen.NoteEditor.createRoute())
+                            }
+                        }
+                    }
                 }
             )
         }
@@ -876,6 +908,21 @@ private fun StudyOSNavGraph(
             AppBlockerScreen(
                 viewModel = appBlockerViewModel,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.KnowledgeGraph.route) {
+            val graphViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
+                com.studyos.app.features.practice.viewmodel.KnowledgeGraphViewModel(
+                    noteDao = container.database.noteDao()
+                )
+            }
+            com.studyos.app.features.practice.ui.KnowledgeGraphScreen(
+                viewModel = graphViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenNote = { noteId ->
+                    navController.navigate(Screen.NoteEditor.createRoute(noteId = noteId))
+                }
             )
         }
 

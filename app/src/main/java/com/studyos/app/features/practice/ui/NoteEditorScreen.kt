@@ -89,6 +89,8 @@ fun NoteEditorScreen(
     onBack: () -> Unit,
     onOpenQuiz: (quizId: String) -> Unit = {},
     onOpenDocumentViewer: (noteId: String?, title: String?) -> Unit = { _, _ -> },
+    onOpenKnowledgeGraph: () -> Unit = {},
+    onOpenWikiLink: (title: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -336,6 +338,17 @@ fun NoteEditorScreen(
                                     }
                                 )
 
+                                DropdownMenuItem(
+                                    text = { Text("View Knowledge Graph", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        onOpenKnowledgeGraph()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.Psychology, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
+
                                 if (uiState.noteId != null) {
                                     DropdownMenuItem(
                                         text = { Text("Delete Note", style = typography.body, color = Color(0xFFE53E3E)) },
@@ -542,7 +555,10 @@ fun NoteEditorScreen(
                                     color = colors.mutedText
                                 )
                             } else {
-                                StudyOSMarkdown(content = uiState.content)
+                                StudyOSMarkdown(
+                                    content = uiState.content,
+                                    onWikiLinkClick = onOpenWikiLink
+                                )
                             }
                         }
                     } else {
@@ -551,7 +567,7 @@ fun NoteEditorScreen(
                             onValueChange = viewModel::onContentChange,
                             placeholder = {
                                 Text(
-                                    text = "Start writing notes in markdown...\n\nUse # for headings\n- for bullet points\n- [ ] for checklists\n$$ for math equations\n``` for code blocks\n**bold** for emphasis",
+                                    text = "Start writing notes in markdown...\n\nUse # for headings\n- for bullet points\n[[Note Title]] to link notes together\n$$ for math equations\n``` for code blocks\n**bold** for emphasis",
                                     style = typography.body.copy(color = colors.mutedText)
                                 )
                             },

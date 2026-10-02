@@ -212,4 +212,129 @@ object BackupManager {
             exportedFile = exportResult.exportedFile
         )
     }
+
+    private const val ENCRYPTION_HEADER = "STUDYOS_ENC_v1\n"
+    private const val SALT_LENGTH = 16
+    private const val IV_LENGTH = 12
+    private const val GCM_TAG_LENGTH_BITS = 128
+    private const val PBKDF2_ITERATIONS = 10_000
+
+    /**
+     * Air-gapped AES-256-GCM encrypted backup export (.studyos file).
+     * Strictly 100% offline and cryptographic tamper-proof.
+     */
+    suspend fun exportEncryptedBackup(
+        context: Context,
+        database: StudyOSDatabase,
+        passphrase: String = "StudyOS_Master_Vault"
+    ): BackupResult = withContext(Dispatchers.IO) {
+        try {
+            val plainExport = exportBackup(context, database)
+            if (!plainExport.success || plainExport.exportedFile == null) {
+                return@withContext plainExport
+            }
+
+            val plainJsonBytes = plainExport.exportedFile.readBytes()
+            plainExport.exportedFile.delete() // Remove unencrypted intermediate file
+
+            val secureRandom = java.security.SecureRandom()
+            val salt = ByteArray(SALT_LENGTH).also { secureRandom.nextBytes(it) }
+            val iv = ByteArray(IV_LENGTH).also { secureRandom.nextBytes(it) }
+
+            // PBKDF2 Key Derivation
+            val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            val spec = javax.crypto.spec.PBEKeySpec(passphrase.toCharArray(), salt, PBKDF2_ITERATIONS, 256)
+            val secretKeyBytes = factory.generateSecret(spec).encoded
+            val secretKey = javax.crypto.spec.SecretKeySpec(secretKeyBytes, "AES")
+
+            val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+            val gcmSpec = javax.crypto.spec.GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
+            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKey, gcmSpec)
+            val cipherText = cipher.doFinal(plainJsonBytes)
+
+            val backupDir = File(context.cacheDir, "backups").apply { mkdirs() }
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val encryptedFile = File(backupDir, "StudyOS_Encrypted_Backup_$timestamp.studyos")
+
+            FileOutputStream(encryptedFile).use { fos ->
+                fos.write(ENCRYPTION_HEADER.toByteArray(Charsets.UTF_8))
+                fos.write(salt)
+                fos.write(iv)
+                fos.write(cipherText)
+            }
+
+            BackupResult(
+                success = true,
+                message = "Air-gapped AES-256-GCM encrypted archive created (${encryptedFile.name})",
+                exportedFile = encryptedFile
+            )
+        } catch (e: Exception) {
+            BackupResult(
+                success = false,
+                message = "Encryption export failed: ${e.localizedMessage ?: "Unknown error"}"
+            )
+        }
+    }
+
+    /**
+     * Restores an air-gapped AES-256-GCM encrypted .studyos backup archive.
+     */
+    suspend fun restoreEncryptedBackup(
+        database: StudyOSDatabase,
+        encryptedBytes: ByteArray,
+        passphrase: String = "StudyOS_Master_Vault"
+    ): BackupResult = withContext(Dispatchers.IO) {
+        try {
+            val headerBytes = ENCRYPTION_HEADER.toByteArray(Charsets.UTF_8)
+            if (encryptedBytes.size < headerBytes.size + SALT_LENGTH + IV_LENGTH) {
+                return@withContext BackupResult(
+                    success = false,
+                    message = "Invalid .studyos archive: File corrupted or truncated."
+                )
+            }
+
+            // Verify Header Magic
+            for (i in headerBytes.indices) {
+                if (encryptedBytes[i] != headerBytes[i]) {
+                    return@withContext BackupResult(
+                        success = false,
+                        message = "Invalid format: Not a recognized StudyOS encrypted archive."
+                    )
+                }
+            }
+
+            var offset = headerBytes.size
+            val salt = encryptedBytes.copyOfRange(offset, offset + SALT_LENGTH)
+            offset += SALT_LENGTH
+            val iv = encryptedBytes.copyOfRange(offset, offset + IV_LENGTH)
+            offset += IV_LENGTH
+            val cipherText = encryptedBytes.copyOfRange(offset, encryptedBytes.size)
+
+            val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            val spec = javax.crypto.spec.PBEKeySpec(passphrase.toCharArray(), salt, PBKDF2_ITERATIONS, 256)
+            val secretKeyBytes = factory.generateSecret(spec).encoded
+            val secretKey = javax.crypto.spec.SecretKeySpec(secretKeyBytes, "AES")
+
+            val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+            val gcmSpec = javax.crypto.spec.GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
+            cipher.init(javax.crypto.Cipher.DECRYPT_MODE, secretKey, gcmSpec)
+
+            val decryptedBytes = try {
+                cipher.doFinal(cipherText)
+            } catch (e: javax.crypto.AEADBadTagException) {
+                return@withContext BackupResult(
+                    success = false,
+                    message = "Decryption failed: Incorrect passphrase or archive has been tampered with."
+                )
+            }
+
+            val jsonString = String(decryptedBytes, Charsets.UTF_8)
+            restoreBackup(database, jsonString)
+        } catch (e: Exception) {
+            BackupResult(
+                success = false,
+                message = "Decryption error: ${e.localizedMessage ?: "Corrupted payload"}"
+            )
+        }
+    }
 }

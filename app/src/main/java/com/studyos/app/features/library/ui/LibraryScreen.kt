@@ -99,6 +99,7 @@ fun LibraryScreen(
     onOpenSubject: (subjectId: String) -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     onOpenDocumentViewer: (uri: String?, noteId: String?, title: String?) -> Unit = { _, _, _ -> },
+    onOpenKnowledgeGraph: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -172,6 +173,20 @@ fun LibraryScreen(
                             tint = colors.accent,
                             modifier = Modifier.size(20.dp)
                         )
+                    }
+
+                    if (uiState.currentTab == LibraryTab.NOTES) {
+                        GlassIconButton(
+                            onClick = onOpenKnowledgeGraph,
+                            contentDescription = "View Knowledge Graph"
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Psychology,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     if (uiState.currentTab == LibraryTab.RESOURCES) {

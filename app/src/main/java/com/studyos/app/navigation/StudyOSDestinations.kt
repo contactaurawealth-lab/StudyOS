@@ -149,6 +149,9 @@ sealed class Screen(val route: String) {
 
     // Notification Center
     object NotificationCenter : Screen("notifications")
+
+    // Knowledge Graph Visualizer
+    object KnowledgeGraph : Screen("knowledge-graph")
 }
 
 data class TopLevelDestination(

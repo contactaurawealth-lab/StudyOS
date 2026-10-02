@@ -584,6 +584,12 @@ abstract class StudyOSDatabase : RoomDatabase() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
                             db.execSQL("PRAGMA foreign_keys = ON;")
+                            try {
+                                val report = DatabaseIntegrityManager.checkIntegrity(db)
+                                if (!report.isClean) {
+                                    DatabaseIntegrityManager.performAutoRecovery(db)
+                                }
+                            } catch (_: Exception) {}
                         }
                     })
                     .fallbackToDestructiveMigration()

@@ -104,6 +104,54 @@ fun FlashcardStudyScreen(
         }
     }
 
+    var isAudioDrillMode by remember { mutableStateOf(false) }
+
+    // Keyboard Shortcuts Listener
+    LaunchedEffect(Unit) {
+        com.studyos.app.core.util.KeyboardShortcutManager.actions.collect { action ->
+            when (action) {
+                com.studyos.app.core.util.KeyboardAction.ToggleTimerOrFlip -> {
+                    if (!uiState.isAnswerRevealed) {
+                        viewModel.revealAnswer()
+                    } else {
+                        viewModel.rateCard(FlashcardRating.GOOD)
+                    }
+                }
+                com.studyos.app.core.util.KeyboardAction.SwipeLeft -> {
+                    viewModel.rateCard(FlashcardRating.AGAIN)
+                }
+                com.studyos.app.core.util.KeyboardAction.SwipeRight -> {
+                    viewModel.rateCard(FlashcardRating.GOOD)
+                }
+                else -> {}
+            }
+        }
+    }
+
+    // Hands-Free Audio Drill Loop
+    val currentCardId = uiState.currentCard?.id
+    val isRevealed = uiState.isAnswerRevealed
+    val currentFront = uiState.currentCard?.front ?: ""
+    val currentBack = uiState.currentCard?.back ?: ""
+
+    LaunchedEffect(isAudioDrillMode, currentCardId, isRevealed) {
+        if (isAudioDrillMode && isTtsReady && !currentFront.isBlank()) {
+            if (!isRevealed) {
+                speakText("Question. $currentFront")
+                kotlinx.coroutines.delay(4500L)
+                if (isAudioDrillMode && !uiState.isAnswerRevealed) {
+                    viewModel.revealAnswer()
+                }
+            } else {
+                speakText("Answer. $currentBack")
+                kotlinx.coroutines.delay(3500L)
+                if (isAudioDrillMode && uiState.isAnswerRevealed) {
+                    viewModel.rateCard(FlashcardRating.GOOD)
+                }
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -187,6 +235,21 @@ fun FlashcardStudyScreen(
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         StudyOSIconButton(
+                            onClick = {
+                                isAudioDrillMode = !isAudioDrillMode
+                                if (!isAudioDrillMode) tts?.stop()
+                            },
+                            contentDescription = "Hands-free Audio Drill"
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                                contentDescription = null,
+                                tint = if (isAudioDrillMode) colors.accent else colors.secondaryText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        StudyOSIconButton(
                             onClick = { viewModel.shuffleDeck() },
                             contentDescription = "Shuffle Deck"
                         ) {
@@ -208,7 +271,26 @@ fun FlashcardStudyScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                if (isAudioDrillMode) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(shapes.statusPill)
+                            .background(colors.accent.copy(alpha = 0.12f))
+                            .border(1.dp, colors.accent.copy(alpha = 0.3f), shapes.statusPill)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🎧 Hands-Free Audio Drill Active • Auto-advancing",
+                            style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                            color = colors.accent
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Flashcard Interactive Container with Swipe Physics
                 Box(

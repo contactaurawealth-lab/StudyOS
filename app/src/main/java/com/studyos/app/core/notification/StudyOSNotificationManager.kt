@@ -167,6 +167,37 @@ object StudyOSNotificationManager {
         notificationManager.cancel(notificationId)
     }
 
+    fun buildOngoingTimerNotification(
+        context: Context,
+        title: String,
+        timeFormatted: String,
+        isPaused: Boolean
+    ): android.app.Notification {
+        createNotificationChannel(context)
+        val launchIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(MainActivity.EXTRA_ROUTE, Screen.StudyTimer.route)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            TIMER_NOTIFICATION_ID,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val statusText = if (isPaused) "⏸️ Paused • $timeFormatted" else "⏱️ Active • $timeFormatted"
+
+        return NotificationCompat.Builder(context, CHANNEL_TIMER_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(statusText)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(!isPaused)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(false)
+            .build()
+    }
+
     fun showOngoingTimerNotification(
         context: Context,
         title: String,
@@ -176,33 +207,10 @@ object StudyOSNotificationManager {
         createNotificationChannel(context)
         if (!areNotificationsEnabled(context)) return
 
-        val launchIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(MainActivity.EXTRA_ROUTE, Screen.StudyTimer.route)
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            TIMER_NOTIFICATION_ID,
-            launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val statusText = if (isPaused) "⏸️ Paused • $timeFormatted" else "⏱️ Active • $timeFormatted"
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_TIMER_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(title)
-            .setContentText(statusText)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(!isPaused)
-            .setOnlyAlertOnce(true)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(false)
-
+        val notification = buildOngoingTimerNotification(context, title, timeFormatted, isPaused)
         try {
             val notificationManager = NotificationManagerCompat.from(context)
-            notificationManager.notify(TIMER_NOTIFICATION_ID, builder.build())
+            notificationManager.notify(TIMER_NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
             // Permission not granted on Android 13+
         }

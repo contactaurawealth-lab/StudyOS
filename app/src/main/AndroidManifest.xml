@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
     <!-- Package visibility queries for external PDF, Office, and document viewers -->
@@ -34,6 +36,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.StudyOS"
         android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="true"
         android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
@@ -115,6 +118,17 @@
                 android:resource="@xml/widget_exam_countdown_info" />
         </receiver>
 
+        <receiver
+            android:name=".core.widget.FocusTimerWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_focus_timer_info" />
+        </receiver>
+
         <!-- Focus App Blocker Full-Screen Lock Overlay -->
         <activity
             android:name=".features.blocker.AppBlockerLockActivity"
@@ -171,6 +185,16 @@
         <service
             android:name=".core.assistant.StudyOSRecognitionService"
             android:exported="true" />
+
+        <!-- Hardened Focus Timer Foreground Service -->
+        <service
+            android:name=".core.service.FocusService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent study focus timer session tracking and offline SQLite checkpointing" />
+        </service>
 
         <!-- FileProvider for secure backup JSON sharing -->
         <provider

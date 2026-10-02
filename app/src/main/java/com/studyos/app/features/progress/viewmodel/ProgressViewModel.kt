@@ -37,11 +37,21 @@ data class CognitiveReadiness(
     val readinessTier: String = "Developing"
 )
 
+data class DiagnosedWeakSpot(
+    val subjectId: String,
+    val subjectName: String,
+    val accuracyPercentage: Int,
+    val mistakeCount: Int,
+    val recommendation: String,
+    val suggestedSessionType: String = "MICRO_SPRINT_10"
+)
+
 data class ProgressUiState(
     val academicProgress: AcademicProgress = AcademicProgress(),
     val weeklyReport: WeeklyStudyReport? = null,
     val selectedTimeWindow: ProgressTimeWindow = ProgressTimeWindow.THIS_WEEK,
     val cognitiveReadiness: CognitiveReadiness = CognitiveReadiness(),
+    val diagnosedWeakSpots: List<DiagnosedWeakSpot> = emptyList(),
     val filteredStudyMinutes: Int = 0,
     val activeDaysCount: Int = 0,
     val isLoading: Boolean = true,
@@ -176,17 +186,40 @@ class ProgressViewModel(
                     readinessTier = tier
                 )
 
-                Triple(report, readiness, Pair(filteredMinutes, activeDays))
-            }.collect { (report, readiness, stats) ->
+                // Diagnose weak spots across subjects
+                val weakSpots = subjects.mapNotNull { sub ->
+                    val subQuizzes = quizAttempts.filter { it.subjectId == sub.id }
+                    val subMistakes = mistakes.filter { it.subjectId == sub.id }
+                    val subAccuracy = if (subQuizzes.isNotEmpty()) {
+                        subQuizzes.map { it.accuracyPercentage }.average().toInt()
+                    } else if (subMistakes.isNotEmpty()) {
+                        (100 - subMistakes.size * 15).coerceIn(30, 85)
+                    } else {
+                        null
+                    }
+
+                    if (subAccuracy != null && (subAccuracy < 75 || subMistakes.size >= 2)) {
+                        DiagnosedWeakSpot(
+                            subjectId = sub.id,
+                            subjectName = sub.name,
+                            accuracyPercentage = subAccuracy,
+                            mistakeCount = subMistakes.size,
+                            recommendation = "Low retrieval accuracy in ${sub.name} ($subAccuracy%). Recommended: 10-Minute Micro-Sprint to strengthen neural recall.",
+                            suggestedSessionType = "MICRO_SPRINT_10"
+                        )
+                    } else null
+                }.sortedBy { it.accuracyPercentage }
+
                 _uiState.update {
                     it.copy(
                         weeklyReport = report,
                         cognitiveReadiness = readiness,
-                        filteredStudyMinutes = stats.first,
-                        activeDaysCount = stats.second
+                        diagnosedWeakSpots = weakSpots,
+                        filteredStudyMinutes = filteredMinutes,
+                        activeDaysCount = activeDays
                     )
                 }
-            }
+            }.collect {}
         }
     }
 }

@@ -122,48 +122,85 @@ object DocumentTextExtractor {
         if (consecutivePrintable >= 4) {
             textBuilder.append(currentWord)
         }
-        return textBuilder.toString()
-    }
+    private const val MAX_STREAM_READ_BYTES = 16 * 1024 * 1024 // 16 MB limit per extraction to prevent OOM
+    private const val MAX_OUTPUT_CHARS = 300_000
 
     /**
      * Pure Kotlin stream text extractor for PDF documents.
      * Decompresses Flate streams and decodes text operands (Tj, TJ, ET, BT).
+     * Protected with streaming bounded buffer to prevent heap exhaustion on large documents.
      */
     private fun extractFromPdf(inputStream: InputStream, fileName: String): String {
-        val bytes = inputStream.readBytes()
         val textBuilder = StringBuilder()
 
-        // 1. Scan for stream ... endstream blocks in PDF
-        val content = String(bytes, Charsets.ISO_8859_1)
-        val streamPattern = Regex("stream[\\r\\n]+([\\s\\S]*?)[\\r\\n]+endstream")
-        val matches = streamPattern.findAll(content)
-
-        for (match in matches) {
-            val streamData = match.groupValues[1]
-            val streamBytes = streamData.toByteArray(Charsets.ISO_8859_1)
-
-            // Attempt to decompress Flate stream
-            val decodedBytes = try {
-                InflaterInputStream(streamBytes.inputStream()).use { it.readBytes() }
-            } catch (e: Exception) {
-                streamBytes
+        try {
+            // Read up to 16MB max to prevent Dalvik OOM on large scanned PDFs
+            val buffer = ByteArray(MAX_STREAM_READ_BYTES)
+            var totalRead = 0
+            while (totalRead < MAX_STREAM_READ_BYTES) {
+                val read = inputStream.read(buffer, totalRead, MAX_STREAM_READ_BYTES - totalRead)
+                if (read == -1) break
+                totalRead += read
             }
 
-            val textStream = String(decodedBytes, Charsets.ISO_8859_1)
-            extractPdfTextFromStream(textStream, textBuilder)
-        }
+            val bytes = if (totalRead == buffer.size) buffer else buffer.copyOf(totalRead)
 
-        val result = textBuilder.toString().trim()
-        return if (result.isNotBlank()) {
-            result
-        } else {
-            // Fallback for non-standard PDF streams or scanned documents
-            val printableWords = extractPrintableTokens(bytes)
-            if (printableWords.isNotBlank() && printableWords.length > 50) {
-                printableWords
+            // 1. Scan for stream ... endstream blocks in PDF
+            val content = String(bytes, Charsets.ISO_8859_1)
+            val streamPattern = Regex("stream[\\r\\n]+([\\s\\S]*?)[\\r\\n]+endstream")
+            val matches = streamPattern.findAll(content)
+
+            for (match in matches) {
+                if (textBuilder.length >= MAX_OUTPUT_CHARS) {
+                    textBuilder.append("\n\n[... Note: Text truncated to protect memory on large document ...]")
+                    break
+                }
+
+                val streamData = match.groupValues[1]
+                val streamBytes = streamData.toByteArray(Charsets.ISO_8859_1)
+
+                // Attempt to decompress Flate stream
+                val decodedBytes = try {
+                    val inflStream = InflaterInputStream(streamBytes.inputStream())
+                    val outBuf = ByteArray(64 * 1024)
+                    val baos = java.io.ByteArrayOutputStream()
+                    var r: Int
+                    var totalInflated = 0
+                    while (inflStream.read(outBuf).also { r = it } != -1) {
+                        baos.write(outBuf, 0, r)
+                        totalInflated += r
+                        if (totalInflated > 512 * 1024) break // Limit each stream to 512KB
+                    }
+                    baos.toByteArray()
+                } catch (e: Exception) {
+                    streamBytes
+                }
+
+                val textStream = String(decodedBytes, Charsets.ISO_8859_1)
+                extractPdfTextFromStream(textStream, textBuilder)
+            }
+
+            val result = textBuilder.toString().trim()
+            return if (result.isNotBlank()) {
+                result
             } else {
-                "### Document: $fileName\n\n(PDF text stream is compressed or contains scanned images. Upload text notes or markdown alongside for best AI tutoring.)"
+                // Fallback for non-standard PDF streams or scanned documents
+                val printableWords = extractPrintableTokens(bytes)
+                if (printableWords.isNotBlank() && printableWords.length > 50) {
+                    printableWords
+                } else {
+                    "### Document: $fileName\n\n(PDF text stream is compressed or contains scanned images. Upload text notes or markdown alongside for best AI tutoring.)"
+                }
             }
+        } catch (oom: OutOfMemoryError) {
+            System.gc()
+            return if (textBuilder.isNotEmpty()) {
+                textBuilder.toString() + "\n\n[... Extraction halted due to device memory constraints ...]"
+            } else {
+                "### Document: $fileName\n\n(Large document loaded in Visual Mode. Open via external viewer or extract smaller sections for offline AI tutoring.)"
+            }
+        } catch (e: Exception) {
+            return "Failed to parse PDF text: ${e.localizedMessage ?: "Unknown error"}"
         }
     }
 
