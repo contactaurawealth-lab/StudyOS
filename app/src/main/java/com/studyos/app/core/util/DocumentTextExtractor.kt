@@ -122,6 +122,9 @@ object DocumentTextExtractor {
         if (consecutivePrintable >= 4) {
             textBuilder.append(currentWord)
         }
+        return textBuilder.toString()
+    }
+
     private const val MAX_STREAM_READ_BYTES = 16 * 1024 * 1024 // 16 MB limit per extraction to prevent OOM
     private const val MAX_OUTPUT_CHARS = 300_000
 

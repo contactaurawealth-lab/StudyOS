@@ -325,7 +325,7 @@ class FocusService : Service() {
                     createdAt = data.startTimestamp,
                     updatedAt = now
                 )
-                db.studySessionDao().insertSession(
+                db.studySessionDao().insert(
                     com.studyos.app.core.database.entity.StudySessionEntity(
                         id = session.id,
                         subjectId = session.subjectId,
@@ -352,7 +352,7 @@ class FocusService : Service() {
 
         serviceScope.launch {
             try {
-                db.studySessionDao().insertSession(
+                db.studySessionDao().insert(
                     com.studyos.app.core.database.entity.StudySessionEntity(
                         id = data.sessionId,
                         subjectId = data.subjectId,

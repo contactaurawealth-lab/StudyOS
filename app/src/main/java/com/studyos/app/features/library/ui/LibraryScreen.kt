@@ -40,6 +40,7 @@ import androidx.compose.material.icons.outlined.Functions
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material.icons.outlined.Visibility

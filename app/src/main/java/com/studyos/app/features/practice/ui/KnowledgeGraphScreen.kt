@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -64,16 +65,26 @@ fun KnowledgeGraphScreen(
                 navigationIcon = {
                     StudyOSIconButton(
                         onClick = onBack,
-                        icon = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Back"
-                    )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = null,
+                            tint = colors.primaryText
+                        )
+                    }
                 },
                 actions = {
                     StudyOSIconButton(
                         onClick = { viewModel.loadGraph() },
-                        icon = Icons.Outlined.Refresh,
                         contentDescription = "Recalculate Graph Layout"
-                    )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Refresh,
+                            contentDescription = null,
+                            tint = colors.primaryText
+                        )
+                    }
                 }
             )
 

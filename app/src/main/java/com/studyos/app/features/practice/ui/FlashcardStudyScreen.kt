@@ -131,8 +131,8 @@ fun FlashcardStudyScreen(
     // Hands-Free Audio Drill Loop
     val currentCardId = uiState.currentCard?.id
     val isRevealed = uiState.isAnswerRevealed
-    val currentFront = uiState.currentCard?.front ?: ""
-    val currentBack = uiState.currentCard?.back ?: ""
+    val currentFront = uiState.currentCard?.question ?: ""
+    val currentBack = uiState.currentCard?.answer ?: ""
 
     LaunchedEffect(isAudioDrillMode, currentCardId, isRevealed) {
         if (isAudioDrillMode && isTtsReady && !currentFront.isBlank()) {
