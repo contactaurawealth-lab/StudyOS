@@ -2,13 +2,16 @@ package com.studyos.app.features.practice.ui
 
 import android.speech.tts.TextToSpeech
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,32 +24,42 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSIconButton
@@ -109,15 +122,39 @@ fun FlashcardStudyScreen(
             // Finished Deck Summary
             DeckFinishedView(
                 reviewedCount = uiState.reviewedCount,
-                againCount = uiState.againCount,
-                hardCount = uiState.hardCount,
-                goodCount = uiState.goodCount,
-                easyCount = uiState.easyCount,
+                wrongCount = uiState.wrongCount,
+                rightCount = uiState.rightCount,
+                accuracy = uiState.accuracyPercentage,
                 onRestart = { viewModel.restartDeck() },
                 onFinish = onBack
             )
         } else {
             val card = uiState.currentCard ?: return
+            val coroutineScope = rememberCoroutineScope()
+            val offsetX = remember { Animatable(0f) }
+            val swipeThreshold = 260f
+
+            LaunchedEffect(card.id) {
+                offsetX.snapTo(0f)
+            }
+
+            val dragOffset = offsetX.value
+            val isSwipingLeft = dragOffset < 0
+            val isSwipingRight = dragOffset > 0
+            val swipeRatio = (abs(dragOffset) / swipeThreshold).coerceIn(0f, 1f)
+
+            val dynamicBorderColor = when {
+                isSwipingLeft -> Color(0xFFE53E3E).copy(alpha = 0.35f + swipeRatio * 0.65f)
+                isSwipingRight -> Color(0xFF38A169).copy(alpha = 0.35f + swipeRatio * 0.65f)
+                else -> colors.border
+            }
+
+            val dynamicBgColor = when {
+                isSwipingLeft -> Color(0xFFE53E3E).copy(alpha = swipeRatio * 0.15f)
+                isSwipingRight -> Color(0xFF38A169).copy(alpha = swipeRatio * 0.15f)
+                else -> Color.Transparent
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -173,18 +210,107 @@ fun FlashcardStudyScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Flashcard Interactive Container
+                // Flashcard Interactive Container with Swipe Physics
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
+                        .graphicsLayer {
+                            translationX = offsetX.value
+                            rotationZ = (offsetX.value / 25f).coerceIn(-15f, 15f)
+                        }
+                        .pointerInput(card.id) {
+                            detectHorizontalDragGestures(
+                                onDragEnd = {
+                                    if (offsetX.value < -swipeThreshold) {
+                                        coroutineScope.launch {
+                                            offsetX.animateTo(-1200f, tween(180))
+                                            viewModel.rateWrong()
+                                            offsetX.snapTo(0f)
+                                        }
+                                    } else if (offsetX.value > swipeThreshold) {
+                                        coroutineScope.launch {
+                                            offsetX.animateTo(1200f, tween(180))
+                                            viewModel.rateRight()
+                                            offsetX.snapTo(0f)
+                                        }
+                                    } else {
+                                        coroutineScope.launch {
+                                            offsetX.animateTo(
+                                                0f,
+                                                spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                )
+                                            )
+                                        }
+                                    }
+                                },
+                                onDragCancel = {
+                                    coroutineScope.launch {
+                                        offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                                    }
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    coroutineScope.launch {
+                                        offsetX.snapTo(offsetX.value + dragAmount)
+                                    }
+                                }
+                            )
+                        }
                         .clip(shapes.surface)
                         .background(colors.surface)
-                        .border(1.dp, colors.border, shapes.surface)
+                        .background(dynamicBgColor)
+                        .border(
+                            width = if (swipeRatio > 0.05f) 2.dp else 1.dp,
+                            color = dynamicBorderColor,
+                            shape = shapes.surface
+                        )
                         .clickable(enabled = !uiState.isAnswerRevealed) { viewModel.revealAnswer() }
                         .padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    // Swipe feedback badges
+                    if (isSwipingLeft && swipeRatio > 0.08f) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .graphicsLayer { alpha = swipeRatio }
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFE53E3E).copy(alpha = 0.92f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "WRONG",
+                                    style = typography.caption.copy(fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (isSwipingRight && swipeRatio > 0.08f) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .graphicsLayer { alpha = swipeRatio }
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF38A169).copy(alpha = 0.92f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "RIGHT",
+                                    style = typography.caption.copy(fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                                )
+                            }
+                        }
+                    }
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -293,101 +419,122 @@ fun FlashcardStudyScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Action Controls: Tap to Reveal or SM-2 Rating Row
+                // Action Controls: Tap to Reveal or Wrong (Swipe Left) / Right (Swipe Right)
                 if (!uiState.isAnswerRevealed) {
-                    StudyOSButton(
-                        text = "Reveal Answer",
-                        onClick = { viewModel.revealAnswer() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Column {
-                        Text(
-                            text = "Rate your recall difficulty:",
-                            style = typography.caption,
-                            color = colors.secondaryText,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        StudyOSButton(
+                            text = "Reveal Answer",
+                            onClick = { viewModel.revealAnswer() },
+                            modifier = Modifier.fillMaxWidth()
                         )
-
-                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                            val isNarrow = maxWidth < 340.dp
-                            if (isNarrow) {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        RatingButton(
-                                            label = "Again",
-                                            sublabel = "< 1d",
-                                            colorIndicator = Color(0xFFE53E3E),
-                                            onClick = { viewModel.rateCard(FlashcardRating.AGAIN) },
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        RatingButton(
-                                            label = "Hard",
-                                            sublabel = "2d",
-                                            colorIndicator = Color(0xFFDD6B20),
-                                            onClick = { viewModel.rateCard(FlashcardRating.HARD) },
-                                            modifier = Modifier.weight(1f)
-                                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Swipe card left if wrong (❌) • Swipe right if right (✅)",
+                            style = typography.caption.copy(fontSize = 11.sp),
+                            color = colors.mutedText,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Wrong (Swipe Left) Button
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(shapes.button)
+                                    .background(Color(0xFFE53E3E).copy(alpha = 0.12f))
+                                    .border(1.5.dp, Color(0xFFE53E3E).copy(alpha = 0.7f), shapes.button)
+                                    .clickable {
+                                        coroutineScope.launch {
+                                            offsetX.animateTo(-1200f, tween(180))
+                                            viewModel.rateWrong()
+                                            offsetX.snapTo(0f)
+                                        }
                                     }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        RatingButton(
-                                            label = "Good",
-                                            sublabel = "4d",
-                                            colorIndicator = colors.accent,
-                                            onClick = { viewModel.rateCard(FlashcardRating.GOOD) },
-                                            modifier = Modifier.weight(1f)
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = null,
+                                        tint = Color(0xFFE53E3E),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Column {
+                                        Text(
+                                            text = "Wrong",
+                                            style = typography.secondary.copy(fontWeight = FontWeight.Bold),
+                                            color = Color(0xFFE53E3E)
                                         )
-                                        RatingButton(
-                                            label = "Easy",
-                                            sublabel = "7d",
-                                            colorIndicator = Color(0xFF38A169),
-                                            onClick = { viewModel.rateCard(FlashcardRating.EASY) },
-                                            modifier = Modifier.weight(1f)
+                                        Text(
+                                            text = "Swipe Left",
+                                            style = typography.caption.copy(fontSize = 10.sp),
+                                            color = Color(0xFFE53E3E).copy(alpha = 0.85f)
                                         )
                                     }
                                 }
-                            } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    RatingButton(
-                                        label = "Again",
-                                        sublabel = "< 1d",
-                                        colorIndicator = Color(0xFFE53E3E),
-                                        onClick = { viewModel.rateCard(FlashcardRating.AGAIN) },
-                                        modifier = Modifier.weight(1f)
+                            }
+
+                            // Right (Swipe Right) Button
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(shapes.button)
+                                    .background(Color(0xFF38A169).copy(alpha = 0.12f))
+                                    .border(1.5.dp, Color(0xFF38A169).copy(alpha = 0.7f), shapes.button)
+                                    .clickable {
+                                        coroutineScope.launch {
+                                            offsetX.animateTo(1200f, tween(180))
+                                            viewModel.rateRight()
+                                            offsetX.snapTo(0f)
+                                        }
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Check,
+                                        contentDescription = null,
+                                        tint = Color(0xFF38A169),
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    RatingButton(
-                                        label = "Hard",
-                                        sublabel = "2d",
-                                        colorIndicator = Color(0xFFDD6B20),
-                                        onClick = { viewModel.rateCard(FlashcardRating.HARD) },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    RatingButton(
-                                        label = "Good",
-                                        sublabel = "4d",
-                                        colorIndicator = colors.accent,
-                                        onClick = { viewModel.rateCard(FlashcardRating.GOOD) },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    RatingButton(
-                                        label = "Easy",
-                                        sublabel = "7d",
-                                        colorIndicator = Color(0xFF38A169),
-                                        onClick = { viewModel.rateCard(FlashcardRating.EASY) },
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Column {
+                                        Text(
+                                            text = "Right",
+                                            style = typography.secondary.copy(fontWeight = FontWeight.Bold),
+                                            color = Color(0xFF38A169)
+                                        )
+                                        Text(
+                                            text = "Swipe Right",
+                                            style = typography.caption.copy(fontSize = 10.sp),
+                                            color = Color(0xFF38A169).copy(alpha = 0.85f)
+                                        )
+                                    }
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Swipe card left if wrong (❌) • Swipe right if right (✅)",
+                            style = typography.caption.copy(fontSize = 11.sp),
+                            color = colors.mutedText,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
 
@@ -398,57 +545,11 @@ fun FlashcardStudyScreen(
 }
 
 @Composable
-private fun RatingButton(
-    label: String,
-    sublabel: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    colorIndicator: Color = Color.Transparent
-) {
-    val colors = StudyOSTheme.colors
-    val typography = StudyOSTheme.typography
-    val shapes = StudyOSTheme.shapes
-
-    Box(
-        modifier = modifier
-            .clip(shapes.button)
-            .background(colors.surface)
-            .border(
-                1.dp,
-                if (colorIndicator != Color.Transparent) colorIndicator.copy(alpha = 0.35f) else colors.border,
-                shapes.button
-            )
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = label,
-                style = typography.caption.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
-                color = if (colorIndicator != Color.Transparent) colorIndicator else colors.primaryText,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = sublabel,
-                style = typography.caption.copy(fontSize = 11.sp),
-                color = colors.secondaryText,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
 private fun DeckFinishedView(
     reviewedCount: Int,
-    againCount: Int,
-    hardCount: Int,
-    goodCount: Int,
-    easyCount: Int,
+    wrongCount: Int,
+    rightCount: Int,
+    accuracy: Int,
     onRestart: () -> Unit,
     onFinish: () -> Unit
 ) {
@@ -466,7 +567,7 @@ private fun DeckFinishedView(
         Icon(
             imageVector = Icons.Outlined.CheckCircle,
             contentDescription = null,
-            tint = colors.accent,
+            tint = if (accuracy >= 70) Color(0xFF38A169) else colors.accent,
             modifier = Modifier.size(54.dp)
         )
 
@@ -481,7 +582,7 @@ private fun DeckFinishedView(
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "You reviewed $reviewedCount cards. Next intervals updated automatically with spaced repetition.",
+            text = "You reviewed $reviewedCount cards with $accuracy% accuracy.",
             style = typography.body,
             color = colors.secondaryText,
             textAlign = TextAlign.Center
@@ -502,10 +603,10 @@ private fun DeckFinishedView(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                ResultMetric(label = "Again", count = againCount)
-                ResultMetric(label = "Hard", count = hardCount)
-                ResultMetric(label = "Good", count = goodCount)
-                ResultMetric(label = "Easy", count = easyCount)
+                ResultMetric(label = "Total Cards", count = reviewedCount.toString(), color = colors.primaryText)
+                ResultMetric(label = "Right", count = rightCount.toString(), color = Color(0xFF38A169))
+                ResultMetric(label = "Wrong", count = wrongCount.toString(), color = Color(0xFFE53E3E))
+                ResultMetric(label = "Accuracy", count = "$accuracy%", color = colors.accent)
             }
         }
 
@@ -528,15 +629,15 @@ private fun DeckFinishedView(
 }
 
 @Composable
-private fun ResultMetric(label: String, count: Int) {
+private fun ResultMetric(label: String, count: String, color: Color = Color.Unspecified) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = count.toString(),
+            text = count,
             style = typography.sectionTitle,
-            color = colors.primaryText
+            color = if (color != Color.Unspecified) color else colors.primaryText
         )
         Text(
             text = label,

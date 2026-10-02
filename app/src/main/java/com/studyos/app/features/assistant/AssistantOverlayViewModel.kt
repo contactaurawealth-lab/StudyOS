@@ -64,7 +64,8 @@ class AssistantOverlayViewModel(
     private val sendAiMessageUseCase: SendAiMessageUseCase,
     private val noteDao: NoteDao,
     private val flashcardDao: FlashcardDao,
-    private val subjectRepository: SubjectRepository
+    private val subjectRepository: SubjectRepository,
+    private val agentActionExecutor: com.studyos.app.core.agent.StudyOSAgentActionExecutor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssistantOverlayUiState())
@@ -131,6 +132,20 @@ class AssistantOverlayViewModel(
 
         streamJob?.cancel()
         streamJob = viewModelScope.launch {
+            // First check if user prompt is a direct autonomous agent command
+            val directResult = agentActionExecutor.tryExecuteIntent(query)
+            if (directResult != null) {
+                _uiState.update {
+                    it.copy(
+                        isGenerating = false,
+                        responseText = "✓ ${directResult.message}",
+                        statusMessage = "Action Executed: ${directResult.actionType}"
+                    )
+                }
+                triggerHaptic()
+                return@launch
+            }
+
             try {
                 // Ensure conversation exists
                 var convId = _uiState.value.currentConversationId
@@ -153,13 +168,34 @@ class AssistantOverlayViewModel(
 
                 // Stream response
                 val studyContext = StudyContext(subjectName = "General Study")
+                var fullResponse = ""
                 sendAiMessageUseCase.streamAssistantResponse(
                     assistantMessageId = assistantMsg.id,
                     conversationId = convId,
                     context = studyContext
                 ).collect { content ->
+                    fullResponse = content
                     _uiState.update {
                         it.copy(responseText = content)
+                    }
+                }
+
+                // Check if response contains an action block ```studyos_action
+                if (fullResponse.contains("```studyos_action")) {
+                    val result = agentActionExecutor.tryExecuteIntent(fullResponse)
+                    if (result != null) {
+                        val cleanedText = fullResponse.substringBefore("```studyos_action").trim()
+                        val finalMsg = if (cleanedText.isNotBlank()) {
+                            "$cleanedText\n\n✓ **${result.message}**"
+                        } else {
+                            "✓ **${result.message}**"
+                        }
+                        _uiState.update {
+                            it.copy(
+                                responseText = finalMsg,
+                                statusMessage = "Action: ${result.actionType}"
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {

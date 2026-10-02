@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -83,6 +84,7 @@ import com.studyos.app.core.ui.component.StudyOSSectionHeader
 import com.studyos.app.features.assistant.AssistantOverlayActivity
 import com.studyos.app.features.settings.viewmodel.SettingsViewModel
 import com.studyos.app.theme.StudyOSTheme
+import com.studyos.app.theme.parseHexColor
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
@@ -415,8 +417,8 @@ fun SettingsScreen(
 
             // Appearance Section
             StudyOSSectionHeader(
-                title = "Appearance",
-                description = "Choose your reading preference."
+                title = "Appearance & Themes",
+                description = "Choose your aesthetic sanctuary or customize accent colors."
             )
 
             Box(
@@ -427,23 +429,165 @@ fun SettingsScreen(
                     .border(1.dp, colors.border, shapes.surface)
             ) {
                 Column {
+                    Text(
+                        text = "Standard Modes",
+                        style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.secondaryText,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
                     ThemeOptionRow(
-                        title = "Light",
+                        title = "Follow System",
+                        isSelected = uiState.currentTheme == AppTheme.SYSTEM,
+                        onClick = { viewModel.setTheme(AppTheme.SYSTEM) }
+                    )
+                    StudyOSDivider()
+                    ThemeOptionRow(
+                        title = "Light (Clean Paper)",
                         isSelected = uiState.currentTheme == AppTheme.LIGHT,
                         onClick = { viewModel.setTheme(AppTheme.LIGHT) }
                     )
                     StudyOSDivider()
                     ThemeOptionRow(
-                        title = "Dark",
+                        title = "Dark (Warm Graphite)",
                         isSelected = uiState.currentTheme == AppTheme.DARK,
                         onClick = { viewModel.setTheme(AppTheme.DARK) }
                     )
+
                     StudyOSDivider()
-                    ThemeOptionRow(
-                        title = "System",
-                        isSelected = uiState.currentTheme == AppTheme.SYSTEM,
-                        onClick = { viewModel.setTheme(AppTheme.SYSTEM) }
+
+                    Text(
+                        text = "Serene Minimalism Palettes",
+                        style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.secondaryText,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                     )
+
+                    ThemePaletteOptionRow(
+                        title = "☕ Coffee Latte",
+                        subtitle = "Warm obsidian, matte slate & amber latte",
+                        bgPreview = Color(0xFF0F1115),
+                        accentPreview = Color(0xFFD4A373),
+                        isSelected = uiState.currentTheme == AppTheme.COFFEE_LATTE,
+                        onClick = { viewModel.setTheme(AppTheme.COFFEE_LATTE) }
+                    )
+                    StudyOSDivider()
+                    ThemePaletteOptionRow(
+                        title = "🌲 Forest Sage",
+                        subtitle = "Deep moss slate & morning eucalyptus",
+                        bgPreview = Color(0xFF0C1410),
+                        accentPreview = Color(0xFF81C784),
+                        isSelected = uiState.currentTheme == AppTheme.FOREST_SAGE,
+                        onClick = { viewModel.setTheme(AppTheme.FOREST_SAGE) }
+                    )
+                    StudyOSDivider()
+                    ThemePaletteOptionRow(
+                        title = "🌊 Ocean Cobalt",
+                        subtitle = "Abyssal navy & icy cyan",
+                        bgPreview = Color(0xFF0A0F1D),
+                        accentPreview = Color(0xFF38BDF8),
+                        isSelected = uiState.currentTheme == AppTheme.OCEAN_COBALT,
+                        onClick = { viewModel.setTheme(AppTheme.OCEAN_COBALT) }
+                    )
+                    StudyOSDivider()
+                    ThemePaletteOptionRow(
+                        title = "🌅 Sunset Amber",
+                        subtitle = "Charred cocoa & golden hour flame",
+                        bgPreview = Color(0xFF140F0D),
+                        accentPreview = Color(0xFFFB923C),
+                        isSelected = uiState.currentTheme == AppTheme.SUNSET_AMBER,
+                        onClick = { viewModel.setTheme(AppTheme.SUNSET_AMBER) }
+                    )
+                    StudyOSDivider()
+                    ThemePaletteOptionRow(
+                        title = "🌸 Cherry Blossom",
+                        subtitle = "Velvet plum & delicate sakura pink",
+                        bgPreview = Color(0xFF140D14),
+                        accentPreview = Color(0xFFEC4899),
+                        isSelected = uiState.currentTheme == AppTheme.CHERRY_BLOSSOM,
+                        onClick = { viewModel.setTheme(AppTheme.CHERRY_BLOSSOM) }
+                    )
+                    StudyOSDivider()
+                    ThemePaletteOptionRow(
+                        title = "🎨 Custom Accent Theme",
+                        subtitle = "Personalized accent color with obsidian dark mode",
+                        bgPreview = Color(0xFF141413),
+                        accentPreview = parseHexColor(uiState.customAccentHex),
+                        isSelected = uiState.currentTheme == AppTheme.CUSTOM_ACCENT,
+                        onClick = { viewModel.setTheme(AppTheme.CUSTOM_ACCENT) }
+                    )
+
+                    // Accent Color Picker Swatches
+                    AnimatedVisibility(visible = uiState.currentTheme == AppTheme.CUSTOM_ACCENT) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(colors.cardBackground.copy(alpha = 0.5f))
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Select Custom Accent Color:",
+                                style = typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                                color = colors.secondaryText
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            val accentSwatches = listOf(
+                                "#D4A373" to "Latte",
+                                "#10B981" to "Emerald",
+                                "#38BDF8" to "Cyan",
+                                "#6366F1" to "Indigo",
+                                "#A855F7" to "Purple",
+                                "#EC4899" to "Pink",
+                                "#FB923C" to "Sunset",
+                                "#EAB308" to "Gold"
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                accentSwatches.forEach { (hex, label) ->
+                                    val swatchColor = Color(android.graphics.Color.parseColor(hex))
+                                    val isCurrentSwatch = uiState.customAccentHex.equals(hex, ignoreCase = true)
+
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.clickable { viewModel.setCustomAccent(hex) }
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(swatchColor)
+                                                .border(
+                                                    width = if (isCurrentSwatch) 2.5.dp else 1.dp,
+                                                    color = if (isCurrentSwatch) Color.White else Color.Transparent,
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isCurrentSwatch) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Check,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = label,
+                                            style = typography.caption.copy(fontSize = 10.sp),
+                                            color = colors.secondaryText
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1167,6 +1311,74 @@ private fun ThemeOptionRow(
             color = colors.primaryText,
             modifier = Modifier.weight(1f)
         )
+
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Outlined.Check,
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemePaletteOptionRow(
+    title: String,
+    subtitle: String,
+    bgPreview: Color,
+    accentPreview: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .semantics {
+                this.role = Role.RadioButton
+                this.selected = isSelected
+            },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Color preview swatch box
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(bgPreview)
+                .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(accentPreview)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = if (isSelected) typography.bodyMedium.copy(fontWeight = FontWeight.Bold) else typography.body,
+                color = colors.primaryText
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = typography.caption.copy(fontSize = 11.sp),
+                color = colors.mutedText
+            )
+        }
 
         if (isSelected) {
             Icon(

@@ -25,6 +25,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -61,6 +63,8 @@ fun AiChatInputBar(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
+        val focusRequester = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+
         // Input row
         Row(
             modifier = Modifier
@@ -68,14 +72,21 @@ fun AiChatInputBar(
                 .clip(shapes.surface)
                 .background(colors.cardBackground.copy(alpha = 0.7f))
                 .border(0.5.dp, colors.border.copy(alpha = 0.3f), shapes.surface)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .clickable(
+                    interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null
+                ) {
+                    focusRequester.requestFocus()
+                }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Multiline text input
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 8.dp)
+                    .padding(end = 8.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
                 if (text.isEmpty()) {
                     Text(
@@ -98,7 +109,11 @@ fun AiChatInputBar(
                             }
                         }
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    minLines = 1,
+                    maxLines = 4,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
                 )
             }
 

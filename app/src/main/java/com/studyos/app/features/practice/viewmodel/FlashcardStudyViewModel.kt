@@ -28,6 +28,9 @@ data class FlashcardStudyUiState(
 ) {
     val currentCard: Flashcard? get() = cards.getOrNull(currentIndex)
     val progress: Float get() = if (cards.isNotEmpty()) (currentIndex.toFloat() / cards.size) else 0f
+    val wrongCount: Int get() = againCount + hardCount
+    val rightCount: Int get() = goodCount + easyCount
+    val accuracyPercentage: Int get() = if (reviewedCount > 0) ((rightCount * 100) / reviewedCount) else 0
 }
 
 class FlashcardStudyViewModel(
@@ -86,7 +89,7 @@ class FlashcardStudyViewModel(
 
     fun rateCard(rating: FlashcardRating) {
         val currentCard = _uiState.value.currentCard ?: return
-        if (isRatingInProgress || !_uiState.value.isAnswerRevealed) return
+        if (isRatingInProgress) return
         isRatingInProgress = true
 
         viewModelScope.launch {
@@ -113,6 +116,9 @@ class FlashcardStudyViewModel(
             }
         }
     }
+
+    fun rateWrong() = rateCard(FlashcardRating.AGAIN)
+    fun rateRight() = rateCard(FlashcardRating.GOOD)
 
     fun shuffleDeck() {
         _uiState.update { state ->

@@ -27,6 +27,7 @@ data class SettingsUiState(
     val subjects: List<Subject> = emptyList(),
     val preferences: StudyPreferences = StudyPreferences(),
     val currentTheme: AppTheme = AppTheme.SYSTEM,
+    val customAccentHex: String = "#D4A373",
     val studyRemindersEnabled: Boolean = true,
     val dailyReminderEnabled: Boolean = true,
     val dailyReminderTime: String = "19:00",
@@ -63,6 +64,12 @@ class SettingsViewModel(
         viewModelScope.launch {
             preferencesDataSource.themePreference.collect { theme ->
                 _uiState.update { it.copy(currentTheme = theme) }
+            }
+        }
+
+        viewModelScope.launch {
+            preferencesDataSource.customAccentHex.collect { hex ->
+                _uiState.update { it.copy(customAccentHex = hex) }
             }
         }
 
@@ -170,6 +177,13 @@ class SettingsViewModel(
     fun setTheme(theme: AppTheme) {
         viewModelScope.launch {
             preferencesDataSource.setThemePreference(theme)
+        }
+    }
+
+    fun setCustomAccent(hex: String) {
+        viewModelScope.launch {
+            preferencesDataSource.setCustomAccentHex(hex)
+            preferencesDataSource.setThemePreference(AppTheme.CUSTOM_ACCENT)
         }
     }
 

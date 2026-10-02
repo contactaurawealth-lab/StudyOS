@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -69,29 +70,26 @@ object StudyOSTheme {
 @Composable
 fun StudyOSTheme(
     appTheme: AppTheme = AppTheme.SYSTEM,
+    customAccentHex: String? = null,
     content: @Composable () -> Unit
 ) {
+    val isSystemDark = isSystemInDarkTheme()
     val isDark = when (appTheme) {
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
-        AppTheme.SYSTEM -> isSystemInDarkTheme()
+        AppTheme.SYSTEM -> isSystemDark
+        AppTheme.COFFEE_LATTE,
+        AppTheme.FOREST_SAGE,
+        AppTheme.OCEAN_COBALT,
+        AppTheme.SUNSET_AMBER,
+        AppTheme.CHERRY_BLOSSOM,
+        AppTheme.CUSTOM_ACCENT -> true
     }
 
-    val colors = if (isDark) {
-        StudyOSColors(
-            background = DarkBackground,
-            surface = DarkSurface,
-            primaryText = DarkPrimaryText,
-            secondaryText = DarkSecondaryText,
-            mutedText = DarkMutedText,
-            border = DarkBorder,
-            accent = DarkAccent,
-            error = DarkError,
-            success = DarkSuccess,
-            isDark = true
-        )
-    } else {
-        StudyOSColors(
+    val customAccent = parseHexColor(customAccentHex, DarkAccent)
+
+    val colors = when (appTheme) {
+        AppTheme.LIGHT -> StudyOSColors(
             background = LightBackground,
             surface = LightSurface,
             primaryText = LightPrimaryText,
@@ -103,9 +101,132 @@ fun StudyOSTheme(
             success = LightSuccess,
             isDark = false
         )
+        AppTheme.DARK -> StudyOSColors(
+            background = DarkBackground,
+            surface = DarkSurface,
+            primaryText = DarkPrimaryText,
+            secondaryText = DarkSecondaryText,
+            mutedText = DarkMutedText,
+            border = DarkBorder,
+            accent = DarkAccent,
+            error = DarkError,
+            success = DarkSuccess,
+            isDark = true
+        )
+        AppTheme.SYSTEM -> if (isSystemDark) {
+            StudyOSColors(
+                background = DarkBackground,
+                surface = DarkSurface,
+                primaryText = DarkPrimaryText,
+                secondaryText = DarkSecondaryText,
+                mutedText = DarkMutedText,
+                border = DarkBorder,
+                accent = DarkAccent,
+                error = DarkError,
+                success = DarkSuccess,
+                isDark = true
+            )
+        } else {
+            StudyOSColors(
+                background = LightBackground,
+                surface = LightSurface,
+                primaryText = LightPrimaryText,
+                secondaryText = LightSecondaryText,
+                mutedText = LightMutedText,
+                border = LightBorder,
+                accent = LightAccent,
+                error = LightError,
+                success = LightSuccess,
+                isDark = false
+            )
+        }
+        AppTheme.COFFEE_LATTE -> StudyOSColors(
+            background = CoffeeLatteBackground,
+            surface = CoffeeLatteSurface,
+            primaryText = CoffeeLattePrimaryText,
+            secondaryText = CoffeeLatteSecondaryText,
+            mutedText = CoffeeLatteMutedText,
+            border = CoffeeLatteBorder,
+            accent = CoffeeLatteAccent,
+            error = DarkError,
+            success = CoffeeLatteAccent,
+            isDark = true
+        )
+        AppTheme.FOREST_SAGE -> StudyOSColors(
+            background = ForestSageBackground,
+            surface = ForestSageSurface,
+            primaryText = ForestSagePrimaryText,
+            secondaryText = ForestSageSecondaryText,
+            mutedText = ForestSageMutedText,
+            border = ForestSageBorder,
+            accent = ForestSageAccent,
+            error = DarkError,
+            success = ForestSageAccent,
+            isDark = true
+        )
+        AppTheme.OCEAN_COBALT -> StudyOSColors(
+            background = OceanCobaltBackground,
+            surface = OceanCobaltSurface,
+            primaryText = OceanCobaltPrimaryText,
+            secondaryText = OceanCobaltSecondaryText,
+            mutedText = OceanCobaltMutedText,
+            border = OceanCobaltBorder,
+            accent = OceanCobaltAccent,
+            error = DarkError,
+            success = Color(0xFF34D399),
+            isDark = true
+        )
+        AppTheme.SUNSET_AMBER -> StudyOSColors(
+            background = SunsetAmberBackground,
+            surface = SunsetAmberSurface,
+            primaryText = SunsetAmberPrimaryText,
+            secondaryText = SunsetAmberSecondaryText,
+            mutedText = SunsetAmberMutedText,
+            border = SunsetAmberBorder,
+            accent = SunsetAmberAccent,
+            error = DarkError,
+            success = Color(0xFF4ADE80),
+            isDark = true
+        )
+        AppTheme.CHERRY_BLOSSOM -> StudyOSColors(
+            background = CherryBlossomBackground,
+            surface = CherryBlossomSurface,
+            primaryText = CherryBlossomPrimaryText,
+            secondaryText = CherryBlossomSecondaryText,
+            mutedText = CherryBlossomMutedText,
+            border = CherryBlossomBorder,
+            accent = CherryBlossomAccent,
+            error = DarkError,
+            success = Color(0xFF4ADE80),
+            isDark = true
+        )
+        AppTheme.CUSTOM_ACCENT -> StudyOSColors(
+            background = DarkBackground,
+            surface = DarkSurface,
+            primaryText = DarkPrimaryText,
+            secondaryText = DarkSecondaryText,
+            mutedText = DarkMutedText,
+            border = DarkBorder,
+            accent = customAccent,
+            error = DarkError,
+            success = DarkSuccess,
+            isDark = true
+        )
     }
 
-    val materialColorScheme = if (isDark) DarkColorScheme else LightColorScheme
+    val materialColorScheme = if (isDark) {
+        DarkColorScheme.copy(
+            primary = colors.accent,
+            background = colors.background,
+            surface = colors.surface
+        )
+    } else {
+        LightColorScheme.copy(
+            primary = colors.accent,
+            background = colors.background,
+            surface = colors.surface
+        )
+    }
 
     val view = LocalView.current
     if (!view.isInEditMode) {

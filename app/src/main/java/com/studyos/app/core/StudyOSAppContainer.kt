@@ -349,6 +349,10 @@ class StudyOSAppContainer(private val context: Context) {
         GetAiConfigUseCase(preferencesDataSource)
     }
 
+    val agentActionExecutor: com.studyos.app.core.agent.StudyOSAgentActionExecutor by lazy {
+        com.studyos.app.core.agent.StudyOSAgentActionExecutor(database)
+    }
+
     // Practice, Revision & Exam Prep Repositories
     val noteRepository: com.studyos.app.domain.repository.NoteRepository by lazy {
         com.studyos.app.data.repository.NoteRepositoryImpl(database.noteDao())

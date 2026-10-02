@@ -1258,7 +1258,8 @@ private fun rememberAiAssistantViewModel(
             getChapterAiContextUseCase = container.getChapterAiContextUseCase,
             aiStudyEngineUseCase = container.aiStudyEngineUseCase,
             noteDao = container.database.noteDao(),
-            flashcardDao = container.database.flashcardDao()
+            flashcardDao = container.database.flashcardDao(),
+            agentActionExecutor = container.agentActionExecutor
         )
     }
 }

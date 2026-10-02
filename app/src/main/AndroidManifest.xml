@@ -142,6 +142,7 @@
             android:exported="true"
             android:theme="@style/Theme.StudyOS.AssistantOverlay"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
             android:excludeFromRecents="true">
             <intent-filter>
                 <action android:name="android.intent.action.ASSIST" />

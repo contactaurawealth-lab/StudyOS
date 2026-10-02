@@ -84,6 +84,10 @@ class OpenAiCompatibleProvider : AiProvider {
                 append("\n- For code, always use fenced code blocks with the language specified.")
                 append("\n- If the student asks for a quiz, present 3-4 distinct questions, then provide answers with explanations.")
                 append("\n- If the student asks for notes, provide concise, high-yield revision notes.")
+                append("\n\nAgentic Capabilities:")
+                append("\nYou are fully empowered as an autonomous StudyOS agent. When the student asks you to create, edit, or delete notes, flashcards, tasks/events, exams, or study sessions, explain what you did and append a JSON action block at the very end formatted as:")
+                append("\n```studyos_action\n{\"action\": \"CREATE_NOTE\", \"title\": \"...\", \"content\": \"...\", \"isPinned\": false}\n```")
+                append("\nAvailable actions: CREATE_NOTE, EDIT_NOTE, DELETE_NOTE, CREATE_FLASHCARD, DELETE_FLASHCARD, CREATE_TASK, COMPLETE_TASK, DELETE_TASK, ADD_EXAM, DELETE_EXAM, LOG_STUDY_SESSION.")
                 if (context?.hasContext == true) {
                     append("\n\n${context.toPromptContext()}")
                 }

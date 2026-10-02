@@ -44,7 +44,9 @@ interface PreferencesDataSource {
     val blockedPackages: Flow<Set<String>> get() = flowOf(emptySet())
     val appBlockerPasscode: Flow<String> get() = flowOf("")
     val assistantCustomization: Flow<AssistantCustomization> get() = flowOf(AssistantCustomization())
+    val customAccentHex: Flow<String> get() = flowOf("#D4A373")
     suspend fun setThemePreference(theme: AppTheme)
+    suspend fun setCustomAccentHex(hex: String) {}
     suspend fun setOnboardingCompleted(completed: Boolean)
     suspend fun resetOnboarding()
     suspend fun resetAll()
@@ -89,6 +91,7 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         val ASSISTANT_SPEAK_RESPONSES = booleanPreferencesKey("assistant_speak_responses")
         val ASSISTANT_AUTO_CAPTURE_SCREEN = booleanPreferencesKey("assistant_auto_capture_screen")
         val ASSISTANT_HAPTIC_FEEDBACK = booleanPreferencesKey("assistant_haptic_feedback")
+        val CUSTOM_ACCENT_HEX = stringPreferencesKey("custom_accent_hex")
     }
 
     override val appState: Flow<AppState> = context.dataStore.data
@@ -106,6 +109,7 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
             } catch (e: IllegalArgumentException) {
                 AppTheme.SYSTEM
             }
+            val customAccent = preferences[PreferencesKeys.CUSTOM_ACCENT_HEX] ?: "#D4A373"
             val onboardingCompleted = preferences[PreferencesKeys.ONBOARDING_COMPLETED] ?: false
             val firstLaunch = preferences[PreferencesKeys.FIRST_LAUNCH] ?: true
 
@@ -113,6 +117,7 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
                 isFirstLaunch = firstLaunch,
                 isOnboardingCompleted = onboardingCompleted,
                 theme = theme,
+                customAccentHex = customAccent,
                 isOffline = true,
                 isLoading = false
             )
@@ -150,6 +155,20 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
     override suspend fun setThemePreference(theme: AppTheme) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_PREFERENCE] = theme.name
+        }
+    }
+
+    override val customAccentHex: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.CUSTOM_ACCENT_HEX] ?: "#D4A373"
+        }
+
+    override suspend fun setCustomAccentHex(hex: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CUSTOM_ACCENT_HEX] = hex
         }
     }
 

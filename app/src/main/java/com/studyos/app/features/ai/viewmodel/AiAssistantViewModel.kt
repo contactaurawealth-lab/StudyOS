@@ -67,6 +67,7 @@ class AiAssistantViewModel(
     private val aiStudyEngineUseCase: AiStudyEngineUseCase? = null,
     private val noteDao: NoteDao? = null,
     private val flashcardDao: FlashcardDao? = null,
+    private val agentActionExecutor: com.studyos.app.core.agent.StudyOSAgentActionExecutor? = null,
     private val initialConversationId: String? = null,
     private val initialSubjectId: String? = null,
     private val initialChapterId: String? = null
@@ -246,14 +247,34 @@ class AiAssistantViewModel(
 
         viewModelScope.launch {
             try {
-                // 1. Save user message
+                // 1. First check if prompt is a direct autonomous agent command
+                val directResult = agentActionExecutor?.tryExecuteIntent(promptToSend)
+                if (directResult != null) {
+                    sendAiMessageUseCase.saveUserMessage(conversation.id, promptToSend)
+                    val assistantMsg = sendAiMessageUseCase.createAssistantPlaceholder(conversation.id)
+                    // Save confirmation as assistant response in Room
+                    sendAiMessageUseCase.saveAssistantMessage(
+                        conversationId = conversation.id,
+                        content = "✓ **${directResult.message}**",
+                        placeholderId = assistantMsg.id
+                    )
+                    _uiState.update {
+                        it.copy(
+                            isGenerating = false,
+                            infoMessage = "Action Executed: ${directResult.actionType}"
+                        )
+                    }
+                    return@launch
+                }
+
+                // 2. Save user message
                 sendAiMessageUseCase.saveUserMessage(conversation.id, promptToSend)
 
-                // 2. Create placeholder assistant message
+                // 3. Create placeholder assistant message
                 val assistantMsg = sendAiMessageUseCase.createAssistantPlaceholder(conversation.id)
                 currentAssistantMessageId = assistantMsg.id
 
-                // 3. Start streaming
+                // 4. Start streaming
                 streamResponse(assistantMsg.id, conversation.id)
             } catch (e: Exception) {
                 _uiState.update {
@@ -269,6 +290,7 @@ class AiAssistantViewModel(
     private fun streamResponse(assistantMessageId: String, conversationId: String) {
         streamJob?.cancel()
         streamJob = viewModelScope.launch {
+            var fullStreamed = ""
             try {
                 val studyCtx = _uiState.value.studyContext
                 val chCtx = _uiState.value.chapterAiContext
@@ -285,8 +307,23 @@ class AiAssistantViewModel(
                     assistantMessageId = assistantMessageId,
                     conversationId = conversationId,
                     context = effectiveContext
-                ).collect {
-                    // Reactive Room collection automatically updates uiState.messages
+                ).collect { chunk ->
+                    fullStreamed = chunk
+                }
+
+                // If response contains an action block ```studyos_action, execute it!
+                if (fullStreamed.contains("```studyos_action")) {
+                    val result = agentActionExecutor?.tryExecuteIntent(fullStreamed)
+                    if (result != null) {
+                        val cleaned = fullStreamed.substringBefore("```studyos_action").trim()
+                        val finalMsg = if (cleaned.isNotBlank()) "$cleaned\n\n✓ **${result.message}**" else "✓ **${result.message}**"
+                        sendAiMessageUseCase.saveAssistantMessage(
+                            conversationId = conversationId,
+                            content = finalMsg,
+                            placeholderId = assistantMessageId
+                        )
+                        _uiState.update { it.copy(infoMessage = "Action Executed: ${result.actionType}") }
+                    }
                 }
             } finally {
                 _uiState.update { it.copy(isGenerating = false) }

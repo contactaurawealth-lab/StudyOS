@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Check
@@ -246,6 +247,20 @@ fun NoteEditorScreen(
                             )
                         }
 
+                        StudyOSIconButton(
+                            onClick = {
+                                openNoteInExternalApp(context, uiState.title, uiState.content)
+                            },
+                            contentDescription = "Open in Other App"
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                                contentDescription = null,
+                                tint = colors.secondaryText,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
                         Box {
                             StudyOSIconButton(
                                 onClick = { showMoreMenu = true },
@@ -290,6 +305,17 @@ fun NoteEditorScreen(
                                     },
                                     leadingIcon = {
                                         Icon(Icons.Outlined.Visibility, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text("Open in Other App (Markdown)", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        openNoteInExternalApp(context, uiState.title, uiState.content)
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, null, tint = colors.accent, modifier = Modifier.size(18.dp))
                                     }
                                 )
 
@@ -773,3 +799,63 @@ private fun AiActionButton(
         )
     }
 }
+
+private fun openNoteInExternalApp(context: android.content.Context, title: String, content: String) {
+    try {
+        val safeTitle = title.ifBlank { "StudyOS_Note" }
+            .replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        val exportDir = java.io.File(context.cacheDir, "shared_notes").apply { mkdirs() }
+        val noteFile = java.io.File(exportDir, "$safeTitle.md")
+        val fullContent = if (title.isNotBlank()) "# $title\n\n$content" else content
+        noteFile.writeText(fullContent)
+
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            noteFile
+        )
+
+        // Launch ACTION_VIEW first with text/markdown and chooser
+        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "text/markdown")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra(Intent.EXTRA_TITLE, title.ifBlank { "Study Note" })
+        }
+
+        val chooserIntent = Intent.createChooser(viewIntent, "Open Note with...").apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(chooserIntent)
+    } catch (e: Exception) {
+        // Fallback to ACTION_SEND with text & stream
+        try {
+            val safeTitle = title.ifBlank { "StudyOS_Note" }
+                .replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val noteFile = java.io.File(context.cacheDir, "$safeTitle.md")
+            noteFile.writeText(if (title.isNotBlank()) "# $title\n\n$content" else content)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                noteFile
+            )
+
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/markdown"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, title)
+                putExtra(Intent.EXTRA_TEXT, content)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(sendIntent, "Open Note with..."))
+        } catch (_: Exception) {
+            // Final fallback to plain text share
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, title)
+                putExtra(Intent.EXTRA_TEXT, content)
+            }
+            context.startActivity(Intent.createChooser(sendIntent, "Share Note"))
+        }
+    }
+}
+

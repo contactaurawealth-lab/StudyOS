@@ -43,7 +43,10 @@ class MainActivity : ComponentActivity() {
                 initial = AppState(isLoading = true)
             )
 
-            StudyOSTheme(appTheme = appState.theme) {
+            StudyOSTheme(
+                appTheme = appState.theme,
+                customAccentHex = appState.customAccentHex
+            ) {
                 if (!appState.isLoading) {
                     StudyOSApp(
                         container = appContainer,

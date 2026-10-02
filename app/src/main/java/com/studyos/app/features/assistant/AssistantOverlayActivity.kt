@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.studyos.app.MainActivity
 import com.studyos.app.StudyOSApplication
+import androidx.activity.enableEdgeToEdge
 import com.studyos.app.core.assistant.StudyOSAssistantManager
 import com.studyos.app.features.assistant.ui.AssistantOverlaySheet
 import com.studyos.app.theme.StudyOSTheme
@@ -27,6 +28,7 @@ class AssistantOverlayActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         val app = application as StudyOSApplication
         val container = app.container
@@ -43,7 +45,8 @@ class AssistantOverlayActivity : ComponentActivity() {
                         sendAiMessageUseCase = container.sendAiMessageUseCase,
                         noteDao = container.database.noteDao(),
                         flashcardDao = container.database.flashcardDao(),
-                        subjectRepository = container.subjectRepository
+                        subjectRepository = container.subjectRepository,
+                        agentActionExecutor = container.agentActionExecutor
                     ) as T
                 }
             }
@@ -52,29 +55,29 @@ class AssistantOverlayActivity : ComponentActivity() {
         setContent {
             StudyOSTheme {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.52f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            finish()
-                        },
-                    contentAlignment = Alignment.BottomCenter
+                    modifier = Modifier.fillMaxSize()
                 ) {
+                    // Scrim backdrop - clicking dismisses the overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.52f))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                finish()
+                            }
+                    )
+
+                    // Assistant Overlay Sheet anchored to bottom - NO click-intercepting modifiers!
                     AssistantOverlaySheet(
                         viewModel = viewModel,
                         onDismiss = { finish() },
                         onOpenFullChat = { conversationId ->
                             openFullChatInApp(conversationId)
                         },
-                        modifier = Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            // Catch clicks on the sheet so it doesn't dismiss the scrim
-                        }
+                        modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
             }

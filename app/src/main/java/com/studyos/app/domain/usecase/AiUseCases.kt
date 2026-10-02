@@ -216,6 +216,48 @@ class SendAiMessageUseCase(
         return placeholder
     }
 
+    suspend fun saveAssistantMessage(
+        conversationId: String,
+        content: String,
+        placeholderId: String? = null
+    ): AiMessage {
+        val message = if (placeholderId != null) {
+            val existing = messageRepository.getMessageByIdOnce(placeholderId)
+            if (existing != null) {
+                val updated = existing.copy(
+                    content = content,
+                    status = AiMessageStatus.SUCCESS,
+                    createdAt = System.currentTimeMillis()
+                )
+                messageRepository.updateMessage(updated)
+                updated
+            } else {
+                val newMsg = AiMessage(
+                    id = placeholderId,
+                    conversationId = conversationId,
+                    role = AiMessageRole.ASSISTANT,
+                    content = content,
+                    status = AiMessageStatus.SUCCESS,
+                    createdAt = System.currentTimeMillis()
+                )
+                messageRepository.createMessage(newMsg)
+                newMsg
+            }
+        } else {
+            val newMsg = AiMessage(
+                id = UUID.randomUUID().toString(),
+                conversationId = conversationId,
+                role = AiMessageRole.ASSISTANT,
+                content = content,
+                status = AiMessageStatus.SUCCESS,
+                createdAt = System.currentTimeMillis()
+            )
+            messageRepository.createMessage(newMsg)
+            newMsg
+        }
+        return message
+    }
+
     fun streamAssistantResponse(
         assistantMessageId: String,
         conversationId: String,
