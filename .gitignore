@@ -12,6 +12,7 @@
 */build
 *.apk
 !docs/downloads/*.apk
+!web/downloads/*.apk
 *.aab
 *.dex
 .kotlin/
