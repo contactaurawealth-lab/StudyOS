@@ -24,12 +24,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Checkbox
@@ -184,7 +184,7 @@ fun ExamListScreen(
                             contentDescription = if (viewMode == ExamViewMode.LIST) "Calendar View" else "List View"
                         ) {
                             Icon(
-                                imageVector = if (viewMode == ExamViewMode.LIST) Icons.Outlined.CalendarMonth else Icons.Outlined.FormatListBulleted,
+                                imageVector = if (viewMode == ExamViewMode.LIST) Icons.Outlined.CalendarMonth else Icons.AutoMirrored.Outlined.FormatListBulleted,
                                 contentDescription = null,
                                 tint = colors.accent,
                                 modifier = Modifier.size(20.dp)
@@ -248,7 +248,7 @@ fun ExamListScreen(
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            if (viewMode == ExamViewMode.LIST) Icons.Outlined.CalendarMonth else Icons.Outlined.FormatListBulleted,
+                                            if (viewMode == ExamViewMode.LIST) Icons.Outlined.CalendarMonth else Icons.AutoMirrored.Outlined.FormatListBulleted,
                                             null,
                                             tint = colors.secondaryText,
                                             modifier = Modifier.size(18.dp)

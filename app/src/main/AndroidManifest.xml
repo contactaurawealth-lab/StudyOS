@@ -150,42 +150,6 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Gemini-Style Floating Assistant Overlay Activity -->
-        <activity
-            android:name=".features.assistant.AssistantOverlayActivity"
-            android:exported="true"
-            android:theme="@style/Theme.StudyOS.AssistantOverlay"
-            android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustResize"
-            android:excludeFromRecents="true">
-            <intent-filter>
-                <action android:name="android.intent.action.ASSIST" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <!-- Digital Assistant Voice Interaction Services -->
-        <service
-            android:name=".core.assistant.StudyOSVoiceInteractionService"
-            android:permission="android.permission.BIND_VOICE_INTERACTION"
-            android:exported="true">
-            <meta-data
-                android:name="android.voice_interaction"
-                android:resource="@xml/voice_interaction_service" />
-            <intent-filter>
-                <action android:name="android.service.voice.VoiceInteractionService" />
-            </intent-filter>
-        </service>
-
-        <service
-            android:name=".core.assistant.StudyOSVoiceInteractionSessionService"
-            android:permission="android.permission.BIND_VOICE_INTERACTION"
-            android:exported="true" />
-
-        <service
-            android:name=".core.assistant.StudyOSRecognitionService"
-            android:exported="true" />
-
         <!-- Hardened Focus Timer Foreground Service -->
         <service
             android:name=".core.service.FocusService"

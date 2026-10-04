@@ -30,8 +30,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -236,7 +236,7 @@ fun MinimalistAmbientAudioBar(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.VolumeUp,
+                        imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                         contentDescription = "Volume",
                         tint = if (showVolumeSlider) WarmAmberLatte else Color(0xFF9BA3AF),
                         modifier = Modifier.size(16.dp)

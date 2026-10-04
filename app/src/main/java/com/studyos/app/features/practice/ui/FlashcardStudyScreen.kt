@@ -166,7 +166,7 @@ fun FlashcardStudyScreen(
                 actionButtonText = "Go Back",
                 onActionClick = onBack
             )
-        } else if (uiState.isFinished) {
+        } else if (uiState.isFinished || uiState.currentCard == null) {
             // Finished Deck Summary
             DeckFinishedView(
                 reviewedCount = uiState.reviewedCount,
@@ -177,7 +177,7 @@ fun FlashcardStudyScreen(
                 onFinish = onBack
             )
         } else {
-            val card = uiState.currentCard ?: return
+            val card = uiState.currentCard!!
             val coroutineScope = rememberCoroutineScope()
             val offsetX = remember { Animatable(0f) }
             val swipeThreshold = 260f

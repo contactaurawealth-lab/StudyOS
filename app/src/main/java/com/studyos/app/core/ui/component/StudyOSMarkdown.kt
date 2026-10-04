@@ -32,11 +32,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.theme.StudyOSTheme
@@ -68,9 +71,9 @@ fun StudyOSMarkdown(
                     is MarkdownBlock.Header -> MarkdownHeader(block)
                     is MarkdownBlock.CodeBlock -> MarkdownCodeBlock(block)
                     is MarkdownBlock.EquationBlock -> MarkdownEquation(block)
-                    is MarkdownBlock.BulletList -> MarkdownBulletList(block)
-                    is MarkdownBlock.NumberedList -> MarkdownNumberedList(block)
-                    is MarkdownBlock.BlockQuote -> MarkdownBlockQuote(block)
+                    is MarkdownBlock.BulletList -> MarkdownBulletList(block, onWikiLinkClick)
+                    is MarkdownBlock.NumberedList -> MarkdownNumberedList(block, onWikiLinkClick)
+                    is MarkdownBlock.BlockQuote -> MarkdownBlockQuote(block, onWikiLinkClick)
                     is MarkdownBlock.Paragraph -> MarkdownParagraph(block, onWikiLinkClick)
                 }
 
@@ -208,7 +211,10 @@ private fun MarkdownEquation(equation: MarkdownBlock.EquationBlock) {
 }
 
 @Composable
-private fun MarkdownBulletList(list: MarkdownBlock.BulletList) {
+private fun MarkdownBulletList(
+    list: MarkdownBlock.BulletList,
+    onWikiLinkClick: (String) -> Unit = {}
+) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
 
@@ -227,7 +233,7 @@ private fun MarkdownBulletList(list: MarkdownBlock.BulletList) {
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = formatInlineMarkdown(item),
+                    text = formatInlineMarkdown(item, onWikiLinkClick),
                     style = typography.body,
                     color = colors.primaryText
                 )
@@ -237,7 +243,10 @@ private fun MarkdownBulletList(list: MarkdownBlock.BulletList) {
 }
 
 @Composable
-private fun MarkdownNumberedList(list: MarkdownBlock.NumberedList) {
+private fun MarkdownNumberedList(
+    list: MarkdownBlock.NumberedList,
+    onWikiLinkClick: (String) -> Unit = {}
+) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
 
@@ -256,7 +265,7 @@ private fun MarkdownNumberedList(list: MarkdownBlock.NumberedList) {
                     modifier = Modifier.padding(end = 8.dp, top = 2.dp)
                 )
                 Text(
-                    text = formatInlineMarkdown(item),
+                    text = formatInlineMarkdown(item, onWikiLinkClick),
                     style = typography.body,
                     color = colors.primaryText
                 )
@@ -266,7 +275,10 @@ private fun MarkdownNumberedList(list: MarkdownBlock.NumberedList) {
 }
 
 @Composable
-private fun MarkdownBlockQuote(quote: MarkdownBlock.BlockQuote) {
+private fun MarkdownBlockQuote(
+    quote: MarkdownBlock.BlockQuote,
+    onWikiLinkClick: (String) -> Unit = {}
+) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
 
@@ -283,7 +295,7 @@ private fun MarkdownBlockQuote(quote: MarkdownBlock.BlockQuote) {
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = formatInlineMarkdown(quote.text),
+            text = formatInlineMarkdown(quote.text, onWikiLinkClick),
             style = typography.body.copy(fontStyle = FontStyle.Italic),
             color = colors.secondaryText
         )
@@ -297,22 +309,19 @@ private fun MarkdownParagraph(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
-    val annotated = formatInlineMarkdown(paragraph.text)
+    val annotated = formatInlineMarkdown(paragraph.text, onWikiLinkClick)
 
-    androidx.compose.foundation.text.ClickableText(
+    Text(
         text = annotated,
-        style = typography.body.copy(lineHeight = 22.sp, color = colors.primaryText),
-        onClick = { offset ->
-            annotated.getStringAnnotations(tag = "WIKILINK", start = offset, end = offset)
-                .firstOrNull()?.let { annotation ->
-                    onWikiLinkClick(annotation.item)
-                }
-        }
+        style = typography.body.copy(lineHeight = 22.sp, color = colors.primaryText)
     )
 }
 
 @Composable
-private fun formatInlineMarkdown(text: String): AnnotatedString {
+private fun formatInlineMarkdown(
+    text: String,
+    onWikiLinkClick: ((String) -> Unit)? = null
+): AnnotatedString {
     val colors = StudyOSTheme.colors
 
     return buildAnnotatedString {
@@ -330,16 +339,21 @@ private fun formatInlineMarkdown(text: String): AnnotatedString {
                         val target = parts[0].trim()
                         val label = if (parts.size > 1) parts[1].trim() else target
 
-                        pushStringAnnotation(tag = "WIKILINK", annotation = target)
-                        pushStyle(
-                            SpanStyle(
-                                color = colors.accent,
-                                fontWeight = FontWeight.SemiBold,
-                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                            )
+                        val linkAnnotation = LinkAnnotation.Clickable(
+                            tag = target,
+                            styles = TextLinkStyles(
+                                style = SpanStyle(
+                                    color = colors.accent,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textDecoration = TextDecoration.Underline
+                                )
+                            ),
+                            linkInteractionListener = {
+                                onWikiLinkClick?.invoke(target)
+                            }
                         )
+                        pushLink(linkAnnotation)
                         append(label)
-                        pop()
                         pop()
                         cursor = endIdx + 2
                     } else {

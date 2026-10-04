@@ -78,6 +78,7 @@ class StudyTimerViewModel(
     private var targetEndRealtime: Long = 0L
     private var startRealtime: Long = 0L
     private var subjectMinutesJob: Job? = null
+    private var chaptersJob: Job? = null
 
     init {
         loadSubjects()
@@ -112,8 +113,9 @@ class StudyTimerViewModel(
     fun selectSubject(subject: Subject?) {
         _uiState.update { it.copy(selectedSubject = subject, selectedChapter = null, chapters = emptyList()) }
         refreshTodaySubjectMinutes(subject?.id)
+        chaptersJob?.cancel()
         if (subject != null) {
-            viewModelScope.launch {
+            chaptersJob = viewModelScope.launch {
                 chapterRepository.observeChaptersForSubject(subject.id).collect { chapters ->
                     _uiState.update { it.copy(chapters = chapters) }
                 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.GlassTopBar
@@ -104,33 +106,38 @@ fun KnowledgeGraphScreen(
                 val edges = uiState.edges
                 val nodeMap = remember(nodes) { nodes.associateBy { it.id } }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                scale = (scale * zoom).coerceIn(0.4f, 3.5f)
-                                offset += pan
-                            }
-                        }
-                        .pointerInput(nodes, scale, offset) {
-                            detectTapGestures { tapOffset ->
-                                // Inverse transform to find tapped node in canvas coordinates
-                                val canvasX = (tapOffset.x - offset.x) / scale
-                                val canvasY = (tapOffset.y - offset.y) / scale
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val density = LocalDensity.current
+                    val centerX = remember(maxWidth) { with(density) { (maxWidth / 2).toPx() } }
+                    val centerY = remember(maxHeight) { with(density) { (maxHeight / 2).toPx() } }
 
-                                for (node in nodes) {
-                                    val dx = node.x - canvasX
-                                    val dy = node.y - canvasY
-                                    val r = 24f + (node.connectionCount * 4f).coerceAtMost(20f)
-                                    if (sqrt(dx * dx + dy * dy) <= r * 1.5f) {
-                                        onOpenNote(node.id)
-                                        break
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectTransformGestures { _, pan, zoom, _ ->
+                                    scale = (scale * zoom).coerceIn(0.4f, 3.5f)
+                                    offset += pan
+                                }
+                            }
+                            .pointerInput(nodes, scale, offset, centerX, centerY) {
+                                detectTapGestures { tapOffset ->
+                                    // Inverse transform taking into account center scaling and pan offset
+                                    val canvasX = (tapOffset.x - offset.x - (centerX * (1f - scale))) / scale
+                                    val canvasY = (tapOffset.y - offset.y - (centerY * (1f - scale))) / scale
+
+                                    for (node in nodes) {
+                                        val dx = node.x - canvasX
+                                        val dy = node.y - canvasY
+                                        val r = 24f + (node.connectionCount * 4f).coerceAtMost(20f)
+                                        if (sqrt(dx * dx + dy * dy) <= r * 1.5f) {
+                                            onOpenNote(node.id)
+                                            break
+                                        }
                                     }
                                 }
                             }
-                        }
-                ) {
+                    ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val centerX = size.width / 2f
                         val centerY = size.height / 2f
@@ -202,4 +209,5 @@ fun KnowledgeGraphScreen(
             }
         }
     }
+}
 }

@@ -60,8 +60,8 @@ import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.Replay10
 import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.UploadFile
-import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
@@ -682,10 +682,10 @@ private fun SocraticWalkContent(
                         )
                         Icon(
                             imageVector = when (uiState.walkStatus) {
-                                WalkStatus.SPEAKING_QUESTION -> Icons.Outlined.VolumeUp
+                                WalkStatus.SPEAKING_QUESTION -> Icons.AutoMirrored.Outlined.VolumeUp
                                 WalkStatus.LISTENING_ANSWER -> Icons.Outlined.Mic
                                 WalkStatus.EVALUATING -> Icons.Outlined.RecordVoiceOver
-                                WalkStatus.SPEAKING_FEEDBACK -> Icons.Outlined.VolumeUp
+                                WalkStatus.SPEAKING_FEEDBACK -> Icons.AutoMirrored.Outlined.VolumeUp
                                 WalkStatus.FINISHED -> Icons.Outlined.Check
                                 else -> Icons.Outlined.Headphones
                             },
@@ -856,7 +856,7 @@ private fun SocraticWalkContent(
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = Icons.Outlined.VolumeUp,
+                                        imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                                         contentDescription = null,
                                         tint = colors.accent,
                                         modifier = Modifier.size(16.dp)
