@@ -582,7 +582,7 @@ fun StudyTimerScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Today: ${uiState.todaySubjectMinutes} min studied for ${uiState.selectedSubject!!.name}",
+                                    text = "Today: ${uiState.todaySubjectMinutes} min studied for ${uiState.selectedSubject?.name ?: "subject"}",
                                     style = typography.caption,
                                     color = colors.accent
                                 )

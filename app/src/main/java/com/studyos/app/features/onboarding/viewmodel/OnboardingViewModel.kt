@@ -35,9 +35,12 @@ data class OnboardingUiState(
 
     // Study Preferences
     val dailyStudyGoalMinutes: Int = 60,
-    val defaultSessionMinutes: Int = 45,
-    val preferredStartMinutes: Int? = null,
-    val preferredEndMinutes: Int? = null,
+    val isCustomGoal: Boolean = false,
+    val customGoalInput: String = "",
+    val defaultSessionMinutes: Int = 45, // Keep as hidden default or we can remove
+
+    // Appearance
+    val selectedTheme: com.studyos.app.core.model.AppTheme = com.studyos.app.core.model.AppTheme.SYSTEM,
 
     // Status
     val isLoading: Boolean = false,
@@ -165,21 +168,29 @@ class OnboardingViewModel(
         _uiState.update { it.copy(customSubjectError = null) }
     }
 
-    fun onDailyGoalChanged(minutes: Int) {
-        _uiState.update { it.copy(dailyStudyGoalMinutes = minutes) }
+    fun onDailyGoalPresetChanged(minutes: Int) {
+        _uiState.update { 
+            it.copy(
+                dailyStudyGoalMinutes = minutes,
+                isCustomGoal = false,
+                customGoalInput = ""
+            ) 
+        }
     }
 
-    fun onDefaultSessionChanged(minutes: Int) {
-        _uiState.update { it.copy(defaultSessionMinutes = minutes) }
-    }
-
-    fun onPreferredHoursChanged(startMin: Int?, endMin: Int?) {
+    fun onCustomGoalInputChanged(input: String) {
+        val parsed = input.filter { it.isDigit() }.toIntOrNull() ?: 0
         _uiState.update {
             it.copy(
-                preferredStartMinutes = startMin,
-                preferredEndMinutes = endMin
+                customGoalInput = input,
+                isCustomGoal = true,
+                dailyStudyGoalMinutes = if (parsed > 0) parsed else it.dailyStudyGoalMinutes
             )
         }
+    }
+
+    fun onThemeChanged(theme: com.studyos.app.core.model.AppTheme) {
+        _uiState.update { it.copy(selectedTheme = theme) }
     }
 
     fun validateProfile(): Boolean {
@@ -225,12 +236,11 @@ class OnboardingViewModel(
 
                 val preferences = StudyPreferences(
                     dailyStudyGoalMinutes = state.dailyStudyGoalMinutes,
-                    defaultSessionMinutes = state.defaultSessionMinutes,
-                    preferredStartMinutes = state.preferredStartMinutes,
-                    preferredEndMinutes = state.preferredEndMinutes
+                    defaultSessionMinutes = state.defaultSessionMinutes
                 )
                 saveStudyPreferencesUseCase(preferences)
 
+                preferencesDataSource.setThemePreference(state.selectedTheme)
                 preferencesDataSource.setOnboardingCompleted(true)
 
                 _uiState.update { it.copy(isLoading = false, isCompleted = true) }

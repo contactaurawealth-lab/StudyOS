@@ -17,6 +17,9 @@ interface ResourceDao {
     @Query("SELECT * FROM resources ORDER BY createdAt DESC")
     fun getAllResources(): Flow<List<ResourceEntity>>
 
+    @Query("SELECT * FROM resources WHERE subjectId = :subjectId ORDER BY createdAt DESC")
+    fun getResourcesForSubject(subjectId: String): Flow<List<ResourceEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(resource: ResourceEntity)
 

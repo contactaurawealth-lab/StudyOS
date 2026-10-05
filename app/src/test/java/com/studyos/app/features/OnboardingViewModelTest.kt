@@ -176,8 +176,8 @@ class OnboardingViewModelTest {
         vm.onClassLevelChanged("Grade 10")
         vm.onDivisionChanged("B")
         vm.onSchoolNameChanged("Delhi Public School")
-        vm.onDailyGoalChanged(90)
-        vm.onDefaultSessionChanged(60)
+        vm.onDailyGoalPresetChanged(120)
+        vm.onThemeChanged(AppTheme.DARK)
 
         var completed = false
         vm.finishSetup {
@@ -190,8 +190,29 @@ class OnboardingViewModelTest {
         assertEquals("Rohan Sharma", studentRepo.savedStudent?.name)
         assertEquals("Grade 10", studentRepo.savedStudent?.classLevel)
         assertEquals("B", studentRepo.savedStudent?.division)
-        assertEquals(90, prefsRepo.savedPreferences?.dailyStudyGoalMinutes)
-        assertEquals(60, prefsRepo.savedPreferences?.defaultSessionMinutes)
+        assertEquals(120, prefsRepo.savedPreferences?.dailyStudyGoalMinutes)
+        assertEquals(AppTheme.DARK, prefsDataSource.themeState.value)
         assertTrue(prefsDataSource.onboardingCompletedState.value)
+    }
+
+    @Test
+    fun testStudyGoalSelection_customGoal() = runTest {
+        val vm = OnboardingViewModel(
+            saveStudentUseCase = SaveStudentUseCase(studentRepo),
+            saveSubjectsUseCase = SaveSubjectsUseCase(subjectRepo),
+            addSubjectUseCase = AddSubjectUseCase(subjectRepo),
+            saveStudyPreferencesUseCase = SaveStudyPreferencesUseCase(prefsRepo),
+            preferencesDataSource = prefsDataSource
+        )
+
+        // Select preset
+        vm.onDailyGoalPresetChanged(60)
+        assertEquals(60, vm.uiState.value.dailyStudyGoalMinutes)
+        assertFalse(vm.uiState.value.isCustomGoal)
+
+        // Switch to custom goal
+        vm.onCustomGoalInputChanged("150")
+        assertEquals(150, vm.uiState.value.dailyStudyGoalMinutes)
+        assertTrue(vm.uiState.value.isCustomGoal)
     }
 }

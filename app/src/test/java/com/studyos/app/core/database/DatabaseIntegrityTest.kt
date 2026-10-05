@@ -33,5 +33,7 @@ class DatabaseIntegrityTest {
         assertEquals(9, StudyOSDatabase.MIGRATION_8_9.endVersion)
         assertEquals(9, StudyOSDatabase.MIGRATION_9_10.startVersion)
         assertEquals(10, StudyOSDatabase.MIGRATION_9_10.endVersion)
+        assertEquals(10, StudyOSDatabase.MIGRATION_10_11.startVersion)
+        assertEquals(11, StudyOSDatabase.MIGRATION_10_11.endVersion)
     }
 }

@@ -31,6 +31,7 @@ data class SubjectDetailUiState(
     val subject: Subject? = null,
     val chapters: List<Chapter> = emptyList(),
     val notes: List<Note> = emptyList(),
+    val resources: List<ResourceEntity> = emptyList(),
     val progress: Int = 0,
     val completedCount: Int = 0,
     val isLoading: Boolean = true,
@@ -61,53 +62,44 @@ class SubjectDetailViewModel(
 
     private fun observeSubjectAndChapters() {
         viewModelScope.launch {
-            if (noteRepository != null) {
-                combine(
-                    getSubjectByIdUseCase(subjectId),
-                    getChaptersForSubjectUseCase(subjectId),
-                    noteRepository.observeNotesForSubject(subjectId)
-                ) { subject, chapters, notes ->
-                    Triple(subject, chapters, notes)
-                }.collect { (subject, chapters, notes) ->
-                    if (subject == null && !_uiState.value.isDeleted && !_uiState.value.isLoading) {
-                        _uiState.update { it.copy(isDeleted = true) }
-                        return@collect
-                    }
-                    val progress = calculateSubjectProgress(chapters)
-                    val completed = chapters.count { it.status == ChapterStatus.COMPLETED || it.progress == 100 }
-                    _uiState.update {
-                        it.copy(
-                            subject = subject,
-                            chapters = chapters,
-                            notes = notes,
-                            progress = progress,
-                            completedCount = completed,
-                            isLoading = false
-                        )
-                    }
+            val subjectFlow = getSubjectByIdUseCase(subjectId)
+            val chaptersFlow = getChaptersForSubjectUseCase(subjectId)
+            val notesFlow = noteRepository?.observeNotesForSubject(subjectId) ?: kotlinx.coroutines.flow.flowOf(emptyList())
+            val resourcesFlow = resourceDao?.getResourcesForSubject(subjectId) ?: kotlinx.coroutines.flow.flowOf(emptyList())
+
+            combine(
+                subjectFlow,
+                chaptersFlow,
+                notesFlow,
+                resourcesFlow
+            ) { subject, chapters, notes, resources ->
+                val progress = calculateSubjectProgress(chapters)
+                val completed = chapters.count { it.status == ChapterStatus.COMPLETED || it.progress == 100 }
+                SubjectDetailUiState(
+                    subject = subject,
+                    chapters = chapters,
+                    notes = notes,
+                    resources = resources,
+                    progress = progress,
+                    completedCount = completed,
+                    isLoading = false,
+                    isDeleted = subject == null && !_uiState.value.isLoading
+                )
+            }.collect { newState ->
+                if (newState.isDeleted && !_uiState.value.isDeleted) {
+                    _uiState.update { it.copy(isDeleted = true) }
+                    return@collect
                 }
-            } else {
-                combine(
-                    getSubjectByIdUseCase(subjectId),
-                    getChaptersForSubjectUseCase(subjectId)
-                ) { subject, chapters ->
-                    Pair(subject, chapters)
-                }.collect { (subject, chapters) ->
-                    if (subject == null && !_uiState.value.isDeleted && !_uiState.value.isLoading) {
-                        _uiState.update { it.copy(isDeleted = true) }
-                        return@collect
-                    }
-                    val progress = calculateSubjectProgress(chapters)
-                    val completed = chapters.count { it.status == ChapterStatus.COMPLETED || it.progress == 100 }
-                    _uiState.update {
-                        it.copy(
-                            subject = subject,
-                            chapters = chapters,
-                            progress = progress,
-                            completedCount = completed,
-                            isLoading = false
-                        )
-                    }
+                _uiState.update { current ->
+                    current.copy(
+                        subject = newState.subject,
+                        chapters = newState.chapters,
+                        notes = newState.notes,
+                        resources = newState.resources,
+                        progress = newState.progress,
+                        completedCount = newState.completedCount,
+                        isLoading = false
+                    )
                 }
             }
         }
@@ -232,6 +224,18 @@ class SubjectDetailViewModel(
                 _uiState.update { it.copy(actionMessage = "Note removed") }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Failed to delete note.") }
+            }
+        }
+    }
+
+    fun deleteResource(resource: ResourceEntity) {
+        viewModelScope.launch {
+            if (resourceDao == null) return@launch
+            try {
+                resourceDao.delete(resource)
+                _uiState.update { it.copy(actionMessage = "Resource removed") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Failed to remove resource.") }
             }
         }
     }

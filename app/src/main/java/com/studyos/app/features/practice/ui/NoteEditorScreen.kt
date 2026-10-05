@@ -113,21 +113,31 @@ fun NoteEditorScreen(
             coroutineScope.launch {
                 try {
                     val stored = com.studyos.app.core.util.DocumentStorageManager.saveDocumentLocally(context, uri)
-                    val extracted = DocumentTextExtractor.extract(context, Uri.fromFile(stored.file), stored.cleanTitle)
-                    if (extracted.content.isNotBlank()) {
-                        if (uiState.title.isBlank()) {
-                            viewModel.onTitleChange(stored.cleanTitle)
-                        }
-                        val noteHeader = "> [!NOTE] **Source File:** ${stored.originalFileName} (${stored.formattedSize} • ${stored.extension.uppercase()})\n\n"
-                        val newContent = if (uiState.content.isBlank()) {
-                            noteHeader + extracted.content
-                        } else {
-                            "${uiState.content}\n\n$noteHeader${extracted.content}"
-                        }
+                    val isPdf = stored.extension.equals("pdf", ignoreCase = true)
+                    if (isPdf) {
+                        // Open in external PDF viewer primarily as PDF!
+                        com.studyos.app.core.util.DocumentOpener.openPdfInExternalApp(context, stored.persistentPath, stored.cleanTitle)
+                        val pdfLink = "\n[📄 Attached PDF: ${stored.originalFileName}](${stored.persistentPath})\n"
+                        val newContent = if (uiState.content.isBlank()) pdfLink else "${uiState.content}\n$pdfLink"
                         viewModel.onContentChange(newContent)
-                        snackbarHostState.showSnackbar("Imported ${stored.originalFileName} (${extracted.wordCount} words) & saved offline")
+                        snackbarHostState.showSnackbar("Attached ${stored.originalFileName} & opened in PDF viewer")
                     } else {
-                        snackbarHostState.showSnackbar("Could not extract readable text from document.")
+                        val extracted = DocumentTextExtractor.extract(context, Uri.fromFile(stored.file), stored.cleanTitle)
+                        if (extracted.content.isNotBlank()) {
+                            if (uiState.title.isBlank()) {
+                                viewModel.onTitleChange(stored.cleanTitle)
+                            }
+                            val noteHeader = "> [!NOTE] **Source File:** ${stored.originalFileName} (${stored.formattedSize} • ${stored.extension.uppercase()})\n\n"
+                            val newContent = if (uiState.content.isBlank()) {
+                                noteHeader + extracted.content
+                            } else {
+                                "${uiState.content}\n\n$noteHeader${extracted.content}"
+                            }
+                            viewModel.onContentChange(newContent)
+                            snackbarHostState.showSnackbar("Imported ${stored.originalFileName} (${extracted.wordCount} words) & saved offline")
+                        } else {
+                            snackbarHostState.showSnackbar("Could not extract readable text from document.")
+                        }
                     }
                 } catch (e: Exception) {
                     snackbarHostState.showSnackbar("Failed to import document: ${e.message}")

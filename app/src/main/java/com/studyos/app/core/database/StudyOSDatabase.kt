@@ -47,13 +47,24 @@ import com.studyos.app.core.database.entity.StudentEntity
 import com.studyos.app.core.database.entity.StudyPlanEntity
 import com.studyos.app.core.database.entity.StudyPreferencesEntity
 import com.studyos.app.core.database.entity.StudySessionEntity
+import com.studyos.app.core.database.dao.ExamResultDao
+import com.studyos.app.core.database.dao.LostMarksDao
+import com.studyos.app.core.database.dao.PaperDao
+import com.studyos.app.core.database.dao.QuestionBankDao
 import com.studyos.app.core.database.dao.RecallDao
+import com.studyos.app.core.database.dao.TopicDao
+import com.studyos.app.core.database.entity.ExamResultEntity
+import com.studyos.app.core.database.entity.LostMarksEntity
+import com.studyos.app.core.database.entity.PaperEntity
+import com.studyos.app.core.database.entity.PaperQuestionCrossRefEntity
+import com.studyos.app.core.database.entity.QuestionBankEntity
 import com.studyos.app.core.database.entity.RecallAttemptEntity
 import com.studyos.app.core.database.entity.RecallItemEntity
 import com.studyos.app.core.database.entity.SubjectEntity
 import com.studyos.app.core.database.entity.TaskEntity
 import com.studyos.app.core.database.entity.TestAttemptEntity
 import com.studyos.app.core.database.entity.TestEntity
+import com.studyos.app.core.database.entity.TopicEntity
 
 @Database(
     entities = [
@@ -84,9 +95,15 @@ import com.studyos.app.core.database.entity.TestEntity
         RevisionScheduleEntity::class,
         ActiveRecallLogEntity::class,
         RecallItemEntity::class,
-        RecallAttemptEntity::class
+        RecallAttemptEntity::class,
+        TopicEntity::class,
+        QuestionBankEntity::class,
+        PaperEntity::class,
+        PaperQuestionCrossRefEntity::class,
+        ExamResultEntity::class,
+        LostMarksEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class StudyOSDatabase : RoomDatabase() {
@@ -111,6 +128,11 @@ abstract class StudyOSDatabase : RoomDatabase() {
     abstract fun studyPlanDao(): StudyPlanDao
     abstract fun notificationDao(): NotificationDao
     abstract fun recallDao(): RecallDao
+    abstract fun topicDao(): TopicDao
+    abstract fun questionBankDao(): QuestionBankDao
+    abstract fun paperDao(): PaperDao
+    abstract fun examResultDao(): ExamResultDao
+    abstract fun lostMarksDao(): LostMarksDao
 
     companion object {
         @Volatile
@@ -572,6 +594,145 @@ abstract class StudyOSDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. topics table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `topics` (
+                        `id` TEXT NOT NULL,
+                        `chapterId` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `masteryState` TEXT NOT NULL DEFAULT 'NOT_STARTED',
+                        `examRelevance` TEXT NOT NULL DEFAULT 'MEDIUM',
+                        `weaknessScore` REAL NOT NULL DEFAULT 0.0,
+                        `lastRevisedAt` INTEGER,
+                        `orderIndex` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`chapterId`) REFERENCES `chapters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_topics_chapterId` ON `topics` (`chapterId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_topics_masteryState` ON `topics` (`masteryState`)")
+
+                // 2. question_bank table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `question_bank` (
+                        `id` TEXT NOT NULL,
+                        `subjectId` TEXT NOT NULL,
+                        `chapterId` TEXT NOT NULL,
+                        `topicId` TEXT,
+                        `questionText` TEXT NOT NULL,
+                        `markingScheme` TEXT NOT NULL,
+                        `marks` INTEGER NOT NULL,
+                        `questionType` TEXT NOT NULL DEFAULT 'SHORT_ANSWER',
+                        `difficulty` TEXT NOT NULL DEFAULT 'MEDIUM',
+                        `usageCount` INTEGER NOT NULL DEFAULT 0,
+                        `lastTestedAt` INTEGER,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`subjectId`) REFERENCES `subjects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`chapterId`) REFERENCES `chapters`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`topicId`) REFERENCES `topics`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_question_bank_subjectId` ON `question_bank` (`subjectId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_question_bank_chapterId` ON `question_bank` (`chapterId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_question_bank_topicId` ON `question_bank` (`topicId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_question_bank_difficulty` ON `question_bank` (`difficulty`)")
+
+                // 3. papers table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `papers` (
+                        `id` TEXT NOT NULL,
+                        `subjectId` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `totalMarks` INTEGER NOT NULL,
+                        `durationMinutes` INTEGER NOT NULL,
+                        `sectionsJson` TEXT NOT NULL DEFAULT '[]',
+                        `pdfUri` TEXT,
+                        `status` TEXT NOT NULL DEFAULT 'GENERATED',
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`subjectId`) REFERENCES `subjects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_papers_subjectId` ON `papers` (`subjectId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_papers_createdAt` ON `papers` (`createdAt`)")
+
+                // 4. paper_questions table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `paper_questions` (
+                        `paperId` TEXT NOT NULL,
+                        `questionId` TEXT NOT NULL,
+                        `sectionName` TEXT NOT NULL,
+                        `questionNumber` INTEGER NOT NULL,
+                        `marksAllocated` INTEGER NOT NULL,
+                        PRIMARY KEY(`paperId`, `questionId`),
+                        FOREIGN KEY(`paperId`) REFERENCES `papers`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`questionId`) REFERENCES `question_bank`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_paper_questions_paperId` ON `paper_questions` (`paperId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_paper_questions_questionId` ON `paper_questions` (`questionId`)")
+
+                // 5. exam_results table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `exam_results` (
+                        `id` TEXT NOT NULL,
+                        `paperId` TEXT NOT NULL,
+                        `marksObtained` REAL NOT NULL,
+                        `totalMarks` REAL NOT NULL,
+                        `percentage` REAL NOT NULL,
+                        `timeTakenMinutes` INTEGER NOT NULL,
+                        `notesOrFeedback` TEXT,
+                        `examDate` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`paperId`) REFERENCES `papers`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_exam_results_paperId` ON `exam_results` (`paperId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_exam_results_examDate` ON `exam_results` (`examDate`)")
+
+                // 6. lost_marks table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `lost_marks` (
+                        `id` TEXT NOT NULL,
+                        `resultId` TEXT NOT NULL,
+                        `questionId` TEXT,
+                        `topicId` TEXT,
+                        `marksLost` REAL NOT NULL,
+                        `category` TEXT NOT NULL DEFAULT 'CONCEPT_ERROR',
+                        `reflection` TEXT,
+                        `isRemediated` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`resultId`) REFERENCES `exam_results`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`questionId`) REFERENCES `question_bank`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`topicId`) REFERENCES `topics`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_lost_marks_resultId` ON `lost_marks` (`resultId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_lost_marks_questionId` ON `lost_marks` (`questionId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_lost_marks_topicId` ON `lost_marks` (`topicId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_lost_marks_category` ON `lost_marks` (`category`)")
+
+                // 7. mistakes table updates
+                try {
+                    db.execSQL("ALTER TABLE `mistakes` ADD COLUMN `marksLost` REAL NOT NULL DEFAULT 1.0")
+                } catch (_: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `mistakes` ADD COLUMN `lossCategory` TEXT NOT NULL DEFAULT 'CONCEPT_ERROR'")
+                } catch (_: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `mistakes` ADD COLUMN `linkedRecallItemId` TEXT DEFAULT NULL")
+                } catch (_: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `mistakes` ADD COLUMN `paperId` TEXT DEFAULT NULL")
+                } catch (_: Exception) {}
+            }
+        }
+
         fun getDatabase(context: Context): StudyOSDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -579,7 +740,7 @@ abstract class StudyOSDatabase : RoomDatabase() {
                     StudyOSDatabase::class.java,
                     "studyos_database.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

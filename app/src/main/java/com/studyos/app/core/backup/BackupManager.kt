@@ -46,7 +46,13 @@ object BackupManager {
         "recall_attempts",
         "ai_conversations",
         "ai_messages",
-        "notifications"
+        "notifications",
+        "topics",
+        "question_bank",
+        "papers",
+        "paper_questions",
+        "exam_results",
+        "lost_marks"
     )
 
     data class BackupResult(

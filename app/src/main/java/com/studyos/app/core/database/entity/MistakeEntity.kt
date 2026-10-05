@@ -43,5 +43,9 @@ data class MistakeEntity(
     val lastMissedAt: Long = System.currentTimeMillis(),
     val isResolved: Boolean = false,
     val photoUri: String? = null,
+    val marksLost: Double = 1.0,
+    val lossCategory: String = "CONCEPT_ERROR",
+    val linkedRecallItemId: String? = null,
+    val paperId: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

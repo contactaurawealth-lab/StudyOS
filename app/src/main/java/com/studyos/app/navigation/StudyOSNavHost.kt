@@ -1229,7 +1229,11 @@ private fun rememberChapterViewModel(container: StudyOSAppContainer, chapterId: 
             updateChapterStatusUseCase = container.updateChapterStatusUseCase,
             deleteChapterUseCase = container.deleteChapterUseCase,
             recordChapterOpenedUseCase = container.recordChapterOpenedUseCase,
-            getChapterIntelligenceUseCase = container.getChapterIntelligenceUseCase
+            getChapterIntelligenceUseCase = container.getChapterIntelligenceUseCase,
+            getTopicsForChapterUseCase = container.getTopicsForChapterUseCase,
+            addTopicUseCase = container.addTopicUseCase,
+            updateTopicMasteryUseCase = container.updateTopicMasteryUseCase,
+            deleteTopicUseCase = container.deleteTopicUseCase
         )
     }
 }

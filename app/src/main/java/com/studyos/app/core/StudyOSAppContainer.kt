@@ -11,6 +11,11 @@ import com.studyos.app.data.repository.StudyPreferencesRepositoryImpl
 import com.studyos.app.data.repository.StudySessionRepositoryImpl
 import com.studyos.app.data.repository.SubjectRepositoryImpl
 import com.studyos.app.data.repository.TaskRepositoryImpl
+import com.studyos.app.data.repository.OfflineTopicRepository
+import com.studyos.app.data.repository.OfflineQuestionBankRepository
+import com.studyos.app.data.repository.OfflinePaperRepository
+import com.studyos.app.data.repository.OfflineExamResultRepository
+import com.studyos.app.data.repository.OfflineLostMarksRepository
 import com.studyos.app.domain.repository.ChapterRepository
 import com.studyos.app.domain.repository.PlannerRepository
 import com.studyos.app.domain.repository.StudentRepository
@@ -18,8 +23,14 @@ import com.studyos.app.domain.repository.StudyPreferencesRepository
 import com.studyos.app.domain.repository.StudySessionRepository
 import com.studyos.app.domain.repository.SubjectRepository
 import com.studyos.app.domain.repository.TaskRepository
+import com.studyos.app.domain.repository.TopicRepository
+import com.studyos.app.domain.repository.QuestionBankRepository
+import com.studyos.app.domain.repository.PaperRepository
+import com.studyos.app.domain.repository.ExamResultRepository
+import com.studyos.app.domain.repository.LostMarksRepository
 import com.studyos.app.domain.usecase.AddChapterUseCase
 import com.studyos.app.domain.usecase.AddSubjectUseCase
+import com.studyos.app.domain.usecase.AddTopicUseCase
 import com.studyos.app.domain.usecase.CheckSessionOverlapUseCase
 import com.studyos.app.domain.usecase.CreateTaskUseCase
 import com.studyos.app.domain.usecase.DeleteChapterUseCase
@@ -27,12 +38,15 @@ import com.studyos.app.domain.usecase.DeletePlannerSessionUseCase
 import com.studyos.app.domain.usecase.DeleteSessionUseCase
 import com.studyos.app.domain.usecase.DeleteSubjectUseCase
 import com.studyos.app.domain.usecase.DeleteTaskUseCase
+import com.studyos.app.domain.usecase.DeleteTopicUseCase
 import com.studyos.app.domain.usecase.GetAcademicProgressUseCase
 import com.studyos.app.domain.usecase.GetChapterUseCase
 import com.studyos.app.domain.usecase.GetChaptersForSubjectUseCase
 import com.studyos.app.domain.usecase.GetStudentUseCase
 import com.studyos.app.domain.usecase.GetStudyPreferencesUseCase
 import com.studyos.app.domain.usecase.GetSubjectByIdUseCase
+import com.studyos.app.domain.usecase.GetTopicsForChapterUseCase
+import com.studyos.app.domain.usecase.UpdateTopicMasteryUseCase
 import com.studyos.app.domain.usecase.GetSubjectsUseCase
 import com.studyos.app.domain.usecase.GetSubjectsWithProgressUseCase
 import com.studyos.app.domain.usecase.GetTasksUseCase
@@ -117,6 +131,30 @@ class StudyOSAppContainer(private val context: Context) {
 
     val plannerRepository: PlannerRepository by lazy {
         PlannerRepositoryImpl(database.studySessionDao())
+    }
+
+    val topicRepository: TopicRepository by lazy {
+        OfflineTopicRepository(database.topicDao())
+    }
+
+    val questionBankRepository: QuestionBankRepository by lazy {
+        OfflineQuestionBankRepository(database.questionBankDao())
+    }
+
+    val paperRepository: PaperRepository by lazy {
+        OfflinePaperRepository(database.paperDao())
+    }
+
+    val examResultRepository: ExamResultRepository by lazy {
+        OfflineExamResultRepository(database.examResultDao())
+    }
+
+    val lostMarksRepository: LostMarksRepository by lazy {
+        OfflineLostMarksRepository(database.lostMarksDao())
+    }
+
+    val universalCsvProcessor: com.studyos.app.core.csv.UniversalCsvProcessor by lazy {
+        com.studyos.app.core.csv.UniversalCsvProcessor(database)
     }
 
     val studyTimerViewModel: com.studyos.app.features.timer.viewmodel.StudyTimerViewModel by lazy {
@@ -220,6 +258,23 @@ class StudyOSAppContainer(private val context: Context) {
 
     val recordChapterOpenedUseCase: RecordChapterOpenedUseCase by lazy {
         RecordChapterOpenedUseCase(chapterRepository)
+    }
+
+    // Topic Use Cases
+    val getTopicsForChapterUseCase: GetTopicsForChapterUseCase by lazy {
+        GetTopicsForChapterUseCase(topicRepository)
+    }
+
+    val addTopicUseCase: AddTopicUseCase by lazy {
+        AddTopicUseCase(topicRepository)
+    }
+
+    val updateTopicMasteryUseCase: UpdateTopicMasteryUseCase by lazy {
+        UpdateTopicMasteryUseCase(topicRepository)
+    }
+
+    val deleteTopicUseCase: DeleteTopicUseCase by lazy {
+        DeleteTopicUseCase(topicRepository)
     }
 
     // Today / Session Use Cases

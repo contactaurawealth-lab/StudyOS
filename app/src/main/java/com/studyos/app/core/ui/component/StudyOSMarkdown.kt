@@ -1,5 +1,7 @@
 package com.studyos.app.core.ui.component
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,10 +17,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.PriorityHigh
+import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +41,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -46,13 +60,27 @@ import com.studyos.app.theme.StudyOSTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+enum class AlertType(val title: String, val color: Color, val icon: ImageVector) {
+    NOTE("NOTE", Color(0xFF3B82F6), Icons.Outlined.Info),
+    TIP("TIP", Color(0xFF10B981), Icons.Outlined.Lightbulb),
+    IMPORTANT("IMPORTANT", Color(0xFF8B5CF6), Icons.Outlined.PriorityHigh),
+    WARNING("WARNING", Color(0xFFF59E0B), Icons.Outlined.Warning),
+    CAUTION("CAUTION", Color(0xFFEF4444), Icons.Outlined.Warning)
+}
+
+data class ChecklistItem(val isChecked: Boolean, val text: String)
+
 private sealed class MarkdownBlock {
     data class Header(val level: Int, val text: String) : MarkdownBlock()
     data class CodeBlock(val language: String, val code: String) : MarkdownBlock()
     data class EquationBlock(val equation: String) : MarkdownBlock()
+    data class AlertCallout(val type: AlertType, val content: String) : MarkdownBlock()
+    data class TableBlock(val headers: List<String>, val rows: List<List<String>>) : MarkdownBlock()
     data class BulletList(val items: List<String>) : MarkdownBlock()
     data class NumberedList(val items: List<String>) : MarkdownBlock()
+    data class Checklist(val items: List<ChecklistItem>) : MarkdownBlock()
     data class BlockQuote(val text: String) : MarkdownBlock()
+    object HorizontalRule : MarkdownBlock()
     data class Paragraph(val text: String) : MarkdownBlock()
 }
 
@@ -71,14 +99,18 @@ fun StudyOSMarkdown(
                     is MarkdownBlock.Header -> MarkdownHeader(block)
                     is MarkdownBlock.CodeBlock -> MarkdownCodeBlock(block)
                     is MarkdownBlock.EquationBlock -> MarkdownEquation(block)
+                    is MarkdownBlock.AlertCallout -> MarkdownAlertCallout(block, onWikiLinkClick)
+                    is MarkdownBlock.TableBlock -> MarkdownTable(block, onWikiLinkClick)
                     is MarkdownBlock.BulletList -> MarkdownBulletList(block, onWikiLinkClick)
                     is MarkdownBlock.NumberedList -> MarkdownNumberedList(block, onWikiLinkClick)
+                    is MarkdownBlock.Checklist -> MarkdownChecklist(block, onWikiLinkClick)
                     is MarkdownBlock.BlockQuote -> MarkdownBlockQuote(block, onWikiLinkClick)
+                    is MarkdownBlock.HorizontalRule -> MarkdownHorizontalRule()
                     is MarkdownBlock.Paragraph -> MarkdownParagraph(block, onWikiLinkClick)
                 }
 
                 if (index < blocks.lastIndex) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
@@ -90,17 +122,201 @@ private fun MarkdownHeader(header: MarkdownBlock.Header) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
 
-    val style = when (header.level) {
-        1 -> typography.subsectionTitle.copy(fontWeight = FontWeight.Bold)
-        2 -> typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        else -> typography.body.copy(fontWeight = FontWeight.SemiBold)
+    val (style, topPad, bottomPad) = when (header.level) {
+        1 -> Triple(typography.sectionTitle.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp), 12.dp, 4.dp)
+        2 -> Triple(typography.subsectionTitle.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp), 10.dp, 4.dp)
+        3 -> Triple(typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp), 8.dp, 2.dp)
+        4 -> Triple(typography.body.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp), 6.dp, 2.dp)
+        5 -> Triple(typography.body.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp), 4.dp, 2.dp)
+        else -> Triple(typography.caption.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp), 4.dp, 2.dp)
     }
 
-    Text(
-        text = header.text,
-        style = style,
-        color = colors.primaryText,
-        modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+    Column(modifier = Modifier.padding(top = topPad, bottom = bottomPad)) {
+        Text(
+            text = header.text,
+            style = style,
+            color = colors.primaryText
+        )
+        if (header.level <= 2) {
+            Spacer(modifier = Modifier.height(4.dp))
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = colors.border.copy(alpha = if (header.level == 1) 0.5f else 0.25f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MarkdownAlertCallout(
+    alert: MarkdownBlock.AlertCallout,
+    onWikiLinkClick: (String) -> Unit = {}
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.surface)
+            .background(alert.type.color.copy(alpha = 0.08f))
+            .border(1.dp, alert.type.color.copy(alpha = 0.35f), shapes.surface)
+            .padding(14.dp)
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = alert.type.icon,
+                    contentDescription = null,
+                    tint = alert.type.color,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = alert.type.title,
+                    style = typography.caption.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = alert.type.color
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = formatInlineMarkdown(alert.content, onWikiLinkClick),
+                style = typography.body.copy(lineHeight = 20.sp),
+                color = colors.primaryText
+            )
+        }
+    }
+}
+
+@Composable
+private fun MarkdownTable(
+    table: MarkdownBlock.TableBlock,
+    onWikiLinkClick: (String) -> Unit = {}
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.surface)
+            .background(colors.surface)
+            .border(1.dp, colors.border, shapes.surface)
+            .horizontalScroll(rememberScrollState())
+    ) {
+        Column {
+            // Header Row
+            if (table.headers.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .background(colors.accent.copy(alpha = 0.12f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    table.headers.forEachIndexed { i, header ->
+                        Box(
+                            modifier = Modifier
+                                .width(140.dp)
+                                .padding(end = 8.dp)
+                        ) {
+                            Text(
+                                text = formatInlineMarkdown(header, onWikiLinkClick),
+                                style = typography.secondary.copy(fontWeight = FontWeight.Bold),
+                                color = colors.accent
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(thickness = 1.dp, color = colors.border)
+            }
+
+            // Data Rows
+            table.rows.forEachIndexed { rowIndex, row ->
+                val bg = if (rowIndex % 2 == 1) colors.border.copy(alpha = 0.1f) else Color.Transparent
+                Row(
+                    modifier = Modifier
+                        .background(bg)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    row.forEachIndexed { colIndex, cell ->
+                        Box(
+                            modifier = Modifier
+                                .width(140.dp)
+                                .padding(end = 8.dp)
+                        ) {
+                            Text(
+                                text = formatInlineMarkdown(cell, onWikiLinkClick),
+                                style = typography.secondary,
+                                color = colors.primaryText
+                            )
+                        }
+                    }
+                }
+                if (rowIndex < table.rows.lastIndex) {
+                    HorizontalDivider(thickness = 0.5.dp, color = colors.border.copy(alpha = 0.3f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MarkdownChecklist(
+    checklist: MarkdownBlock.Checklist,
+    onWikiLinkClick: (String) -> Unit = {}
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        checklist.items.forEach { item ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = if (item.isChecked) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                    contentDescription = null,
+                    tint = if (item.isChecked) colors.accent else colors.mutedText,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .padding(top = 2.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = formatInlineMarkdown(item.text, onWikiLinkClick),
+                    style = typography.body.copy(
+                        color = if (item.isChecked) colors.mutedText else colors.primaryText,
+                        textDecoration = if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MarkdownHorizontalRule() {
+    val colors = StudyOSTheme.colors
+    HorizontalDivider(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        thickness = 1.dp,
+        color = colors.border.copy(alpha = 0.5f)
     )
 }
 
@@ -131,20 +347,23 @@ private fun MarkdownCodeBlock(codeBlock: MarkdownBlock.CodeBlock) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = codeBlock.language.ifBlank { "code" },
-                    style = typography.caption.copy(fontFamily = FontFamily.Monospace),
-                    color = colors.secondaryText
+                    text = codeBlock.language.ifBlank { "code" }.uppercase(),
+                    style = typography.caption.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold),
+                    color = colors.accent
                 )
 
                 Row(
-                    modifier = Modifier.clickable {
-                        clipboardManager.setText(AnnotatedString(codeBlock.code))
-                        isCopied = true
-                        coroutineScope.launch {
-                            delay(2000)
-                            isCopied = false
+                    modifier = Modifier
+                        .clip(shapes.small)
+                        .clickable {
+                            clipboardManager.setText(AnnotatedString(codeBlock.code))
+                            isCopied = true
+                            coroutineScope.launch {
+                                delay(2000)
+                                isCopied = false
+                            }
                         }
-                    },
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -194,7 +413,7 @@ private fun MarkdownEquation(equation: MarkdownBlock.EquationBlock) {
             .fillMaxWidth()
             .clip(shapes.surface)
             .background(colors.surface)
-            .border(1.dp, colors.border, shapes.surface)
+            .border(1.dp, colors.accent.copy(alpha = 0.3f), shapes.surface)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -261,7 +480,7 @@ private fun MarkdownNumberedList(
                 Text(
                     text = "${index + 1}.",
                     style = typography.caption.copy(fontWeight = FontWeight.Bold),
-                    color = colors.secondaryText,
+                    color = colors.accent,
                     modifier = Modifier.padding(end = 8.dp, top = 2.dp)
                 )
                 Text(
@@ -281,24 +500,34 @@ private fun MarkdownBlockQuote(
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .clip(shapes.surface)
+            .background(colors.surface.copy(alpha = 0.6f))
+            .border(1.dp, colors.border.copy(alpha = 0.4f), shapes.surface)
+            .padding(vertical = 8.dp, horizontal = 12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(20.dp)
-                .background(colors.accent)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = formatInlineMarkdown(quote.text, onWikiLinkClick),
-            style = typography.body.copy(fontStyle = FontStyle.Italic),
-            color = colors.secondaryText
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.5.dp)
+                    .height(28.dp)
+                    .clip(CircleShape)
+                    .background(colors.accent)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = formatInlineMarkdown(quote.text, onWikiLinkClick),
+                style = typography.body.copy(fontStyle = FontStyle.Italic, lineHeight = 21.sp),
+                color = colors.secondaryText
+            )
+        }
     }
 }
 
@@ -323,6 +552,7 @@ private fun formatInlineMarkdown(
     onWikiLinkClick: ((String) -> Unit)? = null
 ): AnnotatedString {
     val colors = StudyOSTheme.colors
+    val context = LocalContext.current
 
     return buildAnnotatedString {
         var cursor = 0
@@ -361,6 +591,53 @@ private fun formatInlineMarkdown(
                         cursor++
                     }
                 }
+                // Standard Markdown Links [Label](url)
+                text.startsWith("[", cursor) -> {
+                    val labelEnd = text.indexOf("]", cursor + 1)
+                    val isLink = labelEnd != -1 && labelEnd + 1 < length && text[labelEnd + 1] == '('
+                    if (isLink) {
+                        val urlEnd = text.indexOf(")", labelEnd + 2)
+                        if (urlEnd != -1) {
+                            val label = text.substring(cursor + 1, labelEnd)
+                            val url = text.substring(labelEnd + 2, urlEnd).trim()
+
+                            val linkAnnotation = LinkAnnotation.Clickable(
+                                tag = url,
+                                styles = TextLinkStyles(
+                                    style = SpanStyle(
+                                        color = colors.accent,
+                                        fontWeight = FontWeight.Medium,
+                                        textDecoration = TextDecoration.Underline
+                                    )
+                                ),
+                                linkInteractionListener = {
+                                    try {
+                                        if (url.startsWith("http://", true) || url.startsWith("https://", true)) {
+                                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            context.startActivity(browserIntent)
+                                        } else if (url.endsWith(".pdf", true)) {
+                                            com.studyos.app.core.util.DocumentOpener.openPdfInExternalApp(context, url, label)
+                                        } else {
+                                            onWikiLinkClick?.invoke(url)
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                            )
+                            pushLink(linkAnnotation)
+                            append(label)
+                            pop()
+                            cursor = urlEnd + 1
+                        } else {
+                            append(text[cursor])
+                            cursor++
+                        }
+                    } else {
+                        append(text[cursor])
+                        cursor++
+                    }
+                }
                 // Inline code `code`
                 text.startsWith("`", cursor) && !text.startsWith("```", cursor) -> {
                     val endIdx = text.indexOf("`", cursor + 1)
@@ -370,6 +647,7 @@ private fun formatInlineMarkdown(
                             SpanStyle(
                                 fontFamily = FontFamily.Monospace,
                                 background = colors.border.copy(alpha = 0.4f),
+                                color = colors.accent,
                                 fontSize = 13.sp
                             )
                         )
@@ -381,7 +659,60 @@ private fun formatInlineMarkdown(
                         cursor++
                     }
                 }
-                // Bold **text**
+                // Inline math $formula$
+                text.startsWith("$", cursor) && !text.startsWith("$$", cursor) -> {
+                    val endIdx = text.indexOf("$", cursor + 1)
+                    if (endIdx != -1 && endIdx > cursor + 1) {
+                        val formulaText = text.substring(cursor + 1, endIdx)
+                        pushStyle(
+                            SpanStyle(
+                                fontFamily = FontFamily.Monospace,
+                                fontStyle = FontStyle.Italic,
+                                color = colors.accent
+                            )
+                        )
+                        append(formulaText)
+                        pop()
+                        cursor = endIdx + 1
+                    } else {
+                        append(text[cursor])
+                        cursor++
+                    }
+                }
+                // Strikethrough ~~text~~
+                text.startsWith("~~", cursor) -> {
+                    val endIdx = text.indexOf("~~", cursor + 2)
+                    if (endIdx != -1) {
+                        val strikeText = text.substring(cursor + 2, endIdx)
+                        pushStyle(
+                            SpanStyle(
+                                textDecoration = TextDecoration.LineThrough,
+                                color = colors.mutedText
+                            )
+                        )
+                        append(strikeText)
+                        pop()
+                        cursor = endIdx + 2
+                    } else {
+                        append(text[cursor])
+                        cursor++
+                    }
+                }
+                // Bold italic ***text***
+                text.startsWith("***", cursor) -> {
+                    val endIdx = text.indexOf("***", cursor + 3)
+                    if (endIdx != -1) {
+                        val boldItalicText = text.substring(cursor + 3, endIdx)
+                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic))
+                        append(boldItalicText)
+                        pop()
+                        cursor = endIdx + 3
+                    } else {
+                        append(text[cursor])
+                        cursor++
+                    }
+                }
+                // Bold **text** or __text__
                 text.startsWith("**", cursor) -> {
                     val endIdx = text.indexOf("**", cursor + 2)
                     if (endIdx != -1) {
@@ -395,9 +726,35 @@ private fun formatInlineMarkdown(
                         cursor++
                     }
                 }
-                // Italic *text*
+                text.startsWith("__", cursor) -> {
+                    val endIdx = text.indexOf("__", cursor + 2)
+                    if (endIdx != -1) {
+                        val boldText = text.substring(cursor + 2, endIdx)
+                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                        append(boldText)
+                        pop()
+                        cursor = endIdx + 2
+                    } else {
+                        append(text[cursor])
+                        cursor++
+                    }
+                }
+                // Italic *text* or _text_
                 text.startsWith("*", cursor) -> {
                     val endIdx = text.indexOf("*", cursor + 1)
+                    if (endIdx != -1) {
+                        val italicText = text.substring(cursor + 1, endIdx)
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        append(italicText)
+                        pop()
+                        cursor = endIdx + 1
+                    } else {
+                        append(text[cursor])
+                        cursor++
+                    }
+                }
+                text.startsWith("_", cursor) && (cursor == 0 || text[cursor - 1].isWhitespace()) -> {
+                    val endIdx = text.indexOf("_", cursor + 1)
                     if (endIdx != -1) {
                         val italicText = text.substring(cursor + 1, endIdx)
                         pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
@@ -428,7 +785,13 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
         val trimmed = line.trim()
 
         when {
-            // Code block
+            // Horizontal Rule ---, ***, ___
+            trimmed.matches(Regex("^(---+|\\*\\*\\*+|___+)$")) -> {
+                blocks.add(MarkdownBlock.HorizontalRule)
+                idx++
+            }
+
+            // Code block ```
             trimmed.startsWith("```") -> {
                 val language = trimmed.removePrefix("```").trim()
                 val codeLines = mutableListOf<String>()
@@ -440,6 +803,7 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
                 blocks.add(MarkdownBlock.CodeBlock(language, codeLines.joinToString("\n")))
                 idx++ // skip closing ```
             }
+
             // Block equation $$ ... $$
             trimmed.startsWith("$$") -> {
                 if (trimmed.endsWith("$$") && trimmed.length > 4) {
@@ -462,7 +826,53 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
                     blocks.add(MarkdownBlock.EquationBlock(eqLines.joinToString("\n")))
                 }
             }
-            // Headers
+
+            // GitHub Alert Callouts: > [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING], > [!CAUTION]
+            trimmed.startsWith("> [!") -> {
+                val alertMatch = Regex("^>\\s*\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]", RegexOption.IGNORE_CASE).find(trimmed)
+                if (alertMatch != null) {
+                    val typeStr = alertMatch.groupValues[1].uppercase()
+                    val alertType = AlertType.valueOf(typeStr)
+                    val alertLines = mutableListOf<String>()
+                    val remainingOnFirstLine = trimmed.substring(alertMatch.range.last + 1).trim()
+                    if (remainingOnFirstLine.isNotBlank()) {
+                        alertLines.add(remainingOnFirstLine)
+                    }
+                    idx++
+                    while (idx < lines.size && lines[idx].trim().startsWith(">")) {
+                        alertLines.add(lines[idx].trim().removePrefix(">").trim())
+                        idx++
+                    }
+                    blocks.add(MarkdownBlock.AlertCallout(alertType, alertLines.joinToString(" ")))
+                } else {
+                    blocks.add(MarkdownBlock.BlockQuote(trimmed.removePrefix(">").trim()))
+                    idx++
+                }
+            }
+
+            // Standard Blockquote >
+            trimmed.startsWith("> ") -> {
+                val quoteLines = mutableListOf<String>()
+                while (idx < lines.size && lines[idx].trim().startsWith("> ")) {
+                    quoteLines.add(lines[idx].trim().removePrefix("> ").trim())
+                    idx++
+                }
+                blocks.add(MarkdownBlock.BlockQuote(quoteLines.joinToString(" ")))
+            }
+
+            // Headers H1 to H6
+            trimmed.startsWith("###### ") -> {
+                blocks.add(MarkdownBlock.Header(6, trimmed.removePrefix("###### ")))
+                idx++
+            }
+            trimmed.startsWith("##### ") -> {
+                blocks.add(MarkdownBlock.Header(5, trimmed.removePrefix("##### ")))
+                idx++
+            }
+            trimmed.startsWith("#### ") -> {
+                blocks.add(MarkdownBlock.Header(4, trimmed.removePrefix("#### ")))
+                idx++
+            }
             trimmed.startsWith("### ") -> {
                 blocks.add(MarkdownBlock.Header(3, trimmed.removePrefix("### ")))
                 idx++
@@ -475,11 +885,44 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
                 blocks.add(MarkdownBlock.Header(1, trimmed.removePrefix("# ")))
                 idx++
             }
+
+            // GFM Table: | Header 1 | Header 2 |
+            trimmed.startsWith("|") && trimmed.endsWith("|") && idx + 1 < lines.size && lines[idx + 1].trim().matches(Regex("^\\|\\s*[-:]+[-| :]*\\|$")) -> {
+                val headerRow = trimmed.split("|").filter { it.isNotBlank() }.map { it.trim() }
+                idx += 2 // skip header row and divider row (e.g. |---|---|)
+                val rows = mutableListOf<List<String>>()
+                while (idx < lines.size && lines[idx].trim().startsWith("|") && lines[idx].trim().endsWith("|")) {
+                    val cells = lines[idx].trim().split("|").filter { it.isNotBlank() }.map { it.trim() }
+                    rows.add(cells)
+                    idx++
+                }
+                blocks.add(MarkdownBlock.TableBlock(headerRow, rows))
+            }
+
+            // Checklist - [ ] or - [x]
+            trimmed.matches(Regex("^[*-]\\s+\\[[ xX]\\]\\s+.*")) -> {
+                val checkItems = mutableListOf<ChecklistItem>()
+                while (idx < lines.size) {
+                    val itemLine = lines[idx].trim()
+                    val match = Regex("^[*-]\\s+\\[([ xX])\\]\\s+(.*)").find(itemLine)
+                    if (match != null) {
+                        val isChecked = match.groupValues[1].equals("x", ignoreCase = true)
+                        val text = match.groupValues[2].trim()
+                        checkItems.add(ChecklistItem(isChecked, text))
+                        idx++
+                    } else {
+                        break
+                    }
+                }
+                blocks.add(MarkdownBlock.Checklist(checkItems))
+            }
+
             // Bullet list
             trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
                 val listItems = mutableListOf<String>()
                 while (idx < lines.size) {
                     val itemLine = lines[idx].trim()
+                    if (itemLine.matches(Regex("^[*-]\\s+\\[[ xX]\\].*"))) break
                     if (itemLine.startsWith("- ") || itemLine.startsWith("* ")) {
                         listItems.add(itemLine.substring(2).trim())
                         idx++
@@ -489,6 +932,7 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
                 }
                 blocks.add(MarkdownBlock.BulletList(listItems))
             }
+
             // Numbered list
             trimmed.matches(Regex("^\\d+\\.\\s+.*")) -> {
                 val listItems = mutableListOf<String>()
@@ -504,15 +948,12 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
                 }
                 blocks.add(MarkdownBlock.NumberedList(listItems))
             }
-            // Blockquote
-            trimmed.startsWith("> ") -> {
-                blocks.add(MarkdownBlock.BlockQuote(trimmed.removePrefix("> ")))
-                idx++
-            }
+
             // Blank lines
             trimmed.isEmpty() -> {
                 idx++
             }
+
             // Paragraph
             else -> {
                 val pLines = mutableListOf<String>()
@@ -520,7 +961,9 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
                     val pLine = lines[idx].trim()
                     if (pLine.isEmpty() || pLine.startsWith("#") || pLine.startsWith("```") ||
                         pLine.startsWith("$$") || pLine.startsWith("- ") || pLine.startsWith("* ") ||
-                        pLine.matches(Regex("^\\d+\\.\\s+.*")) || pLine.startsWith("> ")
+                        pLine.matches(Regex("^\\d+\\.\\s+.*")) || pLine.startsWith(">") ||
+                        pLine.matches(Regex("^(---+|\\*\\*\\*+|___+)$")) ||
+                        (pLine.startsWith("|") && pLine.endsWith("|"))
                     ) {
                         break
                     }

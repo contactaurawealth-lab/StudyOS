@@ -75,20 +75,27 @@ fun OnboardingScreen(
                 onBack = { currentStep = 1 }
             )
 
-            3 -> PreferencesStep(
+            3 -> StudyGoalStep(
                 uiState = uiState,
-                onDailyGoalChanged = viewModel::onDailyGoalChanged,
-                onDefaultSessionChanged = viewModel::onDefaultSessionChanged,
+                onDailyGoalPresetChanged = viewModel::onDailyGoalPresetChanged,
+                onCustomGoalInputChanged = viewModel::onCustomGoalInputChanged,
                 onContinue = { currentStep = 4 },
                 onBack = { currentStep = 2 }
             )
 
-            4 -> ReviewStep(
+            4 -> AppearanceStep(
+                uiState = uiState,
+                onThemeChanged = viewModel::onThemeChanged,
+                onContinue = { currentStep = 5 },
+                onBack = { currentStep = 3 }
+            )
+
+            5 -> ReviewStep(
                 uiState = uiState,
                 onFinishSetup = {
                     viewModel.finishSetup(onSuccess = onFinishOnboarding)
                 },
-                onBack = { currentStep = 3 }
+                onBack = { currentStep = 4 }
             )
         }
     }

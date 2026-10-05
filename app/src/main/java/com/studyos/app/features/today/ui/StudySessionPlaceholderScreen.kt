@@ -180,7 +180,8 @@ fun StudySessionPlaceholderScreen(
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 // Subject badge
-                                if (uiState.subject != null) {
+                                val subject = uiState.subject
+                                if (subject != null) {
                                     Box(
                                         modifier = Modifier
                                             .clip(shapes.statusPill)
@@ -189,7 +190,7 @@ fun StudySessionPlaceholderScreen(
                                             .padding(horizontal = 10.dp, vertical = 4.dp)
                                     ) {
                                         Text(
-                                            text = uiState.subject!!.name.uppercase(),
+                                            text = subject.name.uppercase(),
                                             style = typography.caption.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 letterSpacing = 1.sp
@@ -206,7 +207,8 @@ fun StudySessionPlaceholderScreen(
                                     color = colors.primaryText
                                 )
 
-                                if (uiState.chapter != null) {
+                                val chapter = uiState.chapter
+                                if (chapter != null) {
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
@@ -217,7 +219,7 @@ fun StudySessionPlaceholderScreen(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = uiState.chapter!!.name,
+                                            text = chapter.name,
                                             style = typography.bodyMedium,
                                             color = colors.secondaryText
                                         )
@@ -269,11 +271,12 @@ fun StudySessionPlaceholderScreen(
                         )
 
                         // Secondary Action: Open Chapter if linked
-                        if (uiState.chapter != null) {
+                        val linkedChapter = uiState.chapter
+                        if (linkedChapter != null) {
                             Spacer(modifier = Modifier.height(12.dp))
                             StudyOSOutlinedButton(
                                 text = "Open Chapter",
-                                onClick = { onOpenChapter(uiState.chapter!!.id) },
+                                onClick = { onOpenChapter(linkedChapter.id) },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }

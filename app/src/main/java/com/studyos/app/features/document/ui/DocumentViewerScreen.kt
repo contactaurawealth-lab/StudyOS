@@ -175,8 +175,13 @@ fun DocumentViewerScreen(
     // Open in other external app (Drive, Docs, Word, Acrobat)
     val handleOpenInOtherApp: () -> Unit = {
         if (uiState.documentUri != null) {
-            val uri = Uri.parse(uiState.documentUri)
-            DocumentOpener.openInExternalApp(context, uri)
+            val uriStr = uiState.documentUri ?: ""
+            if (uiState.fileType.equals("PDF", ignoreCase = true) || uriStr.endsWith(".pdf", ignoreCase = true)) {
+                DocumentOpener.openPdfInExternalApp(context, uriStr, uiState.documentTitle)
+            } else {
+                val uri = Uri.parse(uriStr)
+                DocumentOpener.openInExternalApp(context, uri)
+            }
         } else {
             try {
                 val sendIntent = Intent(Intent.ACTION_SEND).apply {

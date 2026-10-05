@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,19 +24,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.studyos.app.core.model.AppTheme
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSOutlinedButton
-import com.studyos.app.features.onboarding.viewmodel.DailyGoalOptions
 import com.studyos.app.features.onboarding.viewmodel.OnboardingUiState
-import com.studyos.app.features.onboarding.viewmodel.SessionLengthOptions
 import com.studyos.app.theme.StudyOSTheme
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PreferencesStep(
+fun AppearanceStep(
     uiState: OnboardingUiState,
-    onDailyGoalChanged: (Int) -> Unit,
-    onDefaultSessionChanged: (Int) -> Unit,
+    onThemeChanged: (AppTheme) -> Unit,
     onContinue: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -47,6 +42,12 @@ fun PreferencesStep(
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
     val scrollState = rememberScrollState()
+
+    val options = listOf(
+        Pair("System", AppTheme.SYSTEM),
+        Pair("Light", AppTheme.LIGHT),
+        Pair("Dark", AppTheme.DARK)
+    )
 
     Box(
         modifier = modifier
@@ -60,94 +61,41 @@ fun PreferencesStep(
                 .padding(horizontal = 24.dp, vertical = 32.dp)
         ) {
             Text(
-                text = "Study preferences",
+                text = "Appearance",
                 style = typography.screenTitle,
                 color = colors.primaryText
             )
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Daily study goal
             Text(
-                text = "Daily study goal",
+                text = "Choose your theme",
                 style = typography.sectionTitle,
                 color = colors.primaryText
             )
-            Text(
-                text = "How much time you aim to study each day.",
-                style = typography.secondary,
-                color = colors.secondaryText,
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
 
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                DailyGoalOptions.forEach { minutes ->
-                    val isSelected = uiState.dailyStudyGoalMinutes == minutes
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                options.forEach { (label, themeVal) ->
+                    val isSelected = uiState.selectedTheme == themeVal
                     val chipBackground = if (isSelected) colors.surface else colors.background
                     val chipBorder = if (isSelected) colors.primaryText else colors.border
                     val textColor = if (isSelected) colors.primaryText else colors.secondaryText
 
                     Box(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .clip(shapes.button)
                             .background(chipBackground)
                             .border(1.dp, chipBorder, shapes.button)
-                            .clickable { onDailyGoalChanged(minutes) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                            .clickable { onThemeChanged(themeVal) }
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
                             .semantics { this.role = Role.RadioButton },
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.CenterStart
                     ) {
                         Text(
-                            text = "$minutes min",
-                            style = if (isSelected) typography.bodyMedium else typography.body,
-                            color = textColor
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Default session length
-            Text(
-                text = "Default session length",
-                style = typography.sectionTitle,
-                color = colors.primaryText
-            )
-            Text(
-                text = "Target length for each focused study session.",
-                style = typography.secondary,
-                color = colors.secondaryText,
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-            )
-
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SessionLengthOptions.forEach { minutes ->
-                    val isSelected = uiState.defaultSessionMinutes == minutes
-                    val chipBackground = if (isSelected) colors.surface else colors.background
-                    val chipBorder = if (isSelected) colors.primaryText else colors.border
-                    val textColor = if (isSelected) colors.primaryText else colors.secondaryText
-
-                    Box(
-                        modifier = Modifier
-                            .clip(shapes.button)
-                            .background(chipBackground)
-                            .border(1.dp, chipBorder, shapes.button)
-                            .clickable { onDefaultSessionChanged(minutes) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                            .semantics { this.role = Role.RadioButton },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$minutes min",
+                            text = label,
                             style = if (isSelected) typography.bodyMedium else typography.body,
                             color = textColor
                         )

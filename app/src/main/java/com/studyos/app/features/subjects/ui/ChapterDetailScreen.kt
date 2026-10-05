@@ -383,6 +383,18 @@ fun ChapterDetailScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    // 95OS Syllabus Topics Section
+                    SyllabusTopicsSection(
+                        topics = uiState.topics,
+                        topicError = uiState.topicError,
+                        onAddTopic = viewModel::addTopic,
+                        onUpdateMastery = viewModel::updateTopicMastery,
+                        onDeleteTopic = viewModel::deleteTopic,
+                        onClearError = viewModel::clearTopicError
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     // Practice & Revision Hub Button
                     StudyOSButton(
                         text = "Practice & Revision Hub",

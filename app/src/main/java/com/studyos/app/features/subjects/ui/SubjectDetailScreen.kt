@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -122,41 +124,38 @@ fun SubjectDetailScreen(
                 try {
                     // 1. Copy document to persistent internal storage to prevent permission expiration
                     val stored = com.studyos.app.core.util.DocumentStorageManager.saveDocumentLocally(context, uri)
+                    val isPdf = stored.extension.equals("pdf", ignoreCase = true)
+                    val isMarkdown = stored.extension.equals("md", ignoreCase = true) || stored.extension.equals("markdown", ignoreCase = true)
 
-                    // 2. Extract text from the persistent local copy
-                    val extracted = com.studyos.app.core.util.DocumentTextExtractor.extract(
-                        context,
-                        Uri.fromFile(stored.file),
-                        stored.cleanTitle
-                    )
-
-                    // 3. Format note with rich metadata header
-                    val noteHeader = buildString {
-                        append("> [!NOTE] **Source Document:** ${stored.originalFileName} (${stored.formattedSize} • ${stored.extension.uppercase()})\n")
-                        append("> 📂 *Saved offline. Open original file in Google Drive, Docs, Word, or PDF Reader from Knowledge Library Resources.*\n\n")
-                    }
-                    val bodyContent = if (extracted.content.isNotBlank()) {
-                        extracted.content
+                    if (isPdf) {
+                        // Save as a PDF Resource for this subject - DO NOT convert to markdown note!
+                        viewModel.addResource(
+                            title = stored.originalFileName,
+                            type = "PDF",
+                            uriOrPath = stored.persistentPath
+                        )
+                        // Preview immediately in external PDF app primarily as a PDF
+                        com.studyos.app.core.util.DocumentOpener.openPdfInExternalApp(context, stored.persistentPath, stored.cleanTitle)
+                        snackbarHostState.showSnackbar("Attached ${stored.originalFileName} as PDF & opened in PDF reader")
+                    } else if (isMarkdown) {
+                        // Extract text and save as study note for markdown files
+                        val extracted = com.studyos.app.core.util.DocumentTextExtractor.extract(
+                            context,
+                            Uri.fromFile(stored.file),
+                            stored.cleanTitle
+                        )
+                        viewModel.addOrUploadNote(title = stored.cleanTitle, content = extracted.content)
+                        snackbarHostState.showSnackbar("Uploaded markdown note: ${stored.cleanTitle}")
                     } else {
-                        "*(Document contains scanned pages or binary formatting. Open in external viewer via Resources to read full document.)*"
+                        // Other documents (DOCX, PPTX, etc.) -> Save as Resource and open in external app
+                        viewModel.addResource(
+                            title = stored.originalFileName,
+                            type = "DOCUMENT",
+                            uriOrPath = stored.persistentPath
+                        )
+                        com.studyos.app.core.util.DocumentOpener.openInExternalApp(context, stored.contentUri)
+                        snackbarHostState.showSnackbar("Attached ${stored.originalFileName} to Resources & opened in external app")
                     }
-                    val fullContent = noteHeader + bodyContent
-
-                    // 4. Save to Subject Notes for AI context & revision
-                    viewModel.addOrUploadNote(title = stored.cleanTitle, content = fullContent)
-
-                    // 5. Index in Subject Resources so original file can be opened in external apps
-                    viewModel.addResource(
-                        title = stored.originalFileName,
-                        type = when (stored.extension.lowercase()) {
-                            "pdf" -> "PDF"
-                            "md", "markdown" -> "MARKDOWN"
-                            else -> "DOCUMENT"
-                        },
-                        uriOrPath = stored.persistentPath
-                    )
-
-                    snackbarHostState.showSnackbar("Uploaded ${stored.originalFileName} (${stored.formattedSize}) to Notes & Resources!")
                 } catch (e: Exception) {
                     snackbarHostState.showSnackbar("Failed to process document: ${e.message}")
                 }
@@ -466,8 +465,9 @@ fun SubjectDetailScreen(
                                         .background(if (selectedTab == 1) colors.accent.copy(alpha = 0.2f) else colors.surface)
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
+                                    val totalContextItems = uiState.notes.size + uiState.resources.size
                                     Text(
-                                        text = "${uiState.notes.size}",
+                                        text = "$totalContextItems",
                                         style = typography.caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
                                         color = if (selectedTab == 1) colors.accent else colors.mutedText
                                     )
@@ -547,7 +547,7 @@ fun SubjectDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = "AI Study Assistant automatically reads and references all notes here during chat, quizzes, and revision.",
+                                    text = "AI Study Assistant automatically reads and references all notes and attached PDFs here during chat, quizzes, and revision.",
                                     style = typography.caption,
                                     color = colors.primaryText,
                                     lineHeight = 16.sp
@@ -557,20 +557,21 @@ fun SubjectDetailScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
+                        val totalDocs = uiState.notes.size + uiState.resources.size
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Uploaded Notes (${uiState.notes.size})",
+                                text = "Notes & Documents ($totalDocs)",
                                 style = typography.sectionTitle.copy(fontWeight = FontWeight.SemiBold),
                                 color = colors.primaryText
                             )
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 StudyOSOutlinedButton(
-                                    text = "Upload file",
+                                    text = "Attach PDF/File",
                                     onClick = {
                                         filePickerLauncher.launch(
                                             arrayOf(
@@ -591,12 +592,12 @@ fun SubjectDetailScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        if (uiState.notes.isEmpty()) {
+                        if (uiState.notes.isEmpty() && uiState.resources.isEmpty()) {
                             Spacer(modifier = Modifier.height(20.dp))
                             StudyOSEmptyState(
-                                title = "No notes uploaded yet",
-                                description = "Upload lecture slides, markdown guides, or text notes to allow your AI tutor to learn from your actual class materials.",
-                                actionButtonText = "Upload Note / Document",
+                                title = "No notes or documents uploaded yet",
+                                description = "Attach PDF slides or text notes to preview them anytime and allow your AI assistant to learn from your actual class materials.",
+                                actionButtonText = "Attach PDF / Document",
                                 onActionClick = {
                                     filePickerLauncher.launch(
                                         arrayOf(
@@ -616,12 +617,44 @@ fun SubjectDetailScreen(
                                 contentPadding = PaddingValues(bottom = 88.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                items(uiState.notes, key = { it.id }) { note ->
-                                    SubjectNoteItemCard(
-                                        note = note,
-                                        onClick = { onNoteClick(note.id) },
-                                        onDelete = { noteToDelete = note }
-                                    )
+                                if (uiState.resources.isNotEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "Attached Documents & PDFs (${uiState.resources.size})",
+                                            style = typography.caption.copy(fontWeight = FontWeight.SemiBold, color = colors.secondaryText),
+                                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                        )
+                                    }
+                                    items(uiState.resources, key = { it.id }) { res ->
+                                        SubjectResourceItemCard(
+                                            resource = res,
+                                            onClick = {
+                                                if (res.type.equals("PDF", ignoreCase = true) || res.uriOrPath.endsWith(".pdf", ignoreCase = true)) {
+                                                    com.studyos.app.core.util.DocumentOpener.openPdfInExternalApp(context, res.uriOrPath, res.title)
+                                                } else {
+                                                    com.studyos.app.core.util.DocumentOpener.openResource(context, res.uriOrPath, res.type)
+                                                }
+                                            },
+                                            onDelete = { viewModel.deleteResource(res) }
+                                        )
+                                    }
+                                }
+
+                                if (uiState.notes.isNotEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "Study Notes (${uiState.notes.size})",
+                                            style = typography.caption.copy(fontWeight = FontWeight.SemiBold, color = colors.secondaryText),
+                                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                                        )
+                                    }
+                                    items(uiState.notes, key = { it.id }) { note ->
+                                        SubjectNoteItemCard(
+                                            note = note,
+                                            onClick = { onNoteClick(note.id) },
+                                            onDelete = { noteToDelete = note }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -995,6 +1028,99 @@ private fun SubjectNoteItemCard(
                     style = typography.caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
                     color = colors.secondaryText
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubjectResourceItemCard(
+    resource: com.studyos.app.core.database.entity.ResourceEntity,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+    val isPdf = resource.type.equals("PDF", ignoreCase = true) || resource.uriOrPath.endsWith(".pdf", ignoreCase = true)
+
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(shapes.small)
+                            .background(if (isPdf) colors.accent.copy(alpha = 0.18f) else colors.surface),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isPdf) Icons.Outlined.PictureAsPdf else Icons.Outlined.Description,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column {
+                        Text(
+                            text = resource.title.ifBlank { "Attached Document" },
+                            style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = colors.primaryText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (isPdf) "PDF Document • Tap to preview in PDF app" else "Resource Document",
+                            style = typography.caption.copy(fontSize = 11.sp),
+                            color = colors.mutedText
+                        )
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    GlassIconButton(
+                        onClick = onClick,
+                        contentDescription = "Preview in external app",
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    GlassIconButton(
+                        onClick = onDelete,
+                        contentDescription = "Delete resource",
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.DeleteOutline,
+                            contentDescription = null,
+                            tint = colors.mutedText,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         }
     }

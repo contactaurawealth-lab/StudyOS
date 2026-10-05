@@ -22,10 +22,21 @@ import kotlinx.coroutines.launch
 import com.studyos.app.domain.model.ChapterIntelligence
 import com.studyos.app.domain.usecase.GetChapterIntelligenceUseCase
 
+import com.studyos.app.domain.model.ExamRelevance
+import com.studyos.app.domain.model.Topic
+import com.studyos.app.domain.model.TopicMasteryState
+import com.studyos.app.domain.usecase.AddTopicResult
+import com.studyos.app.domain.usecase.AddTopicUseCase
+import com.studyos.app.domain.usecase.DeleteTopicUseCase
+import com.studyos.app.domain.usecase.GetTopicsForChapterUseCase
+import com.studyos.app.domain.usecase.UpdateTopicMasteryUseCase
+
 data class ChapterUiState(
     val chapter: Chapter? = null,
     val subject: Subject? = null,
     val intelligence: ChapterIntelligence? = null,
+    val topics: List<Topic> = emptyList(),
+    val topicError: String? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val actionMessage: String? = null,
@@ -41,7 +52,11 @@ class ChapterViewModel(
     private val updateChapterStatusUseCase: UpdateChapterStatusUseCase,
     private val deleteChapterUseCase: DeleteChapterUseCase,
     private val recordChapterOpenedUseCase: RecordChapterOpenedUseCase,
-    private val getChapterIntelligenceUseCase: GetChapterIntelligenceUseCase? = null
+    private val getChapterIntelligenceUseCase: GetChapterIntelligenceUseCase? = null,
+    private val getTopicsForChapterUseCase: GetTopicsForChapterUseCase? = null,
+    private val addTopicUseCase: AddTopicUseCase? = null,
+    private val updateTopicMasteryUseCase: UpdateTopicMasteryUseCase? = null,
+    private val deleteTopicUseCase: DeleteTopicUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChapterUiState())
@@ -52,6 +67,7 @@ class ChapterViewModel(
             recordChapterOpenedUseCase(chapterId)
         }
         observeChapter()
+        observeTopics()
     }
 
     private fun observeChapter() {
@@ -77,6 +93,57 @@ class ChapterViewModel(
                 }
             }
         }
+    }
+
+    private fun observeTopics() {
+        getTopicsForChapterUseCase?.let { useCase ->
+            viewModelScope.launch {
+                useCase(chapterId).collect { topics ->
+                    _uiState.update { it.copy(topics = topics) }
+                }
+            }
+        }
+    }
+
+    fun addTopic(name: String, examRelevance: ExamRelevance = ExamRelevance.MEDIUM) {
+        addTopicUseCase?.let { useCase ->
+            viewModelScope.launch {
+                when (val result = useCase(chapterId, name, examRelevance)) {
+                    is AddTopicResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                topicError = null,
+                                actionMessage = "Topic '${result.topic.name}' added"
+                            )
+                        }
+                    }
+                    is AddTopicResult.Error -> {
+                        _uiState.update { it.copy(topicError = result.message) }
+                    }
+                }
+            }
+        }
+    }
+
+    fun updateTopicMastery(topicId: String, state: TopicMasteryState) {
+        updateTopicMasteryUseCase?.let { useCase ->
+            viewModelScope.launch {
+                useCase(topicId, state)
+            }
+        }
+    }
+
+    fun deleteTopic(topicId: String) {
+        deleteTopicUseCase?.let { useCase ->
+            viewModelScope.launch {
+                useCase(topicId)
+                _uiState.update { it.copy(actionMessage = "Topic deleted") }
+            }
+        }
+    }
+
+    fun clearTopicError() {
+        _uiState.update { it.copy(topicError = null) }
     }
 
     fun refreshIntelligence() {

@@ -123,7 +123,7 @@ fun ReviewStep(
                             color = colors.primaryText
                         )
                         Text(
-                            text = "${uiState.defaultSessionMinutes} min sessions",
+                            text = "Theme: ${uiState.selectedTheme.name.lowercase().replaceFirstChar { it.uppercase() }}",
                             style = typography.secondary,
                             color = colors.secondaryText,
                             modifier = Modifier.padding(top = 4.dp)
@@ -155,7 +155,7 @@ fun ReviewStep(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 StudyOSButton(
-                    text = "Finish setup",
+                    text = "Enter StudyOS",
                     onClick = onFinishSetup,
                     isLoading = uiState.isLoading
                 )

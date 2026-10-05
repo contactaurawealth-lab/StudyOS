@@ -22,6 +22,9 @@ interface MistakeDao {
     @Query("SELECT * FROM mistakes WHERE chapterId = :chapterId ORDER BY isResolved ASC, lastMissedAt DESC")
     suspend fun getMistakesForChapterOnce(chapterId: String): List<MistakeEntity>
 
+    @Query("SELECT * FROM mistakes")
+    suspend fun getAllMistakesOnce(): List<MistakeEntity>
+
     @Query("SELECT * FROM mistakes WHERE id = :id LIMIT 1")
     suspend fun getMistakeById(id: String): MistakeEntity?
 

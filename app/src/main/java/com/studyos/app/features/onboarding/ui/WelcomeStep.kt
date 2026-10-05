@@ -41,7 +41,7 @@ fun WelcomeStep(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "Set up StudyOS",
+                text = "StudyOS",
                 style = typography.screenTitle,
                 color = colors.primaryText
             )
@@ -49,7 +49,7 @@ fun WelcomeStep(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Organize your subjects,\nplan your study time,\nand keep everything together.",
+                text = "Your entire study life, organized in one place.",
                 style = typography.body,
                 color = colors.secondaryText,
                 lineHeight = typography.body.lineHeight * 1.3
