@@ -13,6 +13,7 @@ import com.studyos.app.domain.model.QuestionDifficulty
 import com.studyos.app.domain.model.TopicMasteryState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.studyos.app.core.database.entity.FlashcardEntity
 import java.io.BufferedReader
 import java.io.StringReader
 import java.io.StringWriter
@@ -23,6 +24,12 @@ enum class CsvEntityType(val displayName: String) {
     QUESTION_BANK("Question Bank"),
     RECALL_CARDS("Recall & Flashcards"),
     MISTAKES("Mistake Bank")
+}
+
+enum class QuestionImportTarget(val displayName: String) {
+    BOTH("Both Question Bank & Flashcards (Default)"),
+    QUESTION_BANK_ONLY("Question Bank Only"),
+    FLASHCARDS_ONLY("Flashcards Only")
 }
 
 data class CsvRowError(
@@ -302,6 +309,204 @@ class UniversalCsvProcessor(
             importedCount = importedCount,
             errors = errors
         )
+    }
+
+    fun getQuestionBankCsvTemplate(): String {
+        return "SubjectName,ChapterName,TopicName,Question,Answer,Marks,Difficulty\n" +
+            "Physics,Rotational Dynamics,Moment of Inertia,\"State the parallel axis theorem for moment of inertia.\",\"Statement: I = Ic + Mh^2 with all terms defined.\",2,EASY\n" +
+            "Physics,Rotational Dynamics,Torque,\"Derive the relation between torque and angular acceleration for a rigid body.\",\"Derivation steps with formula τ = I · α and diagram reference.\",4,MEDIUM\n" +
+            "Mathematics,Calculus,Integrals,\"Evaluate the indefinite integral of sec(x) dx.\",\"ln|sec(x) + tan(x)| + C\",2,EASY\n" +
+            "Mathematics,Calculus,Derivatives,\"State and prove Rolle's Theorem with required conditions.\",\"Proof using Extreme Value Theorem to show f'(c) = 0 for some c in (a, b).\",5,HARD\n" +
+            "Chemistry,Thermodynamics,First Law,\"State the first law of thermodynamics in mathematical form.\",\"ΔU = q + w with IUPAC sign conventions.\",3,MEDIUM\n"
+    }
+
+    fun parseAndValidateQuestions(csvContent: String): CsvValidationResult {
+        val lines = parseCsvLines(csvContent)
+        if (lines.isEmpty()) {
+            return CsvValidationResult(0, 0, listOf(CsvRowError(0, "", "CSV content is empty")), emptyList())
+        }
+
+        val header = lines.first().map { it.trim().lowercase() }
+        val errors = mutableListOf<CsvRowError>()
+        val parsed = mutableListOf<Map<String, String>>()
+
+        val subjectIdx = header.indexOfFirst { it == "subjectname" || it == "subject" }
+        val chapterIdx = header.indexOfFirst { it == "chaptername" || it == "chapter" }
+        val topicIdx = header.indexOfFirst { it == "topicname" || it == "topic" }
+        val questionIdx = header.indexOfFirst { it == "question" || it == "questiontext" || it == "prompt" }
+        val answerIdx = header.indexOfFirst { it == "answer" || it == "expectedanswer" || it == "markingscheme" }
+        val marksIdx = header.indexOfFirst { it == "marks" || it == "mark" }
+        val difficultyIdx = header.indexOfFirst { it == "difficulty" }
+
+        val missing = mutableListOf<String>()
+        if (subjectIdx == -1) missing.add("SubjectName")
+        if (chapterIdx == -1) missing.add("ChapterName")
+        if (questionIdx == -1) missing.add("Question")
+        if (answerIdx == -1) missing.add("Answer")
+
+        if (missing.isNotEmpty()) {
+            return CsvValidationResult(
+                totalRows = 0,
+                validRowsCount = 0,
+                errors = listOf(CsvRowError(1, lines.first().joinToString(","), "Missing required columns: ${missing.joinToString(", ")}")),
+                parsedData = emptyList()
+            )
+        }
+
+        for (i in 1 until lines.size) {
+            val line = lines[i]
+            if (line.isEmpty() || (line.size == 1 && line[0].isBlank())) continue
+
+            fun getVal(idx: Int): String = if (idx in line.indices) line[idx].trim() else ""
+
+            val sub = getVal(subjectIdx)
+            val chap = getVal(chapterIdx)
+            val q = getVal(questionIdx)
+            val ans = getVal(answerIdx)
+            val top = if (topicIdx != -1) getVal(topicIdx) else ""
+            val marksStr = if (marksIdx != -1) getVal(marksIdx) else "1"
+            val diffStr = if (difficultyIdx != -1) getVal(difficultyIdx) else "MEDIUM"
+
+            var err: String? = null
+            if (sub.isBlank()) err = "SubjectName cannot be blank"
+            else if (chap.isBlank()) err = "ChapterName cannot be blank"
+            else if (q.isBlank()) err = "Question cannot be blank"
+            else if (ans.isBlank()) err = "Answer cannot be blank"
+
+            if (err != null) {
+                errors.add(CsvRowError(i + 1, line.joinToString(","), err))
+            } else {
+                val rowMap = mapOf(
+                    "subjectname" to sub,
+                    "chaptername" to chap,
+                    "topicname" to top,
+                    "question" to q,
+                    "answer" to ans,
+                    "marks" to (marksStr.toIntOrNull()?.coerceAtLeast(1)?.toString() ?: "1"),
+                    "difficulty" to (if (diffStr.isNotBlank()) diffStr.uppercase() else "MEDIUM")
+                )
+                parsed.add(rowMap)
+            }
+        }
+
+        return CsvValidationResult(
+            totalRows = lines.size - 1,
+            validRowsCount = parsed.size,
+            errors = errors,
+            parsedData = parsed
+        )
+    }
+
+    suspend fun importQuestions(
+        parsedData: List<Map<String, String>>,
+        target: QuestionImportTarget = QuestionImportTarget.BOTH
+    ): CsvImportResult = withContext(Dispatchers.IO) {
+        val db = database ?: throw IllegalStateException("StudyOSDatabase is required to import questions")
+        var importedCount = 0
+        val errors = mutableListOf<CsvRowError>()
+        val subjectDao = db.subjectDao()
+        val chapterDao = db.chapterDao()
+        val topicDao = db.topicDao()
+        val questionBankDao = db.questionBankDao()
+        val flashcardDao = db.flashcardDao()
+
+        suspend fun getOrCreateSubject(name: String): String {
+            val existing = subjectDao.getAllSubjectsOnce().find { it.name.equals(name, ignoreCase = true) }
+            if (existing != null) return existing.id
+            val id = UUID.randomUUID().toString()
+            subjectDao.insertSubject(SubjectEntity(id = id, name = name, isCustom = true))
+            return id
+        }
+
+        suspend fun getOrCreateChapter(subjectId: String, name: String): String {
+            val existing = chapterDao.getChaptersForSubjectOnce(subjectId).find { it.name.equals(name, ignoreCase = true) }
+            if (existing != null) return existing.id
+            val id = UUID.randomUUID().toString()
+            chapterDao.insertChapter(ChapterEntity(id = id, subjectId = subjectId, name = name))
+            return id
+        }
+
+        suspend fun getOrCreateTopic(chapterId: String, name: String): String {
+            val existing = topicDao.getTopicsForChapterOnce(chapterId).find { it.name.equals(name, ignoreCase = true) }
+            if (existing != null) return existing.id
+            val id = UUID.randomUUID().toString()
+            topicDao.insertTopic(TopicEntity(id = id, chapterId = chapterId, name = name, examRelevance = "MEDIUM"))
+            return id
+        }
+
+        for ((index, row) in parsedData.withIndex()) {
+            val rowNum = index + 2
+            try {
+                val subName = row["subjectname"] ?: throw IllegalArgumentException("Missing subject name")
+                val chapName = row["chaptername"] ?: throw IllegalArgumentException("Missing chapter name")
+                val qText = row["question"] ?: throw IllegalArgumentException("Missing question")
+                val answerText = row["answer"] ?: throw IllegalArgumentException("Missing answer")
+                val topicName = row["topicname"]
+                val marks = row["marks"]?.toIntOrNull() ?: 1
+                val diff = row["difficulty"]?.uppercase() ?: "MEDIUM"
+
+                val subId = getOrCreateSubject(subName)
+                val chapId = getOrCreateChapter(subId, chapName)
+                val topId = if (!topicName.isNullOrBlank()) getOrCreateTopic(chapId, topicName) else null
+
+                // 1. Insert into Question Bank
+                if (target == QuestionImportTarget.BOTH || target == QuestionImportTarget.QUESTION_BANK_ONLY) {
+                    val qType = when {
+                        marks <= 1 -> ExamQuestionType.SHORT_ANSWER.name
+                        marks in 2..3 -> ExamQuestionType.SHORT_ANSWER.name
+                        else -> ExamQuestionType.LONG_ANSWER.name
+                    }
+                    questionBankDao.insertQuestion(
+                        QuestionBankEntity(
+                            subjectId = subId,
+                            chapterId = chapId,
+                            topicId = topId,
+                            questionText = qText,
+                            markingScheme = answerText,
+                            marks = marks,
+                            questionType = qType,
+                            difficulty = diff
+                        )
+                    )
+                }
+
+                // 2. Insert into Flashcards
+                if (target == QuestionImportTarget.BOTH || target == QuestionImportTarget.FLASHCARDS_ONLY) {
+                    flashcardDao.insert(
+                        FlashcardEntity(
+                            subjectId = subId,
+                            chapterId = chapId,
+                            question = qText,
+                            answer = answerText,
+                            difficulty = diff
+                        )
+                    )
+                }
+
+                importedCount++
+            } catch (e: Exception) {
+                errors.add(
+                    CsvRowError(
+                        lineNumber = rowNum,
+                        rowContent = row.values.joinToString(","),
+                        errorMessage = e.message ?: "Failed to import question row"
+                    )
+                )
+            }
+        }
+
+        CsvImportResult(
+            success = errors.isEmpty(),
+            importedCount = importedCount,
+            errors = errors
+        )
+    }
+
+    fun exportQuestionBankTemplateFile(context: android.content.Context): java.io.File {
+        val folder = java.io.File(context.cacheDir, "shared_preview").apply { if (!exists()) mkdirs() }
+        val file = java.io.File(folder, "studyos_question_bank_template.csv")
+        file.writeText(getQuestionBankCsvTemplate())
+        return file
     }
 
     suspend fun exportData(type: CsvEntityType): String = withContext(Dispatchers.IO) {

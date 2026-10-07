@@ -16,8 +16,14 @@ interface PaperDao {
     @Query("SELECT * FROM papers WHERE subjectId = :subjectId ORDER BY createdAt DESC")
     fun getPapersForSubject(subjectId: String): Flow<List<PaperEntity>>
 
+    @Query("SELECT * FROM papers WHERE subjectId = :subjectId ORDER BY createdAt DESC")
+    suspend fun getPapersForSubjectOnce(subjectId: String): List<PaperEntity>
+
     @Query("SELECT * FROM papers ORDER BY createdAt DESC")
     fun getAllPapers(): Flow<List<PaperEntity>>
+
+    @Query("SELECT * FROM papers ORDER BY createdAt DESC")
+    suspend fun getAllPapersOnce(): List<PaperEntity>
 
     @Query("SELECT * FROM papers WHERE id = :id")
     suspend fun getPaperById(id: String): PaperEntity?

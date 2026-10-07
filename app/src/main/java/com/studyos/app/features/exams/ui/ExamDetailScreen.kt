@@ -89,6 +89,7 @@ fun ExamDetailScreen(
     viewModel: ExamViewModel,
     onBack: () -> Unit,
     onOpenChapterPractice: (chapterId: String) -> Unit,
+    onOpenQuestionPaper: (paperId: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -240,6 +241,89 @@ fun ExamDetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Direct Marks Obtained Input Card (Clean, Minimal Input Box)
+                    item {
+                        var rawMarksText by rememberSaveable(exam.id, exam.actualScore) {
+                            mutableStateOf(exam.actualScore?.toString() ?: "")
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(shapes.surface)
+                                .background(colors.surface)
+                                .border(1.dp, if (exam.actualScore != null) colors.accent.copy(alpha = 0.5f) else colors.border, shapes.surface)
+                                .padding(18.dp)
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Marks Obtained",
+                                        style = typography.sectionTitle,
+                                        color = colors.primaryText
+                                    )
+                                    if (exam.actualScore != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(shapes.button)
+                                                .background(colors.accent.copy(alpha = 0.15f))
+                                                .border(0.5.dp, colors.accent, shapes.button)
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "Saved: ${exam.actualScore} Marks",
+                                                style = typography.caption,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.accent
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    StudyOSTextField(
+                                        value = rawMarksText,
+                                        onValueChange = { rawMarksText = it },
+                                        placeholder = "Enter marks obtained (e.g. 35 or 82)",
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    StudyOSButton(
+                                        text = if (exam.actualScore != null) "Update" else "Save Marks",
+                                        onClick = {
+                                            val parsed = rawMarksText.trim().toIntOrNull()
+                                            if (parsed != null) {
+                                                viewModel.saveExamResult(exam.id, parsed, isCompleted = true)
+                                            }
+                                        }
+                                    )
+                                }
+
+                                val paperIdMatch = remember(exam.notes) {
+                                    Regex("\\[PAPER_ID:([^\\]]+)\\]").find(exam.notes ?: "")?.groupValues?.get(1)
+                                }
+                                if (paperIdMatch != null) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    StudyOSOutlinedButton(
+                                        text = "📄 View Generated Question Paper",
+                                        onClick = { onOpenQuestionPaper(paperIdMatch) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Countdown Hero Card
                     item {
                         Box(

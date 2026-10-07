@@ -69,6 +69,7 @@ enum class AlertType(val title: String, val color: Color, val icon: ImageVector)
 }
 
 data class ChecklistItem(val isChecked: Boolean, val text: String)
+data class MarkdownListItem(val text: String, val level: Int = 0)
 
 private sealed class MarkdownBlock {
     data class Header(val level: Int, val text: String) : MarkdownBlock()
@@ -76,8 +77,8 @@ private sealed class MarkdownBlock {
     data class EquationBlock(val equation: String) : MarkdownBlock()
     data class AlertCallout(val type: AlertType, val content: String) : MarkdownBlock()
     data class TableBlock(val headers: List<String>, val rows: List<List<String>>) : MarkdownBlock()
-    data class BulletList(val items: List<String>) : MarkdownBlock()
-    data class NumberedList(val items: List<String>) : MarkdownBlock()
+    data class BulletList(val items: List<MarkdownListItem>) : MarkdownBlock()
+    data class NumberedList(val items: List<MarkdownListItem>) : MarkdownBlock()
     data class Checklist(val items: List<ChecklistItem>) : MarkdownBlock()
     data class BlockQuote(val text: String) : MarkdownBlock()
     object HorizontalRule : MarkdownBlock()
@@ -402,27 +403,63 @@ private fun MarkdownCodeBlock(codeBlock: MarkdownBlock.CodeBlock) {
     }
 }
 
+fun formatLatexMath(raw: String): String {
+    var s = raw
+    val greek = mapOf(
+        "\\alpha" to "α", "\\beta" to "β", "\\gamma" to "γ", "\\delta" to "δ",
+        "\\epsilon" to "ε", "\\zeta" to "ζ", "\\eta" to "η", "\\theta" to "θ",
+        "\\iota" to "ι", "\\kappa" to "κ", "\\lambda" to "λ", "\\mu" to "μ",
+        "\\nu" to "ν", "\\xi" to "ξ", "\\pi" to "π", "\\rho" to "ρ",
+        "\\sigma" to "σ", "\\tau" to "τ", "\\upsilon" to "υ", "\\phi" to "φ",
+        "\\chi" to "χ", "\\psi" to "ψ", "\\omega" to "ω",
+        "\\Gamma" to "Γ", "\\Delta" to "Δ", "\\Theta" to "Θ", "\\Lambda" to "Λ",
+        "\\Sigma" to "Σ", "\\Phi" to "Φ", "\\Psi" to "Ψ", "\\Omega" to "Ω"
+    )
+    greek.forEach { (k, v) -> s = s.replace(k, v) }
+    val symbols = mapOf(
+        "\\times" to "×", "\\div" to "÷", "\\pm" to "±", "\\mp" to "∓",
+        "\\leq" to "≤", "\\geq" to "≥", "\\neq" to "≠", "\\approx" to "≈",
+        "\\equiv" to "≡", "\\infty" to "∞", "\\int" to "∫", "\\sum" to "∑",
+        "\\prod" to "∏", "\\sqrt" to "√", "\\rightarrow" to "→", "\\leftarrow" to "←",
+        "\\leftrightarrow" to "↔", "\\Rightarrow" to "⇒", "\\Leftarrow" to "⇐",
+        "\\partial" to "∂", "\\nabla" to "∇", "\\in" to "∈", "\\notin" to "∉",
+        "\\subset" to "⊂", "\\subseteq" to "⊆", "\\cap" to "∩", "\\cup" to "∪",
+        "\\emptyset" to "∅", "\\forall" to "∀", "\\exists" to "∃", "\\cdot" to "·",
+        "\\degree" to "°"
+    )
+    symbols.forEach { (k, v) -> s = s.replace(k, v) }
+    s = Regex("\\\\frac\\{([^}]+)\\}\\{([^}]+)\\}").replace(s) { m -> "(${m.groupValues[1]} / ${m.groupValues[2]})" }
+    s = Regex("\\\\sqrt\\{([^}]+)\\}").replace(s) { m -> "√(${m.groupValues[1]})" }
+    val supers = mapOf('0' to '⁰', '1' to '¹', '2' to '²', '3' to '³', '4' to '⁴', '5' to '⁵', '6' to '⁶', '7' to '⁷', '8' to '⁸', '9' to '⁹', '+' to '⁺', '-' to '⁻', '=' to '⁼', '(' to '⁽', ')' to '⁾', 'n' to 'ⁿ', 'x' to 'ˣ', 't' to 'ᵗ', 'y' to 'ʸ')
+    s = Regex("\\^([0-9+\\-()nxty])").replace(s) { m -> supers[m.groupValues[1][0]]?.toString() ?: m.value }
+    val subs = mapOf('0' to '₀', '1' to '₁', '2' to '₂', '3' to '₃', '4' to '₄', '5' to '₅', '6' to '₆', '7' to '₇', '8' to '₈', '9' to '₉', '+' to '₊', '-' to '₋', '=' to '₌', '(' to '₍', ')' to '₎', 'i' to 'ᵢ', 'j' to 'ⱼ', 'k' to 'ₖ', 'n' to 'ₙ', 'x' to 'ₓ', 'y' to 'ᵧ')
+    s = Regex("_([0-9+\\-()ijknxy])").replace(s) { m -> subs[m.groupValues[1][0]]?.toString() ?: m.value }
+    return s
+}
+
 @Composable
 private fun MarkdownEquation(equation: MarkdownBlock.EquationBlock) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
+    val formatted = remember(equation.equation) { formatLatexMath(equation.equation) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shapes.surface)
             .background(colors.surface)
-            .border(1.dp, colors.accent.copy(alpha = 0.3f), shapes.surface)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .border(1.dp, colors.accent.copy(alpha = 0.35f), shapes.surface)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(
-            text = equation.equation,
+            text = formatted,
             style = typography.bodyMedium.copy(
                 fontFamily = FontFamily.Monospace,
                 fontStyle = FontStyle.Italic,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.8.sp,
+                fontSize = 15.sp
             ),
             color = colors.primaryText
         )
@@ -439,22 +476,28 @@ private fun MarkdownBulletList(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         list.items.forEach { item ->
+            val bullet = when (item.level % 3) {
+                0 -> "•"
+                1 -> "◦"
+                else -> "▪"
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp),
+                    .padding(start = (item.level * 16).dp, top = 2.dp, bottom = 2.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = "•",
+                    text = bullet,
                     style = typography.bodyMedium,
                     color = colors.accent,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = formatInlineMarkdown(item, onWikiLinkClick),
-                    style = typography.body,
-                    color = colors.primaryText
+                    text = formatInlineMarkdown(item.text, onWikiLinkClick),
+                    style = typography.body.copy(lineHeight = 22.sp),
+                    color = colors.primaryText,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -474,7 +517,7 @@ private fun MarkdownNumberedList(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp),
+                    .padding(start = (item.level * 16).dp, top = 2.dp, bottom = 2.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
@@ -484,9 +527,10 @@ private fun MarkdownNumberedList(
                     modifier = Modifier.padding(end = 8.dp, top = 2.dp)
                 )
                 Text(
-                    text = formatInlineMarkdown(item, onWikiLinkClick),
-                    style = typography.body,
-                    color = colors.primaryText
+                    text = formatInlineMarkdown(item.text, onWikiLinkClick),
+                    style = typography.body.copy(lineHeight = 22.sp),
+                    color = colors.primaryText,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -664,14 +708,16 @@ private fun formatInlineMarkdown(
                     val endIdx = text.indexOf("$", cursor + 1)
                     if (endIdx != -1 && endIdx > cursor + 1) {
                         val formulaText = text.substring(cursor + 1, endIdx)
+                        val formatted = formatLatexMath(formulaText)
                         pushStyle(
                             SpanStyle(
                                 fontFamily = FontFamily.Monospace,
                                 fontStyle = FontStyle.Italic,
-                                color = colors.accent
+                                color = colors.accent,
+                                fontWeight = FontWeight.Medium
                             )
                         )
-                        append(formulaText)
+                        append(" $formatted ")
                         pop()
                         cursor = endIdx + 1
                     } else {
@@ -919,12 +965,15 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
 
             // Bullet list
             trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
-                val listItems = mutableListOf<String>()
+                val listItems = mutableListOf<MarkdownListItem>()
                 while (idx < lines.size) {
-                    val itemLine = lines[idx].trim()
+                    val rawLine = lines[idx]
+                    val itemLine = rawLine.trim()
                     if (itemLine.matches(Regex("^[*-]\\s+\\[[ xX]\\].*"))) break
                     if (itemLine.startsWith("- ") || itemLine.startsWith("* ")) {
-                        listItems.add(itemLine.substring(2).trim())
+                        val indent = rawLine.takeWhile { it == ' ' || it == '\t' }.length
+                        val level = (indent / 2).coerceIn(0, 4)
+                        listItems.add(MarkdownListItem(itemLine.substring(2).trim(), level))
                         idx++
                     } else {
                         break
@@ -935,12 +984,15 @@ private fun parseMarkdown(rawContent: String): List<MarkdownBlock> {
 
             // Numbered list
             trimmed.matches(Regex("^\\d+\\.\\s+.*")) -> {
-                val listItems = mutableListOf<String>()
+                val listItems = mutableListOf<MarkdownListItem>()
                 while (idx < lines.size) {
-                    val itemLine = lines[idx].trim()
+                    val rawLine = lines[idx]
+                    val itemLine = rawLine.trim()
                     val match = Regex("^\\d+\\.\\s+(.*)").find(itemLine)
                     if (match != null) {
-                        listItems.add(match.groupValues[1])
+                        val indent = rawLine.takeWhile { it == ' ' || it == '\t' }.length
+                        val level = (indent / 2).coerceIn(0, 4)
+                        listItems.add(MarkdownListItem(match.groupValues[1], level))
                         idx++
                     } else {
                         break

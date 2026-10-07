@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CalendarToday
@@ -97,6 +98,7 @@ fun ExamListScreen(
     viewModel: ExamViewModel,
     onBack: () -> Unit,
     onOpenExamDetail: (examId: String) -> Unit,
+    onOpenQuestionBank: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -191,6 +193,19 @@ fun ExamListScreen(
                             )
                         }
 
+                        // Question Bank & Paper Generator Button
+                        StudyOSIconButton(
+                            onClick = onOpenQuestionBank,
+                            contentDescription = "Question Bank & Papers"
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
                         // 3-Dot Overflow Menu
                         Box {
                             StudyOSIconButton(
@@ -210,6 +225,16 @@ fun ExamListScreen(
                                 onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier.background(colors.surface)
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Question Bank & Papers", style = typography.body, color = colors.primaryText) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onOpenQuestionBank()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.AutoMirrored.Outlined.MenuBook, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("+ Add Major Exam", style = typography.body, color = colors.primaryText) },
                                     onClick = {

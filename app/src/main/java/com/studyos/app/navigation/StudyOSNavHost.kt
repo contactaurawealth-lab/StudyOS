@@ -117,6 +117,8 @@ import com.studyos.app.features.practice.viewmodel.NoteEditorViewModel
 import com.studyos.app.features.practice.viewmodel.QuizRunnerViewModel
 import com.studyos.app.features.exams.ui.ExamDetailScreen
 import com.studyos.app.features.exams.ui.ExamListScreen
+import com.studyos.app.features.exams.ui.QuestionBankScreen
+import com.studyos.app.features.exams.ui.QuestionPaperViewerScreen
 import com.studyos.app.features.exams.viewmodel.ExamViewModel
 import com.studyos.app.features.practice.ui.RevisionDashboardScreen
 import com.studyos.app.features.practice.ui.ActiveRecallRunnerScreen
@@ -978,6 +980,9 @@ private fun StudyOSNavGraph(
                 onBack = { navController.popBackStack() },
                 onOpenExamDetail = { examId ->
                     navController.navigate(Screen.ExamDetail.createRoute(examId))
+                },
+                onOpenQuestionBank = {
+                    navController.navigate(Screen.QuestionBank.route)
                 }
             )
         }
@@ -997,6 +1002,38 @@ private fun StudyOSNavGraph(
                 onBack = { navController.popBackStack() },
                 onOpenChapterPractice = { chapterId ->
                     navController.navigate(Screen.ChapterPractice.createRoute(chapterId))
+                },
+                onOpenQuestionPaper = { paperId ->
+                    navController.navigate(Screen.QuestionPaperViewer.createRoute(paperId))
+                }
+            )
+        }
+
+        composable(Screen.QuestionBank.route) {
+            QuestionBankScreen(
+                database = container.database,
+                onBack = { navController.popBackStack() },
+                onOpenPaper = { paperId ->
+                    navController.navigate(Screen.QuestionPaperViewer.createRoute(paperId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.QuestionPaperViewer.route,
+            arguments = listOf(
+                navArgument("paperId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val paperId = backStackEntry.arguments?.getString("paperId") ?: ""
+            QuestionPaperViewerScreen(
+                paperId = paperId,
+                database = container.database,
+                onBack = { navController.popBackStack() },
+                onOpenExams = {
+                    navController.navigate(Screen.Exams.route) {
+                        popUpTo(Screen.Exams.route) { inclusive = false }
+                    }
                 }
             )
         }

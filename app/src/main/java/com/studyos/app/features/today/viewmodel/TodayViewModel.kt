@@ -51,6 +51,7 @@ data class TodayUiState(
     val subjects: List<Subject> = emptyList(),
     val dueFlashcardsCount: Int = 0,
     val upcomingExam: Exam? = null,
+    val pendingExamsToScore: List<Exam> = emptyList(),
     val overallReadiness: OverallReadiness? = null,
     val selectedTimeBudgetMinutes: Int = 30,
     val dailyAiPlan: DailyAiPlan? = null,
@@ -165,7 +166,13 @@ class TodayViewModel(
                 useCase().collect { exams ->
                     val now = System.currentTimeMillis()
                     val nextExam = exams.filter { it.targetDate >= now }.minByOrNull { it.targetDate }
-                    _uiState.update { it.copy(upcomingExam = nextExam) }
+                    val pendingToScore = exams.filter { it.actualScore == null }.sortedByDescending { it.createdAt }
+                    _uiState.update {
+                        it.copy(
+                            upcomingExam = nextExam,
+                            pendingExamsToScore = pendingToScore
+                        )
+                    }
                     refreshExamReadiness()
                 }
             }
@@ -295,6 +302,25 @@ class TodayViewModel(
 
     fun clearInfoMessage() {
         _uiState.update { it.copy(infoMessage = null) }
+    }
+
+    fun saveExamMarks(examId: String, marks: Int) {
+        val db = database ?: return
+        viewModelScope.launch {
+            db.examDao().updateExamScore(
+                id = examId,
+                actualScore = marks,
+                isCompleted = true,
+                updatedAt = System.currentTimeMillis()
+            )
+            _uiState.update { current ->
+                val remaining = current.pendingExamsToScore.filter { it.id != examId }
+                current.copy(
+                    pendingExamsToScore = remaining,
+                    infoMessage = "Marks recorded: $marks! Saved directly to Exams."
+                )
+            }
+        }
     }
 
     fun exportAndResetApp(

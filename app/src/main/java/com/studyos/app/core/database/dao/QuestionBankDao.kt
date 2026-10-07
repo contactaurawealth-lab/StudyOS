@@ -47,5 +47,11 @@ interface QuestionBankDao {
 
     @Query("SELECT * FROM question_bank ORDER BY createdAt DESC")
     suspend fun getAllQuestionsOnce(): List<QuestionBankEntity>
+
+    @Query("SELECT * FROM question_bank WHERE subjectId = :subjectId ORDER BY createdAt DESC")
+    suspend fun getQuestionsForSubjectOnce(subjectId: String): List<QuestionBankEntity>
+
+    @Query("SELECT * FROM question_bank WHERE chapterId = :chapterId ORDER BY createdAt DESC")
+    suspend fun getQuestionsForChapterOnce(chapterId: String): List<QuestionBankEntity>
 }
 

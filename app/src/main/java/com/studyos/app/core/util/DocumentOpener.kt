@@ -183,6 +183,10 @@ object DocumentOpener {
      * Opens a PDF in an external application (Google Drive PDF Viewer, Adobe Acrobat, Samsung Notes, etc.)
      * primarily as application/pdf with ClipData and URI read grants.
      */
+    fun openPdfInExternalApp(context: Context, file: File, title: String? = null): Boolean {
+        return openPdfInExternalApp(context, file.absolutePath, title)
+    }
+
     fun openPdfInExternalApp(context: Context, uriOrPath: String, title: String? = null): Boolean {
         return try {
             val shareable = getShareableContentUri(context, uriOrPath)

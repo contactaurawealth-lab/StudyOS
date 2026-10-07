@@ -110,6 +110,12 @@ sealed class Screen(val route: String) {
         fun createRoute(examId: String) = "exams/$examId"
     }
 
+    object QuestionBank : Screen("question_bank")
+
+    object QuestionPaperViewer : Screen("question_paper/{paperId}") {
+        fun createRoute(paperId: String) = "question_paper/$paperId"
+    }
+
     // Phase 11: Revision & Active Recall
     object RevisionDashboard : Screen("revision")
 

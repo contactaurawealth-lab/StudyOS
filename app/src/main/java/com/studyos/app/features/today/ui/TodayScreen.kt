@@ -57,7 +57,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.studyos.app.core.ui.component.StudyOSTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -345,6 +347,97 @@ fun TodayScreen(
                                     onOpenAi = onOpenAi
                                 )
                             } else {
+                                // Pinned Test Result Input Card (Direct Home Screen Marks Entry)
+                                if (uiState.pendingExamsToScore.isNotEmpty()) {
+                                    val pendingExam = uiState.pendingExamsToScore.first()
+                                    var marksInput by rememberSaveable(pendingExam.id) { mutableStateOf("") }
+
+                                    GlassCard(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        padding = 16.dp,
+                                        backgroundColor = colors.cardBackground
+                                    ) {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.School,
+                                                        contentDescription = null,
+                                                        tint = colors.accent,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "PENDING TEST RESULT",
+                                                        style = typography.caption.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 1.sp
+                                                        ),
+                                                        color = colors.accent
+                                                    )
+                                                }
+
+                                                if (uiState.pendingExamsToScore.size > 1) {
+                                                    Text(
+                                                        text = "+${uiState.pendingExamsToScore.size - 1} more",
+                                                        style = typography.caption,
+                                                        color = colors.secondaryText
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(8.dp))
+
+                                            Text(
+                                                text = pendingExam.name,
+                                                style = typography.sectionTitle,
+                                                color = colors.primaryText,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+
+                                            Spacer(modifier = Modifier.height(4.dp))
+
+                                            Text(
+                                                text = "Test created. Enter marks obtained below to record directly in your exams:",
+                                                style = typography.secondary,
+                                                color = colors.secondaryText
+                                            )
+
+                                            Spacer(modifier = Modifier.height(12.dp))
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                StudyOSTextField(
+                                                    value = marksInput,
+                                                    onValueChange = { marksInput = it },
+                                                    placeholder = "Enter marks obtained (e.g. 36)",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+
+                                                StudyOSButton(
+                                                    text = "Save Marks",
+                                                    onClick = {
+                                                        val score = marksInput.trim().toIntOrNull()
+                                                        if (score != null) {
+                                                            viewModel.saveExamMarks(pendingExam.id, score)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(14.dp))
+                                }
+
                                 // 1. Actionable Exam Readiness Alert (if upcoming exam exists or readiness calculated)
                                 if (uiState.upcomingExam != null || uiState.overallReadiness?.upcomingExamDaysLeft != null) {
                                     val now = System.currentTimeMillis()

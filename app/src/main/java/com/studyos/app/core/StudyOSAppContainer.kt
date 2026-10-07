@@ -157,6 +157,14 @@ class StudyOSAppContainer(private val context: Context) {
         com.studyos.app.core.csv.UniversalCsvProcessor(database)
     }
 
+    val questionPaperGenerator: com.studyos.app.core.paper.QuestionPaperGenerator by lazy {
+        com.studyos.app.core.paper.QuestionPaperGenerator(database)
+    }
+
+    val pdfQuestionPaperGenerator: com.studyos.app.core.paper.PdfQuestionPaperGenerator by lazy {
+        com.studyos.app.core.paper.PdfQuestionPaperGenerator()
+    }
+
     val studyTimerViewModel: com.studyos.app.features.timer.viewmodel.StudyTimerViewModel by lazy {
         com.studyos.app.features.timer.viewmodel.StudyTimerViewModel(
             context = context.applicationContext,
