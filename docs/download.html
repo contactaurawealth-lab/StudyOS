@@ -133,8 +133,8 @@
             Verified SHA-256 Checksum
           </div>
           <div class="checksum-box">
-            <span style="user-select:all;">bbf2a12baaee25dc8c7dbbcf28d2b64566112159598544e8e46a57dc6ae4842b</span>
-            <button class="copy-btn" data-copy-text="bbf2a12baaee25dc8c7dbbcf28d2b64566112159598544e8e46a57dc6ae4842b">
+            <span style="user-select:all;">0bed106e9ad075d8be74f0c27bbd085d442d7ca011acfb2fd096fa5668f9cb3d</span>
+            <button class="copy-btn" data-copy-text="0bed106e9ad075d8be74f0c27bbd085d442d7ca011acfb2fd096fa5668f9cb3d">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <span>Copy SHA-256</span>
             </button>
@@ -145,11 +145,11 @@
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px; max-width:700px; margin:0 auto; text-align:left;">
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Status</div>
-            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">Stable Build</div>
+            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">Stable Build (v1.6.0)</div>
           </div>
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Package Size</div>
-            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--text-primary);">12.9 MB</div>
+            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--text-primary);">20.8 MB</div>
           </div>
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Min Android</div>
@@ -223,10 +223,28 @@
       <div class="spotlight-card reveal" style="margin-bottom:24px; border-color:var(--border-accent);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <div>
-            <h3 style="font-size:1.4rem;">Calm Serenity &amp; Knowledge Graph Release (v1.4.0)</h3>
+            <h3 style="font-size:1.4rem;">Objective Questions CSV Engine &amp; Quiz Overhaul (v1.6.0)</h3>
             <div style="font-size:0.85rem; color:var(--text-muted);">Current Stable Production Build</div>
           </div>
           <span class="announcement-badge">Latest</span>
+        </div>
+
+        <ul class="timer-checklist" style="gap:10px;">
+          <li><strong>Universal CSV Objective Questions Import:</strong> Dedicated engine to import MCQs (Multiple Choice Questions with A/B/C/D option tiles), Fill in the Blanks (FIB with interactive sentence preview), and True/False questions directly from CSV with auto-repair and dual Room persistence (<code>question_bank</code> + <code>flashcards</code>).</li>
+          <li><strong>Interactive Quiz Runner Overhaul:</strong> Sleek letter pills <code>(A)</code>-<code>(D)</code> with accent glow, tactile dual <code>[✓ True]</code> / <code>[✗ False]</code> tiles, and dynamic real-time typing into sentence blanks.</li>
+          <li><strong>Smart Fuzzy Answer Verification:</strong> Natural answer grading ignoring leading articles, punctuation differences, and supporting slash-separated synonyms.</li>
+          <li><strong>Question Bank Card &amp; UI Polish:</strong> Segmented Objective / Standard format toggle, 1-tap CSV template sharing, difficulty badges, and clean multi-line PDF exam paper rendering.</li>
+          <li><strong>Robust Test Suite:</strong> 129 comprehensive unit tests verifying zero regressions across CSV, quiz engines, Room queries, and view models.</li>
+        </ul>
+      </div>
+
+      <div class="spotlight-card reveal" style="margin-bottom:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <h3 style="font-size:1.4rem;">Calm Serenity &amp; Knowledge Graph Release (v1.4.0)</h3>
+            <div style="font-size:0.85rem; color:var(--text-muted);">Stable Production Build</div>
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-muted);">v1.4.0</span>
         </div>
 
         <ul class="timer-checklist" style="gap:10px;">
@@ -241,6 +259,7 @@
           <li><strong>Hardware Keyboard Shortcuts:</strong> Full tablet and Chromebook support (<code>Ctrl+N</code>, <code>Ctrl+Space</code>, <code>Space</code>, and Arrow keys).</li>
           <li><strong>Minimalist "Coffee Time" Aesthetic:</strong> Soft, serene colors (Obsidian `#101216`, Amber Latte `#D4A373`, Soft Chamomile `#EAD9B8`, Muted Sage `#CCD5AE`).</li>
         </ul>
+      </div>
       </div>
 
       <div class="spotlight-card reveal" style="margin-bottom:24px;">

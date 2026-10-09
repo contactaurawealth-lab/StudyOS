@@ -133,7 +133,7 @@ enum class QuizDifficulty {
 }
 
 enum class QuestionType {
-    MCQ, TRUE_FALSE, SHORT_ANSWER
+    MCQ, TRUE_FALSE, SHORT_ANSWER, FIB
 }
 
 data class Quiz(

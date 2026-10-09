@@ -34,10 +34,12 @@ object QuestionBankQuizEngine {
         val rawScheme = (markingScheme ?: "").trim()
 
         // 1. Check for True / False
-        if (rawScheme.equals("true", ignoreCase = true) || rawScheme.equals("false", ignoreCase = true) ||
+        if (questionTypeHint?.equals("TRUE_FALSE", ignoreCase = true) == true ||
+            rawScheme.equals("true", ignoreCase = true) || rawScheme.equals("false", ignoreCase = true) ||
+            rawScheme.startsWith("true •", ignoreCase = true) || rawScheme.startsWith("false •", ignoreCase = true) ||
             rawText.contains("True or False", ignoreCase = true) || rawText.contains("True/False", ignoreCase = true)
         ) {
-            val resolvedCorrect = if (rawScheme.equals("false", ignoreCase = true)) "False" else "True"
+            val resolvedCorrect = if (rawScheme.startsWith("false", ignoreCase = true)) "False" else "True"
             return ParsedQuestionContent(
                 questionStem = rawText,
                 options = listOf("True", "False"),
@@ -56,6 +58,19 @@ object QuestionBankQuizEngine {
         val inlineResult = parseInlineOptions(rawText, rawScheme)
         if (inlineResult != null && inlineResult.options.size >= 2) {
             return inlineResult
+        }
+
+        // 4. Check for Fill in the Blanks (FIB)
+        val isFib = questionTypeHint?.equals("FIB", ignoreCase = true) == true ||
+            rawText.contains("____") || rawText.contains("[blank]", ignoreCase = true)
+        if (isFib) {
+            val resolvedScheme = rawScheme.substringBefore(" •").substringBefore(" -").trim().ifBlank { rawScheme }
+            return ParsedQuestionContent(
+                questionStem = rawText,
+                options = emptyList(),
+                type = QuestionType.FIB,
+                correctAnswer = if (resolvedScheme.isNotBlank()) resolvedScheme else "Answer"
+            )
         }
 
         // 4. If tagged as MCQ but no options found in text, generate distractors from sibling pool

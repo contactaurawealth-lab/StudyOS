@@ -2,6 +2,8 @@ package com.studyos.app.domain.model
 
 enum class ExamQuestionType {
     MCQ,
+    FIB,
+    TRUE_FALSE,
     SHORT_ANSWER,
     LONG_ANSWER,
     NUMERICAL

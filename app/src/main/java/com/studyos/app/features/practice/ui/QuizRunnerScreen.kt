@@ -438,9 +438,14 @@ fun QuizRunnerScreen(
                 ) {
                     when (question.type) {
                         QuestionType.MCQ -> {
-                            question.options.forEach { option ->
-                                val isSelected = currentAnswer == option
-                                OptionItemRow(
+                            val optionLetters = listOf("A", "B", "C", "D", "E", "F")
+                            question.options.forEachIndexed { optIndex, option ->
+                                val letter = optionLetters.getOrElse(optIndex) { "${optIndex + 1}" }
+                                val isSelected = currentAnswer == option ||
+                                    currentAnswer.equals("Option $letter", ignoreCase = true) ||
+                                    currentAnswer.equals(letter, ignoreCase = true)
+                                McqOptionTile(
+                                    letter = letter,
                                     text = option,
                                     isSelected = isSelected,
                                     onClick = { viewModel.selectAnswer(question.id, option) }
@@ -448,14 +453,17 @@ fun QuizRunnerScreen(
                             }
                         }
                         QuestionType.TRUE_FALSE -> {
-                            listOf("True", "False").forEach { option ->
-                                val isSelected = currentAnswer.equals(option, ignoreCase = true)
-                                OptionItemRow(
-                                    text = option,
-                                    isSelected = isSelected,
-                                    onClick = { viewModel.selectAnswer(question.id, option) }
-                                )
-                            }
+                            TrueFalseOptionRow(
+                                currentAnswer = currentAnswer,
+                                onSelect = { viewModel.selectAnswer(question.id, it) }
+                            )
+                        }
+                        QuestionType.FIB -> {
+                            FibQuestionView(
+                                questionStem = question.question,
+                                currentAnswer = currentAnswer,
+                                onAnswerChange = { viewModel.selectAnswer(question.id, it) }
+                            )
                         }
                         QuestionType.SHORT_ANSWER -> {
                             StudyOSTextField(
@@ -972,6 +980,298 @@ private fun PreSubmissionReviewDialog(
         containerColor = colors.background,
         shape = shapes.card
     )
+}
+
+@Composable
+private fun McqOptionTile(
+    letter: String,
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.button)
+            .background(if (isSelected) colors.cardBackground else colors.surface)
+            .border(
+                1.5.dp,
+                if (isSelected) colors.accent else colors.border,
+                shapes.button
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isSelected) colors.accent else colors.surface)
+                    .border(
+                        1.dp,
+                        if (isSelected) colors.accent else colors.border,
+                        RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = letter,
+                    style = typography.caption,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color(0xFF101216) else colors.primaryText
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Text(
+                text = text,
+                style = typography.body,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = colors.primaryText,
+                modifier = Modifier.weight(1f)
+            )
+
+            if (isSelected) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(colors.accent.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrueFalseOptionRow(
+    currentAnswer: String,
+    onSelect: (String) -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val isTrueSelected = currentAnswer.equals("True", ignoreCase = true)
+    val isFalseSelected = currentAnswer.equals("False", ignoreCase = true)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clip(shapes.button)
+                .background(if (isTrueSelected) Color(0xFF2E7D32).copy(alpha = 0.18f) else colors.surface)
+                .border(
+                    1.5.dp,
+                    if (isTrueSelected) Color(0xFF4CAF50) else colors.border,
+                    shapes.button
+                )
+                .clickable { onSelect("True") }
+                .padding(vertical = 18.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Check,
+                    contentDescription = null,
+                    tint = if (isTrueSelected) Color(0xFF4CAF50) else colors.secondaryText,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "True",
+                    style = typography.sectionTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isTrueSelected) Color(0xFF81C784) else colors.primaryText
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clip(shapes.button)
+                .background(if (isFalseSelected) Color(0xFFC62828).copy(alpha = 0.18f) else colors.surface)
+                .border(
+                    1.5.dp,
+                    if (isFalseSelected) Color(0xFFE57373) else colors.border,
+                    shapes.button
+                )
+                .clickable { onSelect("False") }
+                .padding(vertical = 18.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = null,
+                    tint = if (isFalseSelected) Color(0xFFE57373) else colors.secondaryText,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "False",
+                    style = typography.sectionTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isFalseSelected) Color(0xFFE57373) else colors.primaryText
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FibQuestionView(
+    questionStem: String,
+    currentAnswer: String,
+    onAnswerChange: (String) -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val blankRegex = Regex("""_{2,}|\[blank\]""", RegexOption.IGNORE_CASE)
+    val hasBlankPlaceholder = blankRegex.containsMatchIn(questionStem)
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shapes.card)
+                .background(colors.surface)
+                .border(1.dp, colors.border, shapes.card)
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(
+                    text = "SENTENCE PREVIEW",
+                    style = typography.caption.copy(fontSize = 10.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = colors.secondaryText
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (hasBlankPlaceholder) {
+                    val parts = blankRegex.split(questionStem)
+                    val before = parts.getOrNull(0) ?: ""
+                    val after = if (parts.size > 1) parts.drop(1).joinToString("") else ""
+
+                    Column {
+                        if (before.isNotBlank()) {
+                            Text(
+                                text = before,
+                                style = typography.body,
+                                color = colors.primaryText
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (currentAnswer.isNotBlank()) colors.accent.copy(alpha = 0.18f)
+                                    else colors.surface
+                                )
+                                .border(
+                                    1.dp,
+                                    if (currentAnswer.isNotBlank()) colors.accent else colors.border,
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (currentAnswer.isNotBlank()) currentAnswer else "[ Missing Word / Phrase ]",
+                                style = typography.body,
+                                fontWeight = FontWeight.Bold,
+                                color = if (currentAnswer.isNotBlank()) colors.accent else colors.mutedText
+                            )
+                        }
+
+                        if (after.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = after,
+                                style = typography.body,
+                                color = colors.primaryText
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = questionStem,
+                            style = typography.body,
+                            color = colors.primaryText
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (currentAnswer.isNotBlank()) colors.accent.copy(alpha = 0.18f)
+                                    else colors.surface
+                                )
+                                .border(
+                                    1.dp,
+                                    if (currentAnswer.isNotBlank()) colors.accent else colors.border,
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (currentAnswer.isNotBlank()) currentAnswer else "[ Missing Word ]",
+                                style = typography.body,
+                                fontWeight = FontWeight.Bold,
+                                color = if (currentAnswer.isNotBlank()) colors.accent else colors.mutedText
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        StudyOSTextField(
+            value = currentAnswer,
+            onValueChange = onAnswerChange,
+            label = "Fill in the Blank",
+            placeholder = "Type your answer here...",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Text(
+            text = "💡 Your answer fills the sentence preview above in real time.",
+            style = typography.caption.copy(fontSize = 11.sp),
+            color = colors.secondaryText
+        )
+    }
 }
 
 @Composable

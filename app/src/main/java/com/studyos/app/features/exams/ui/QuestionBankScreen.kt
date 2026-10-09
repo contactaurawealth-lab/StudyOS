@@ -60,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -419,50 +420,7 @@ fun QuestionBankScreen(
                         }
                     } else {
                         items(filteredQuestions) { q ->
-                            GlassCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                padding = 12.dp
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.Top
-                                    ) {
-                                        Text(
-                                            text = q.questionText,
-                                            style = typography.body,
-                                            color = colors.primaryText,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(shapes.button)
-                                                .background(colors.accent.copy(alpha = 0.12f))
-                                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(
-                                                text = "${q.marks}M",
-                                                style = typography.caption,
-                                                fontWeight = FontWeight.Bold,
-                                                color = colors.accent
-                                            )
-                                        }
-                                    }
-
-                                    if (!q.markingScheme.isNullOrBlank()) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = "Scheme: ${q.markingScheme}",
-                                            style = typography.caption,
-                                            color = colors.secondaryText,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-                            }
+                            QuestionBankCardItem(q = q)
                         }
                     }
                 }
@@ -498,6 +456,173 @@ fun QuestionBankScreen(
 }
 
 @Composable
+private fun QuestionBankCardItem(q: QuestionBankEntity) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val parsed = remember(q) {
+        com.studyos.app.core.quiz.QuestionBankQuizEngine.parseQuestionContent(
+            q.questionText,
+            q.markingScheme,
+            q.questionType
+        )
+    }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        padding = 14.dp
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Badges Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Type Badge
+                    val (typeLabel, typeBg, typeColor) = when (q.questionType) {
+                        "MCQ" -> Triple("MCQ", colors.accent.copy(alpha = 0.15f), colors.accent)
+                        "FIB" -> Triple("FIB", Color(0xFF6B9080).copy(alpha = 0.18f), Color(0xFF81C784))
+                        "TRUE_FALSE" -> Triple("TRUE / FALSE", Color(0xFF8E9AAF).copy(alpha = 0.18f), Color(0xFFA5B4FC))
+                        "LONG_ANSWER" -> Triple("LONG", colors.cardBackground, colors.secondaryText)
+                        else -> Triple("SHORT", colors.cardBackground, colors.secondaryText)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(shapes.button)
+                            .background(typeBg)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = typeLabel,
+                            style = typography.caption.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = typeColor
+                        )
+                    }
+
+                    // Difficulty Badge
+                    Box(
+                        modifier = Modifier
+                            .clip(shapes.button)
+                            .background(colors.surface)
+                            .border(0.5.dp, colors.border, shapes.button)
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = q.difficulty,
+                            style = typography.caption.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Medium,
+                            color = colors.secondaryText
+                        )
+                    }
+                }
+
+                // Marks Badge
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.button)
+                        .background(colors.accent.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "${q.marks} Mark${if (q.marks > 1) "s" else ""}",
+                        style = typography.caption,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.accent
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Question Stem
+            Text(
+                text = parsed.questionStem,
+                style = typography.body,
+                fontWeight = FontWeight.Medium,
+                color = colors.primaryText
+            )
+
+            // MCQ Options Display
+            if (parsed.options.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val optLetters = listOf("A", "B", "C", "D", "E", "F")
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    parsed.options.forEachIndexed { idx, opt ->
+                        val letter = optLetters.getOrElse(idx) { "${idx + 1}" }
+                        val isCorrectOpt = opt.equals(parsed.correctAnswer, ignoreCase = true)
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(shapes.button)
+                                .background(if (isCorrectOpt) colors.accent.copy(alpha = 0.12f) else colors.surface)
+                                .border(0.5.dp, if (isCorrectOpt) colors.accent.copy(alpha = 0.5f) else colors.border, shapes.button)
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "($letter)",
+                                style = typography.caption,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isCorrectOpt) colors.accent else colors.secondaryText
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = opt,
+                                style = typography.caption,
+                                color = if (isCorrectOpt) colors.primaryText else colors.secondaryText,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isCorrectOpt) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Check,
+                                    contentDescription = "Correct Choice",
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Marking Scheme / Solution
+            if (!q.markingScheme.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shapes.button)
+                        .background(colors.cardBackground.copy(alpha = 0.5f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "💡 Key: ${q.markingScheme}",
+                        style = typography.caption,
+                        color = colors.secondaryText,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+enum class QuestionImportMode {
+    OBJECTIVE,
+    STANDARD
+}
+
+@Composable
 fun CsvQuestionImportDialog(
     database: StudyOSDatabase,
     onDismiss: () -> Unit,
@@ -510,6 +635,7 @@ fun CsvQuestionImportDialog(
     val shapes = StudyOSTheme.shapes
 
     val processor = remember { UniversalCsvProcessor(database) }
+    var importMode by remember { mutableStateOf(QuestionImportMode.OBJECTIVE) }
     var csvText by remember { mutableStateOf("") }
     var selectedTarget by remember { mutableStateOf(QuestionImportTarget.BOTH) }
     var isImporting by remember { mutableStateOf(false) }
@@ -541,8 +667,58 @@ fun CsvQuestionImportDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
+                // Format Mode Selector
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shapes.button)
+                        .background(colors.cardBackground)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(shapes.button)
+                            .background(if (importMode == QuestionImportMode.OBJECTIVE) colors.accent else Color.Transparent)
+                            .clickable { importMode = QuestionImportMode.OBJECTIVE; errorMsg = null }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Objective (MCQs, FIB)",
+                            style = typography.caption,
+                            fontWeight = FontWeight.Bold,
+                            color = if (importMode == QuestionImportMode.OBJECTIVE) Color(0xFF101216) else colors.secondaryText
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(shapes.button)
+                            .background(if (importMode == QuestionImportMode.STANDARD) colors.accent else Color.Transparent)
+                            .clickable { importMode = QuestionImportMode.STANDARD; errorMsg = null }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Standard Bank",
+                            style = typography.caption,
+                            fontWeight = FontWeight.Bold,
+                            color = if (importMode == QuestionImportMode.STANDARD) Color(0xFF101216) else colors.secondaryText
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
                 Text(
-                    text = "Import questions into chapters for your question bank & flashcard decks.",
+                    text = if (importMode == QuestionImportMode.OBJECTIVE) {
+                        "Import MCQs with options (A-D), Fill in the Blanks, and True/False questions."
+                    } else {
+                        "Import conceptual theory, short answers, and long numerical questions."
+                    },
                     style = typography.caption,
                     color = colors.secondaryText
                 )
@@ -557,9 +733,13 @@ fun CsvQuestionImportDialog(
                     StudyOSOutlinedButton(
                         text = "📋 Copy Template",
                         onClick = {
-                            val template = processor.getQuestionBankCsvTemplate()
+                            val template = if (importMode == QuestionImportMode.OBJECTIVE) {
+                                processor.getObjectiveQuestionsCsvTemplate()
+                            } else {
+                                processor.getQuestionBankCsvTemplate()
+                            }
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Question Bank CSV Template", template))
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Question Bank Template", template))
                             Toast.makeText(context, "Template copied to clipboard!", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.weight(1f)
@@ -569,7 +749,11 @@ fun CsvQuestionImportDialog(
                         text = "📤 Share Template",
                         onClick = {
                             try {
-                                val templateFile = processor.exportQuestionBankTemplateFile(context)
+                                val templateFile = if (importMode == QuestionImportMode.OBJECTIVE) {
+                                    processor.exportObjectiveQuestionsTemplateFile(context)
+                                } else {
+                                    processor.exportQuestionBankTemplateFile(context)
+                                }
                                 val shareUri = FileProvider.getUriForFile(
                                     context,
                                     "${context.packageName}.fileprovider",
@@ -580,7 +764,7 @@ fun CsvQuestionImportDialog(
                                     putExtra(Intent.EXTRA_STREAM, shareUri)
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-                                context.startActivity(Intent.createChooser(sendIntent, "Share Question Bank Template"))
+                                context.startActivity(Intent.createChooser(sendIntent, "Share Question Template"))
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error sharing template: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
@@ -676,15 +860,23 @@ fun CsvQuestionImportDialog(
                         errorMsg = "Please enter or select CSV content"
                         return@StudyOSButton
                     }
-                    val validation = processor.parseAndValidateQuestions(csvText)
+                    val validation = if (importMode == QuestionImportMode.OBJECTIVE) {
+                        processor.parseAndValidateObjectiveQuestions(csvText)
+                    } else {
+                        processor.parseAndValidateQuestions(csvText)
+                    }
                     if (validation.errors.isNotEmpty()) {
-                        errorMsg = "Error: " + validation.errors.first().errorMessage
+                        errorMsg = "Error on row ${validation.errors.first().lineNumber}: " + validation.errors.first().errorMessage
                         return@StudyOSButton
                     }
 
                     isImporting = true
                     coroutineScope.launch {
-                        val result = processor.importQuestions(validation.parsedData, selectedTarget)
+                        val result = if (importMode == QuestionImportMode.OBJECTIVE) {
+                            processor.importObjectiveQuestions(validation.parsedData, selectedTarget)
+                        } else {
+                            processor.importQuestions(validation.parsedData, selectedTarget)
+                        }
                         isImporting = false
                         if (result.success) {
                             Toast.makeText(context, "Successfully imported ${result.importedCount} questions!", Toast.LENGTH_SHORT).show()

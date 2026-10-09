@@ -194,30 +194,55 @@ fun checkQuizAnswersMatch(studentAnswer: String, correctAnswer: String, options:
     if (s.isEmpty() || c.isEmpty()) return false
     if (s.equals(c, ignoreCase = true)) return true
 
+    fun cleanPunctuation(str: String): String {
+        return str.trim()
+            .removeSurrounding("\"", "\"")
+            .removeSurrounding("'", "'")
+            .removeSuffix(".")
+            .removeSuffix("!")
+            .removeSuffix("?")
+            .trim()
+    }
+
+    val sClean = cleanPunctuation(s)
+    val cClean = cleanPunctuation(c)
+    if (sClean.equals(cClean, ignoreCase = true)) return true
+
+    // Check multiple alternatives in correctAnswer separated by "/" or ";" or " or "
+    val alternatives = cClean.split("/", ";", " or ").map { cleanPunctuation(it) }.filter { it.isNotBlank() }
+    for (alt in alternatives) {
+        if (sClean.equals(alt, ignoreCase = true)) return true
+        val altNoArticle = alt.replace(Regex("""^(?i)(the|a|an)\s+"""), "").trim()
+        val sNoArticle = sClean.replace(Regex("""^(?i)(the|a|an)\s+"""), "").trim()
+        if (sNoArticle.equals(altNoArticle, ignoreCase = true) && sNoArticle.isNotBlank()) return true
+    }
+
     val optionLetters = listOf("A", "B", "C", "D", "E", "F")
-    val cleanC = c.removePrefix("Option ").removePrefix("option ").trim().removeSurrounding("(", ")").removeSuffix(")").removeSuffix(".").trim()
+    val cleanC = cClean.removePrefix("Option ").removePrefix("option ").trim().removeSurrounding("(", ")").removeSuffix(")").removeSuffix(".").trim()
     val letterIndex = optionLetters.indexOfFirst { it.equals(cleanC, ignoreCase = true) }
     if (letterIndex in options.indices) {
         val targetOption = options[letterIndex].trim()
-        if (s.equals(targetOption, ignoreCase = true)) return true
+        if (sClean.equals(targetOption, ignoreCase = true)) return true
+        if (sClean.equals(cleanPunctuation(targetOption), ignoreCase = true)) return true
     }
 
     for ((idx, letter) in optionLetters.withIndex()) {
         val prefixes = listOf("$letter)", "$letter.", "$letter -", "$letter: ")
         for (prefix in prefixes) {
-            if (c.startsWith(prefix, ignoreCase = true)) {
-                val textAfterPrefix = c.removePrefix(prefix).trim()
-                if (s.equals(textAfterPrefix, ignoreCase = true)) return true
-                if (idx in options.indices && s.equals(options[idx].trim(), ignoreCase = true)) return true
+            if (cClean.startsWith(prefix, ignoreCase = true)) {
+                val textAfterPrefix = cClean.removePrefix(prefix).trim()
+                if (sClean.equals(textAfterPrefix, ignoreCase = true)) return true
+                if (idx in options.indices && sClean.equals(options[idx].trim(), ignoreCase = true)) return true
             }
         }
     }
 
-    val cleanS = s.removePrefix("Option ").removePrefix("option ").trim().removeSurrounding("(", ")").removeSuffix(")").removeSuffix(".").trim()
+    val cleanS = sClean.removePrefix("Option ").removePrefix("option ").trim().removeSurrounding("(", ")").removeSuffix(")").removeSuffix(".").trim()
     val sLetterIndex = optionLetters.indexOfFirst { it.equals(cleanS, ignoreCase = true) }
     if (sLetterIndex in options.indices) {
         val targetOption = options[sLetterIndex].trim()
-        if (c.equals(targetOption, ignoreCase = true)) return true
+        if (cClean.equals(targetOption, ignoreCase = true)) return true
+        if (cClean.equals(cleanPunctuation(targetOption), ignoreCase = true)) return true
     }
 
     return false

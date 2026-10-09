@@ -153,4 +153,42 @@ class QuestionBankQuizEngineTest {
         assertEquals("chap1", quiz.chapterId)
         assertEquals("Laws of Motion", quizQuestions[0].topic)
     }
+
+    @Test
+    fun parseQuestionContent_detectsFibQuestion() {
+        val qText = "The light-absorbing green pigment found inside chloroplasts is called ________."
+        val scheme = "Chlorophyll • Explanation: Chlorophyll a and b absorb light."
+
+        val parsed = QuestionBankQuizEngine.parseQuestionContent(
+            questionText = qText,
+            markingScheme = scheme,
+            questionTypeHint = "FIB"
+        )
+
+        assertEquals(QuestionType.FIB, parsed.type)
+        assertEquals(qText, parsed.questionStem)
+        assertTrue(parsed.options.isEmpty())
+        assertEquals("Chlorophyll", parsed.correctAnswer)
+    }
+
+    @Test
+    fun checkQuizAnswersMatch_forgivingFibMatching() {
+        val check = { s: String, c: String, opts: List<String> ->
+            com.studyos.app.domain.usecase.checkQuizAnswersMatch(s, c, opts)
+        }
+
+        // Exact match
+        assertTrue(check("Chlorophyll", "Chlorophyll", emptyList()))
+        // Case-insensitive
+        assertTrue(check("chlorophyll", "Chlorophyll", emptyList()))
+        // Punctuation forgiving
+        assertTrue(check("Chlorophyll.", "Chlorophyll", emptyList()))
+        assertTrue(check("\"Chlorophyll\"", "Chlorophyll", emptyList()))
+        // Leading English article forgiving
+        assertTrue(check("the chlorophyll", "Chlorophyll", emptyList()))
+        assertTrue(check("chlorophyll", "the chlorophyll", emptyList()))
+        // Slash alternative forgiving
+        assertTrue(check("chlorophyll", "chlorophyll / chloroplast pigments", emptyList()))
+        assertTrue(check("chloroplast pigments", "chlorophyll / chloroplast pigments", emptyList()))
+    }
 }

@@ -87,4 +87,45 @@ class UniversalCsvProcessorTest {
         assertEquals(0, validation.validRowsCount)
         assertTrue(validation.errors[0].errorMessage.contains("CSV content is empty"))
     }
+
+    @Test
+    fun testObjectiveQuestionsCsvParsingAndValidation() {
+        val template = processor.getObjectiveQuestionsCsvTemplate()
+        val result = processor.parseAndValidateObjectiveQuestions(template)
+        assertEquals("Template should have 0 errors", 0, result.errors.size)
+        assertTrue("Template should have parsed rows", result.validRowsCount >= 6)
+
+        val row0 = result.parsedData[0]
+        assertEquals("Physics", row0["subjectname"])
+        assertEquals("Current Electricity", row0["chaptername"])
+        assertEquals("MCQ", row0["questiontype"])
+        assertEquals("B", row0["correctanswer"])
+        assertEquals("Free Electrons", row0["optionb"])
+
+        val row1 = result.parsedData[1]
+        assertEquals("Biology", row1["subjectname"])
+        assertEquals("FIB", row1["questiontype"])
+        assertEquals("Chlorophyll", row1["correctanswer"])
+
+        val row2 = result.parsedData[2]
+        assertEquals("Chemistry", row2["subjectname"])
+        assertEquals("TRUE_FALSE", row2["questiontype"])
+        assertEquals("False", row2["correctanswer"])
+    }
+
+    @Test
+    fun testObjectiveQuestionsValidationErrors() {
+        val invalidCsv = """
+            SubjectName,ChapterName,TopicName,QuestionType,Question,OptionA,OptionB,OptionC,OptionD,CorrectAnswer,Explanation,Difficulty,Marks
+            Physics,Mechanics,Kinematics,MCQ,"Which vector?",OnlyOneOption,,,,A,Exp,EASY,1
+            Physics,Mechanics,Kinematics,TRUE_FALSE,"Gravity is repulsive",,,,,Maybe,Exp,EASY,1
+            Physics,Mechanics,Kinematics,FIB,"",,,,,MissingStem,Exp,EASY,1
+        """.trimIndent()
+
+        val result = processor.parseAndValidateObjectiveQuestions(invalidCsv)
+        assertEquals(3, result.errors.size)
+        assertTrue(result.errors[0].errorMessage.contains("requires at least OptionA and OptionB"))
+        assertTrue(result.errors[1].errorMessage.contains("True/False answer must be True or False"))
+        assertTrue(result.errors[2].errorMessage.contains("Question cannot be blank"))
+    }
 }

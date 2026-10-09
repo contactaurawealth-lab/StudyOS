@@ -166,22 +166,30 @@ class PdfQuestionPaperGenerator {
         }
 
         fun wrapText(text: String, paint: Paint, maxWidth: Float): List<String> {
-            val words = text.split(" ")
+            val paragraphs = text.split("\n")
             val lines = mutableListOf<String>()
-            val currentLine = StringBuilder()
 
-            for (word in words) {
-                val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
-                if (paint.measureText(testLine) <= maxWidth) {
-                    currentLine.setLength(0)
-                    currentLine.append(testLine)
-                } else {
-                    if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
-                    currentLine.setLength(0)
-                    currentLine.append(word)
+            for (paragraph in paragraphs) {
+                if (paragraph.isBlank()) {
+                    lines.add("")
+                    continue
                 }
+                val words = paragraph.split(" ")
+                val currentLine = StringBuilder()
+
+                for (word in words) {
+                    val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+                    if (paint.measureText(testLine) <= maxWidth) {
+                        currentLine.setLength(0)
+                        currentLine.append(testLine)
+                    } else {
+                        if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
+                        currentLine.setLength(0)
+                        currentLine.append(word)
+                    }
+                }
+                if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
             }
-            if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
             return lines
         }
 
