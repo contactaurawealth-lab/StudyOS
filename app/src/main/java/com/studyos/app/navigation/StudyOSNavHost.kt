@@ -1015,6 +1015,9 @@ private fun StudyOSNavGraph(
                 onBack = { navController.popBackStack() },
                 onOpenPaper = { paperId ->
                     navController.navigate(Screen.QuestionPaperViewer.createRoute(paperId))
+                },
+                onStartQuiz = { quizId ->
+                    navController.navigate(Screen.QuizRunner.createRoute(quizId))
                 }
             )
         }
@@ -1375,7 +1378,10 @@ private fun rememberChapterPracticeHubViewModel(
             convertMistakeToFlashcardUseCase = container.convertMistakeToFlashcardUseCase,
             saveQuizUseCase = container.saveQuizUseCase,
             aiPracticeToolsUseCase = container.aiPracticeToolsUseCase,
-            getAiConfigUseCase = container.getAiConfigUseCase
+            getAiConfigUseCase = container.getAiConfigUseCase,
+            topicDao = container.database.topicDao(),
+            questionBankDao = container.database.questionBankDao(),
+            generateQuizFromQuestionBankUseCase = container.generateQuizFromQuestionBankUseCase
         )
     }
 }

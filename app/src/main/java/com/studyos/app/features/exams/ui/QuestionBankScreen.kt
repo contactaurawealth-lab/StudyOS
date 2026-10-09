@@ -92,6 +92,7 @@ fun QuestionBankScreen(
     database: StudyOSDatabase,
     onBack: () -> Unit,
     onOpenPaper: (paperId: String) -> Unit,
+    onStartQuiz: ((quizId: String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -135,6 +136,37 @@ fun QuestionBankScreen(
                 papers = database.paperDao().getAllPapersOnce()
             }
             isLoading = false
+        }
+    }
+
+    fun launchTopicQuiz() {
+        if (filteredQuestions.isEmpty()) return
+        coroutineScope.launch {
+            withContext(Dispatchers.IO) {
+                val selectedSub = subjects.find { it.id == selectedSubjectId }
+                val quizTitle = if (selectedSub != null) "${selectedSub.name} Practice Quiz" else "Question Bank Quiz"
+                val result = com.studyos.app.core.quiz.QuestionBankQuizEngine.buildQuiz(
+                    questions = filteredQuestions,
+                    quizTitle = quizTitle,
+                    subjectId = selectedSubjectId ?: filteredQuestions.first().subjectId,
+                    chapterId = filteredQuestions.first().chapterId,
+                    topicName = null,
+                    targetQuestionCount = minOf(10, filteredQuestions.size)
+                )
+                if (result != null) {
+                    val (quiz, quizQuestions) = result
+                    with(com.studyos.app.core.quiz.QuestionBankQuizEngine) {
+                        database.quizDao().insertQuiz(quiz.toEntity())
+                        database.quizDao().insertQuestions(quizQuestions.map { it.toEntity() })
+                    }
+                    for (q in filteredQuestions) {
+                        database.questionBankDao().incrementUsage(q.id)
+                    }
+                    withContext(Dispatchers.Main) {
+                        onStartQuiz?.invoke(quiz.id)
+                    }
+                }
+            }
         }
     }
 
@@ -198,13 +230,21 @@ fun QuestionBankScreen(
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             StudyOSButton(
-                                text = "📝 Form Question Paper",
+                                text = "📝 Form Paper",
                                 onClick = { showCreatePaperSheet = true },
                                 modifier = Modifier.weight(1f)
                             )
+
+                            if (onStartQuiz != null && filteredQuestions.isNotEmpty()) {
+                                StudyOSButton(
+                                    text = "🎯 Quiz (${minOf(10, filteredQuestions.size)} Qs)",
+                                    onClick = { launchTopicQuiz() },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
 
                             StudyOSOutlinedButton(
                                 text = "📥 Import CSV",

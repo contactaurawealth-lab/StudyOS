@@ -24,6 +24,10 @@ import com.studyos.app.domain.usecase.ResolveMistakeUseCase
 import com.studyos.app.domain.usecase.SaveFlashcardUseCase
 import com.studyos.app.domain.usecase.SaveQuizUseCase
 import com.studyos.app.domain.usecase.ToggleNotePinUseCase
+import com.studyos.app.core.database.dao.QuestionBankDao
+import com.studyos.app.core.database.dao.TopicDao
+import com.studyos.app.core.database.entity.TopicEntity
+import com.studyos.app.domain.usecase.GenerateQuizFromQuestionBankUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,17 +50,29 @@ data class ChapterPracticeHubUiState(
     val notes: List<Note> = emptyList(),
     val flashcards: List<Flashcard> = emptyList(),
     val mistakes: List<Mistake> = emptyList(),
+    val availableTopics: List<TopicEntity> = emptyList(),
+    val selectedTopicIdForQuiz: String? = null,
+    val topicQuestionCounts: Map<String, Int> = emptyMap(),
+    val chapterQuestionCount: Int = 0,
     val isLoading: Boolean = true,
     val isCreateFlashcardSheetOpen: Boolean = false,
     val isBulkImportSheetOpen: Boolean = false,
     val isCreateQuizSheetOpen: Boolean = false,
+    val isGeneratingQuiz: Boolean = false,
     val isGeneratingAiQuiz: Boolean = false,
     val selectedMistakeForAi: Mistake? = null,
     val aiExplanation: String? = null,
     val isExplainingMistake: Boolean = false,
     val createdQuizId: String? = null,
     val infoMessage: String? = null
-)
+) {
+    val selectedTopicQuestionCount: Int
+        get() = if (selectedTopicIdForQuiz != null) {
+            topicQuestionCounts[selectedTopicIdForQuiz] ?: 0
+        } else {
+            chapterQuestionCount
+        }
+}
 
 class ChapterPracticeHubViewModel(
     private val chapterId: String,
@@ -72,7 +88,10 @@ class ChapterPracticeHubViewModel(
     private val convertMistakeToFlashcardUseCase: ConvertMistakeToFlashcardUseCase,
     private val saveQuizUseCase: SaveQuizUseCase,
     private val aiPracticeToolsUseCase: AiPracticeToolsUseCase,
-    private val getAiConfigUseCase: GetAiConfigUseCase
+    private val getAiConfigUseCase: GetAiConfigUseCase,
+    private val topicDao: TopicDao,
+    private val questionBankDao: QuestionBankDao,
+    private val generateQuizFromQuestionBankUseCase: GenerateQuizFromQuestionBankUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChapterPracticeHubUiState(chapterId = chapterId))
@@ -104,6 +123,39 @@ class ChapterPracticeHubViewModel(
         viewModelScope.launch {
             getMistakesForChapterUseCase(chapterId).collect { mistakes ->
                 _uiState.update { it.copy(mistakes = mistakes) }
+            }
+        }
+
+        viewModelScope.launch {
+            topicDao.getTopicsForChapter(chapterId).collect { topics ->
+                val counts = mutableMapOf<String, Int>()
+                for (t in topics) {
+                    counts[t.id] = questionBankDao.countQuestionsForTopic(t.id)
+                }
+                val totalChapter = questionBankDao.countQuestionsForChapter(chapterId)
+                _uiState.update {
+                    it.copy(
+                        availableTopics = topics,
+                        topicQuestionCounts = counts,
+                        chapterQuestionCount = totalChapter
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            questionBankDao.getQuestionsForChapter(chapterId).collect { chapterQuestions ->
+                val topics = _uiState.value.availableTopics
+                val counts = mutableMapOf<String, Int>()
+                for (t in topics) {
+                    counts[t.id] = chapterQuestions.count { it.topicId == t.id }
+                }
+                _uiState.update {
+                    it.copy(
+                        topicQuestionCounts = counts,
+                        chapterQuestionCount = chapterQuestions.size
+                    )
+                }
             }
         }
     }
@@ -246,56 +298,95 @@ class ChapterPracticeHubViewModel(
     }
 
     // Quizzes
-    fun openCreateQuizSheet() {
-        _uiState.update { it.copy(isCreateQuizSheetOpen = true, createdQuizId = null) }
+    fun openCreateQuizSheet(preselectedTopicId: String? = null) {
+        _uiState.update {
+            it.copy(
+                isCreateQuizSheetOpen = true,
+                selectedTopicIdForQuiz = preselectedTopicId ?: it.selectedTopicIdForQuiz,
+                createdQuizId = null
+            )
+        }
     }
 
     fun closeCreateQuizSheet() {
         _uiState.update { it.copy(isCreateQuizSheetOpen = false) }
     }
 
-    fun generateAiQuiz(
+    fun selectTopicForQuiz(topicId: String?) {
+        _uiState.update { it.copy(selectedTopicIdForQuiz = topicId) }
+    }
+
+    fun generateQuizFromQuestionBank(
+        topicId: String? = _uiState.value.selectedTopicIdForQuiz,
         questionCount: Int = 5,
-        difficulty: QuizDifficulty = QuizDifficulty.MEDIUM
+        difficulty: QuizDifficulty? = null
     ) {
         val summary = _uiState.value.summary ?: return
-        val notes = _uiState.value.notes
-        val notesContent = notes.joinToString("\n\n") { "${it.title}:\n${it.content}" }
-        val contextContent = if (notesContent.isNotBlank()) notesContent else "Chapter: ${summary.chapterName}"
+        val availableTopics = _uiState.value.availableTopics
+        val selectedTopic = topicId?.let { tid -> availableTopics.find { it.id == tid } }
+        val topicName = selectedTopic?.name ?: summary.chapterName
+        val quizTitle = if (selectedTopic != null) {
+            "${selectedTopic.name} Topic Quiz"
+        } else {
+            "${summary.chapterName} Quiz"
+        }
 
-        _uiState.update { it.copy(isGeneratingAiQuiz = true) }
+        _uiState.update { it.copy(isGeneratingQuiz = true, isGeneratingAiQuiz = true) }
 
         viewModelScope.launch {
             try {
-                val config = getAiConfigUseCase().firstOrNull() ?: com.studyos.app.domain.model.AiConfig()
-                val (quiz, questions) = aiPracticeToolsUseCase.generateQuizFromContext(
-                    title = "${summary.chapterName} Practice Quiz",
-                    topic = summary.chapterName,
-                    content = contextContent,
-                    questionCount = questionCount,
-                    difficulty = difficulty,
+                val result = generateQuizFromQuestionBankUseCase(
+                    title = quizTitle,
                     subjectId = summary.subjectId,
                     chapterId = chapterId,
-                    config = config
+                    topicId = topicId,
+                    topicName = topicName,
+                    questionCount = questionCount,
+                    difficulty = difficulty
                 )
-                saveQuizUseCase(quiz, questions)
-                _uiState.update {
-                    it.copy(
-                        isGeneratingAiQuiz = false,
-                        isCreateQuizSheetOpen = false,
-                        createdQuizId = quiz.id,
-                        infoMessage = "Practice quiz generated!"
-                    )
+
+                if (result == null) {
+                    _uiState.update {
+                        it.copy(
+                            isGeneratingQuiz = false,
+                            isGeneratingAiQuiz = false,
+                            infoMessage = "No questions found in Question Bank for topic '$topicName'. Please import or add questions first."
+                        )
+                    }
+                } else {
+                    val (quiz, questions) = result
+                    _uiState.update {
+                        it.copy(
+                            isGeneratingQuiz = false,
+                            isGeneratingAiQuiz = false,
+                            isCreateQuizSheetOpen = false,
+                            createdQuizId = quiz.id,
+                            infoMessage = "Generated ${questions.size}-question quiz from Question Bank for '$topicName'!"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
+                        isGeneratingQuiz = false,
                         isGeneratingAiQuiz = false,
-                        infoMessage = e.message ?: "Failed to generate quiz."
+                        infoMessage = e.message ?: "Failed to generate quiz from Question Bank."
                     )
                 }
             }
         }
+    }
+
+    fun generateAiQuiz(
+        questionCount: Int = 5,
+        difficulty: QuizDifficulty = QuizDifficulty.MEDIUM
+    ) {
+        // Strictly route through Question Bank for the currently selected topic or chapter
+        generateQuizFromQuestionBank(
+            topicId = _uiState.value.selectedTopicIdForQuiz,
+            questionCount = questionCount,
+            difficulty = difficulty
+        )
     }
 
     fun clearCreatedQuizId() {

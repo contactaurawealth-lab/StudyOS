@@ -854,3 +854,48 @@ class AiPracticeToolsUseCase(
         return Pair(quiz, questions)
     }
 }
+
+// ==========================================
+// 8. QUESTION BANK QUIZ USE CASE
+// ==========================================
+
+class GenerateQuizFromQuestionBankUseCase(
+    private val questionBankDao: com.studyos.app.core.database.dao.QuestionBankDao,
+    private val quizRepository: QuizRepository
+) {
+    suspend operator fun invoke(
+        title: String,
+        subjectId: String,
+        chapterId: String,
+        topicId: String?,
+        topicName: String?,
+        questionCount: Int = 5,
+        difficulty: QuizDifficulty? = null
+    ): Pair<Quiz, List<QuizQuestion>>? {
+        val questions = if (!topicId.isNullOrBlank()) {
+            questionBankDao.getQuestionsForTopicOnce(topicId)
+        } else {
+            questionBankDao.getQuestionsForChapterOnce(chapterId)
+        }
+
+        if (questions.isEmpty()) return null
+
+        val result = com.studyos.app.core.quiz.QuestionBankQuizEngine.buildQuiz(
+            questions = questions,
+            quizTitle = title,
+            subjectId = subjectId,
+            chapterId = chapterId,
+            topicName = topicName,
+            targetQuestionCount = questionCount,
+            targetDifficulty = difficulty
+        ) ?: return null
+
+        quizRepository.saveQuiz(result.first, result.second)
+
+        for (qb in questions) {
+            questionBankDao.incrementUsage(qb.id)
+        }
+
+        return result
+    }
+}

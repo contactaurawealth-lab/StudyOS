@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.studyos.app.core.ui.component.StudyOSButton
 import com.studyos.app.core.ui.component.StudyOSEmptyState
 import com.studyos.app.core.ui.component.StudyOSIconButton
@@ -280,8 +281,9 @@ fun ChapterPracticeHubScreen(
                         PracticeHubTab.OVERVIEW -> {
                             PracticeOverviewTab(
                                 summary = summary,
+                                topics = uiState.availableTopics,
                                 onStudyFlashcards = { onStartFlashcards(uiState.chapterId) },
-                                onTakeQuiz = { viewModel.openCreateQuizSheet() },
+                                onTakeQuiz = { topicId -> viewModel.openCreateQuizSheet(topicId) },
                                 onCreateNote = { onOpenNote(null, uiState.chapterId) },
                                 onStartAudioWalk = onStartAudioWalk,
                                 onSelectTab = { viewModel.selectTab(it) }
@@ -308,8 +310,11 @@ fun ChapterPracticeHubScreen(
                         PracticeHubTab.QUIZ -> {
                             PracticeQuizTab(
                                 summary = summary,
-                                isGenerating = uiState.isGeneratingAiQuiz,
-                                onOpenCreateQuiz = { viewModel.openCreateQuizSheet() }
+                                topics = uiState.availableTopics,
+                                topicQuestionCounts = uiState.topicQuestionCounts,
+                                chapterQuestionCount = uiState.chapterQuestionCount,
+                                isGenerating = uiState.isGeneratingQuiz,
+                                onOpenCreateQuiz = { topicId -> viewModel.openCreateQuizSheet(topicId) }
                             )
                         }
                         PracticeHubTab.MISTAKES -> {
@@ -342,12 +347,18 @@ fun ChapterPracticeHubScreen(
             )
         }
 
-        // Bottom Sheet: Create AI Quiz
+        // Bottom Sheet: Create Topic Quiz from Question Bank
         if (uiState.isCreateQuizSheetOpen) {
             CreateQuizBottomSheet(
-                isGenerating = uiState.isGeneratingAiQuiz,
+                isGenerating = uiState.isGeneratingQuiz,
+                topics = uiState.availableTopics,
+                selectedTopicId = uiState.selectedTopicIdForQuiz,
+                topicQuestionCounts = uiState.topicQuestionCounts,
+                chapterQuestionCount = uiState.chapterQuestionCount,
+                chapterName = uiState.summary?.chapterName ?: "Chapter",
+                onSelectTopic = { viewModel.selectTopicForQuiz(it) },
                 onDismiss = { viewModel.closeCreateQuizSheet() },
-                onGenerate = { count, diff -> viewModel.generateAiQuiz(count, diff) }
+                onGenerate = { topicId, count, diff -> viewModel.generateQuizFromQuestionBank(topicId, count, diff) }
             )
         }
 
@@ -375,8 +386,9 @@ fun ChapterPracticeHubScreen(
 @Composable
 private fun PracticeOverviewTab(
     summary: ChapterPracticeSummary?,
+    topics: List<com.studyos.app.core.database.entity.TopicEntity> = emptyList(),
     onStudyFlashcards: () -> Unit,
-    onTakeQuiz: () -> Unit,
+    onTakeQuiz: (topicId: String?) -> Unit,
     onCreateNote: () -> Unit,
     onStartAudioWalk: () -> Unit = {},
     onSelectTab: (PracticeHubTab) -> Unit
@@ -468,7 +480,7 @@ private fun PracticeOverviewTab(
 
                 StudyOSOutlinedButton(
                     text = "Quiz",
-                    onClick = onTakeQuiz,
+                    onClick = { onTakeQuiz(null) },
                     modifier = Modifier.weight(0.8f)
                 )
 
@@ -492,7 +504,17 @@ private fun PracticeOverviewTab(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     summary.weakTopics.forEach { weak ->
-                        WeakTopicCard(weakTopic = weak)
+                        val matchedTopic = topics.find { it.name.equals(weak.topic, ignoreCase = true) }
+                        WeakTopicCard(
+                            weakTopic = weak,
+                            onActionClick = {
+                                when (weak.recommendedAction) {
+                                    WeakTopicAction.REVISE -> onSelectTab(PracticeHubTab.NOTES)
+                                    WeakTopicAction.FLASHCARDS -> onStudyFlashcards()
+                                    WeakTopicAction.PRACTICE_QUIZ -> onTakeQuiz(matchedTopic?.id)
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -590,7 +612,10 @@ private fun MetricBadge(
 }
 
 @Composable
-private fun WeakTopicCard(weakTopic: WeakTopic) {
+private fun WeakTopicCard(
+    weakTopic: WeakTopic,
+    onActionClick: (() -> Unit)? = null
+) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
@@ -628,6 +653,7 @@ private fun WeakTopicCard(weakTopic: WeakTopic) {
                     .clip(shapes.button)
                     .background(colors.cardBackground)
                     .border(1.dp, colors.border, shapes.button)
+                    .then(if (onActionClick != null) Modifier.clickable { onActionClick() } else Modifier)
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
@@ -1020,75 +1046,177 @@ private fun FlashcardStatItem(label: String, count: Int) {
 @Composable
 private fun PracticeQuizTab(
     summary: ChapterPracticeSummary?,
+    topics: List<com.studyos.app.core.database.entity.TopicEntity> = emptyList(),
+    topicQuestionCounts: Map<String, Int> = emptyMap(),
+    chapterQuestionCount: Int = 0,
     isGenerating: Boolean,
-    onOpenCreateQuiz: () -> Unit
+    onOpenCreateQuiz: (topicId: String?) -> Unit
 ) {
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
     val shapes = StudyOSTheme.shapes
 
-    Column(
+    LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shapes.surface)
-                .background(colors.surface)
-                .border(1.dp, colors.border, shapes.surface)
-                .padding(20.dp)
-        ) {
-            Column {
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shapes.surface)
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, shapes.surface)
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Question Bank Practice Quiz",
+                        style = typography.sectionTitle,
+                        color = colors.primaryText
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Quizzes are generated strictly and exclusively from your Question Bank for each specific topic. 100% offline, syllabus-verified recall.",
+                        style = typography.body,
+                        color = colors.secondaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(shapes.card)
+                            .background(colors.cardBackground)
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Question Bank Pool",
+                                style = typography.caption,
+                                color = colors.secondaryText
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "$chapterQuestionCount questions in chapter",
+                                style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = colors.primaryText
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(shapes.button)
+                                .background(colors.accent.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${topics.size} Topics",
+                                style = typography.caption,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.accent
+                            )
+                        }
+                    }
+
+                    if (summary?.quizAccuracy != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Average Quiz Accuracy",
+                                style = typography.secondary,
+                                color = colors.primaryText
+                            )
+                            Text(
+                                text = "${summary.quizAccuracy}%",
+                                style = typography.sectionTitle,
+                                color = colors.accent
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        StudyOSProgressBar(
+                            progress = summary.quizAccuracy,
+                            height = 6.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    StudyOSButton(
+                        text = if (isGenerating) "Generating Quiz..." else "Generate Quiz from Chapter ($chapterQuestionCount Qs)",
+                        onClick = { onOpenCreateQuiz(null) },
+                        enabled = !isGenerating && chapterQuestionCount > 0,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        if (topics.isNotEmpty()) {
+            item {
                 Text(
-                    text = "Adaptive Practice Quiz",
-                    style = typography.sectionTitle,
-                    color = colors.primaryText
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Quizzes test your recall across Multiple Choice, True/False, and conceptual questions. Incorrect questions are automatically saved to your Mistake Bank for revision.",
-                    style = typography.body,
+                    text = "PRACTICE BY SPECIFIC TOPIC",
+                    style = typography.caption.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
                     color = colors.secondaryText
                 )
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (summary?.quizAccuracy != null) {
+            items(topics) { topic ->
+                val count = topicQuestionCounts[topic.id] ?: 0
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shapes.card)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, shapes.card)
+                        .padding(14.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Average Quiz Accuracy",
-                            style = typography.secondary,
-                            color = colors.primaryText
-                        )
-                        Text(
-                            text = "${summary.quizAccuracy}%",
-                            style = typography.sectionTitle,
-                            color = colors.accent
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = topic.name,
+                                style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = colors.primaryText
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = if (count > 0) "$count Question Bank question(s)" else "No questions yet in Question Bank",
+                                style = typography.caption,
+                                color = if (count > 0) colors.secondaryText else colors.warning
+                            )
+                        }
+
+                        if (count > 0) {
+                            StudyOSButton(
+                                text = "Topic Quiz",
+                                onClick = { onOpenCreateQuiz(topic.id) },
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        } else {
+                            StudyOSOutlinedButton(
+                                text = "0 Qs",
+                                onClick = { onOpenCreateQuiz(topic.id) },
+                                enabled = false,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    StudyOSProgressBar(
-                        progress = summary.quizAccuracy,
-                        height = 6.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                StudyOSButton(
-                    text = if (isGenerating) "Generating Quiz..." else "Generate AI Practice Quiz",
-                    onClick = onOpenCreateQuiz,
-                    enabled = !isGenerating,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     }
@@ -1675,15 +1803,36 @@ private fun BulkImportFlashcardsBottomSheet(
 @Composable
 private fun CreateQuizBottomSheet(
     isGenerating: Boolean,
+    topics: List<com.studyos.app.core.database.entity.TopicEntity> = emptyList(),
+    selectedTopicId: String? = null,
+    topicQuestionCounts: Map<String, Int> = emptyMap(),
+    chapterQuestionCount: Int = 0,
+    chapterName: String = "Chapter",
+    onSelectTopic: (String?) -> Unit,
     onDismiss: () -> Unit,
-    onGenerate: (count: Int, difficulty: QuizDifficulty) -> Unit
+    onGenerate: (topicId: String?, count: Int, difficulty: QuizDifficulty?) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = StudyOSTheme.colors
     val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
 
-    var questionCount by remember { mutableIntStateOf(5) }
-    var difficulty by remember { mutableStateOf(QuizDifficulty.MEDIUM) }
+    val currentAvailableCount = if (selectedTopicId != null) {
+        topicQuestionCounts[selectedTopicId] ?: 0
+    } else {
+        chapterQuestionCount
+    }
+
+    val selectedTopicName = if (selectedTopicId != null) {
+        topics.find { it.id == selectedTopicId }?.name ?: "Selected Topic"
+    } else {
+        "All Topics in $chapterName"
+    }
+
+    var questionCount by remember(currentAvailableCount) {
+        mutableIntStateOf(if (currentAvailableCount > 0) minOf(5, currentAvailableCount) else 5)
+    }
+    var selectedDifficulty by remember { mutableStateOf<QuizDifficulty?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1696,45 +1845,152 @@ private fun CreateQuizBottomSheet(
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Text(
-                text = "Generate Practice Quiz",
+                text = "Topic Practice Quiz",
                 style = typography.screenTitle,
                 color = colors.primaryText
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "AI will synthesize questions based on your study notes and key topics in this chapter.",
+                text = "Generated strictly from Question Bank questions for this topic. 100% offline, zero hallucination.",
                 style = typography.body,
                 color = colors.secondaryText
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Topic Selector
             Text(
-                text = "Number of Questions: $questionCount",
+                text = "Select Topic",
                 style = typography.secondary,
+                fontWeight = FontWeight.SemiBold,
                 color = colors.primaryText
             )
-
             Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // All topics chip
+                val isAllSelected = selectedTopicId == null
+                Box(
+                    modifier = Modifier
+                        .clip(shapes.button)
+                        .background(if (isAllSelected) colors.cardBackground else colors.surface)
+                        .border(1.dp, if (isAllSelected) colors.accent else colors.border, shapes.button)
+                        .clickable { onSelectTopic(null) }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "All Topics ($chapterQuestionCount Qs)",
+                        style = typography.caption,
+                        fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isAllSelected) colors.accent else colors.primaryText
+                    )
+                }
+
+                // Individual topic chips
+                topics.forEach { topic ->
+                    val isSelected = selectedTopicId == topic.id
+                    val count = topicQuestionCounts[topic.id] ?: 0
+                    Box(
+                        modifier = Modifier
+                            .clip(shapes.button)
+                            .background(if (isSelected) colors.cardBackground else colors.surface)
+                            .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
+                            .clickable { onSelectTopic(topic.id) }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "${topic.name} ($count Qs)",
+                            style = typography.caption,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) colors.accent else colors.primaryText
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Availability Status Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shapes.card)
+                    .background(colors.cardBackground)
+                    .border(
+                        1.dp,
+                        if (currentAvailableCount > 0) colors.accent.copy(alpha = 0.5f) else colors.warning.copy(alpha = 0.5f),
+                        shapes.card
+                    )
+                    .padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = selectedTopicName,
+                            style = typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = colors.primaryText
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (currentAvailableCount > 0) {
+                                "✓ $currentAvailableCount question(s) found in Question Bank. Ready to generate."
+                            } else {
+                                "⚠️ 0 questions in Question Bank for this topic. Import questions via CSV first."
+                            },
+                            style = typography.caption,
+                            color = if (currentAvailableCount > 0) colors.secondaryText else colors.warning
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Number of Questions
+            Text(
+                text = "Number of Questions",
+                style = typography.secondary,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.primaryText
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val countOptions = remember(currentAvailableCount) {
+                when {
+                    currentAvailableCount <= 0 -> listOf(3, 5, 10)
+                    currentAvailableCount <= 3 -> listOf(currentAvailableCount).distinct()
+                    currentAvailableCount <= 5 -> listOf(3, currentAvailableCount).distinct()
+                    currentAvailableCount <= 10 -> listOf(3, 5, currentAvailableCount).distinct()
+                    else -> listOf(3, 5, 10, currentAvailableCount).distinct()
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf(3, 5, 10).forEach { count ->
+                countOptions.forEach { count ->
                     val isSelected = questionCount == count
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(StudyOSTheme.shapes.button)
+                            .clip(shapes.button)
                             .background(if (isSelected) colors.cardBackground else colors.surface)
-                            .border(1.dp, if (isSelected) colors.accent else colors.border, StudyOSTheme.shapes.button)
+                            .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
                             .clickable { questionCount = count }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "$count questions",
+                            text = if (count == currentAvailableCount && count > 10) "All ($count)" else "$count Qs",
                             style = typography.caption,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = colors.primaryText
@@ -1745,32 +2001,34 @@ private fun CreateQuizBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Difficulty
             Text(
-                text = "Difficulty",
+                text = "Difficulty Level",
                 style = typography.secondary,
+                fontWeight = FontWeight.SemiBold,
                 color = colors.primaryText
             )
-
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                QuizDifficulty.values().forEach { diff ->
-                    val isSelected = difficulty == diff
+                val diffOptions = listOf<QuizDifficulty?>(null, QuizDifficulty.EASY, QuizDifficulty.MEDIUM, QuizDifficulty.HARD)
+                diffOptions.forEach { diff ->
+                    val isSelected = selectedDifficulty == diff
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(StudyOSTheme.shapes.button)
+                            .clip(shapes.button)
                             .background(if (isSelected) colors.cardBackground else colors.surface)
-                            .border(1.dp, if (isSelected) colors.accent else colors.border, StudyOSTheme.shapes.button)
-                            .clickable { difficulty = diff }
+                            .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
+                            .clickable { selectedDifficulty = diff }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = diff.name,
+                            text = diff?.name ?: "ANY",
                             style = typography.caption,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = colors.primaryText
@@ -1782,9 +2040,13 @@ private fun CreateQuizBottomSheet(
             Spacer(modifier = Modifier.height(24.dp))
 
             StudyOSButton(
-                text = if (isGenerating) "Synthesizing Quiz..." else "Generate Quiz",
-                onClick = { onGenerate(questionCount, difficulty) },
-                enabled = !isGenerating,
+                text = when {
+                    isGenerating -> "Generating Topic Quiz..."
+                    currentAvailableCount == 0 -> "No Questions Available in Question Bank"
+                    else -> "Generate Topic Quiz (${minOf(questionCount, currentAvailableCount)} Questions)"
+                },
+                onClick = { onGenerate(selectedTopicId, minOf(questionCount, currentAvailableCount), selectedDifficulty) },
+                enabled = !isGenerating && currentAvailableCount > 0,
                 modifier = Modifier.fillMaxWidth()
             )
 

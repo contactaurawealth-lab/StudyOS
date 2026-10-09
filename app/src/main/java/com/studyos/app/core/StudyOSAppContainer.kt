@@ -482,6 +482,10 @@ class StudyOSAppContainer(private val context: Context) {
         com.studyos.app.domain.usecase.SaveQuizUseCase(quizRepository)
     }
 
+    val generateQuizFromQuestionBankUseCase: com.studyos.app.domain.usecase.GenerateQuizFromQuestionBankUseCase by lazy {
+        com.studyos.app.domain.usecase.GenerateQuizFromQuestionBankUseCase(database.questionBankDao(), quizRepository)
+    }
+
     val getQuizWithQuestionsUseCase: com.studyos.app.domain.usecase.GetQuizWithQuestionsUseCase by lazy {
         com.studyos.app.domain.usecase.GetQuizWithQuestionsUseCase(quizRepository)
     }

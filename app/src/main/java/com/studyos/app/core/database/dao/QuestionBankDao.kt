@@ -53,5 +53,17 @@ interface QuestionBankDao {
 
     @Query("SELECT * FROM question_bank WHERE chapterId = :chapterId ORDER BY createdAt DESC")
     suspend fun getQuestionsForChapterOnce(chapterId: String): List<QuestionBankEntity>
+
+    @Query("SELECT * FROM question_bank WHERE topicId = :topicId ORDER BY createdAt DESC")
+    suspend fun getQuestionsForTopicOnce(topicId: String): List<QuestionBankEntity>
+
+    @Query("SELECT * FROM question_bank WHERE chapterId = :chapterId AND (:topicId IS NULL OR topicId = :topicId) ORDER BY createdAt DESC")
+    suspend fun getQuestionsForChapterTopic(chapterId: String, topicId: String?): List<QuestionBankEntity>
+
+    @Query("SELECT COUNT(*) FROM question_bank WHERE topicId = :topicId")
+    suspend fun countQuestionsForTopic(topicId: String): Int
+
+    @Query("SELECT COUNT(*) FROM question_bank WHERE chapterId = :chapterId")
+    suspend fun countQuestionsForChapter(chapterId: String): Int
 }
 
