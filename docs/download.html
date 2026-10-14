@@ -33,7 +33,7 @@
   <!-- Top Announcement Bar -->
   <div class="top-announcement">
     <span class="announcement-badge">Official Release</span>
-    <span>Production Release Build is verified &amp; ready for direct download.</span>
+    <span>Production Release Build v1.8.0 is verified &amp; ready for direct download.</span>
     <a href="#install-guide">Installation Guide &darr;</a>
   </div>
 
@@ -133,8 +133,8 @@
             Verified SHA-256 Checksum
           </div>
           <div class="checksum-box">
-            <span style="user-select:all;">95929e0b5ab1f21f184b8ac0de36f6057a2392626a01c39b153b1ea58ae5ee91</span>
-            <button class="copy-btn" data-copy-text="95929e0b5ab1f21f184b8ac0de36f6057a2392626a01c39b153b1ea58ae5ee91">
+            <span style="user-select:all;">7bb7fc8105dd3b90d8687c37a55bc0655f87c859f47474d3369ab5a07e568793</span>
+            <button class="copy-btn" data-copy-text="7bb7fc8105dd3b90d8687c37a55bc0655f87c859f47474d3369ab5a07e568793">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <span>Copy SHA-256</span>
             </button>
@@ -145,11 +145,11 @@
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px; max-width:700px; margin:0 auto; text-align:left;">
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Status</div>
-            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">Stable Build (v1.7.0)</div>
+            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">Stable Build (v1.8.0)</div>
           </div>
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Package Size</div>
-            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--text-primary);">20.8 MB</div>
+            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--text-primary);">22.0 MB</div>
           </div>
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Min Android</div>
@@ -220,13 +220,163 @@
         <h2 class="section-title">Release History</h2>
       </div>
 
+      <!-- v1.8.0 Latest Release -->
       <div class="spotlight-card reveal" style="margin-bottom:28px; border-color:var(--border-accent); background:linear-gradient(180deg, rgba(211,154,58,0.06) 0%, rgba(18,21,29,0.85) 100%);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
           <div>
-            <h3 style="font-size:1.5rem; font-weight:800; color:var(--text-primary);">Objective Question Bank &amp; Dynamic Formation Engine (v1.7.0)</h3>
-            <div style="font-size:0.85rem; color:var(--accent); font-weight:600;">Latest Production Release • Complete Feature Planning, Design &amp; Logic</div>
+            <h3 style="font-size:1.5rem; font-weight:800; color:var(--text-primary);">In-Interface CSV Error Resolution &amp; Production Hardening (v1.8.0)</h3>
+            <div style="font-size:0.85rem; color:var(--accent); font-weight:600;">Latest Production Release • In-App Question Rescue &amp; Reliability Architecture</div>
           </div>
           <span class="announcement-badge">Latest Release</span>
+        </div>
+
+        <p style="color:var(--text-secondary); margin-bottom:18px; line-height:1.65;">
+          A major usability and reliability milestone. Rather than discarding rows or halting CSV imports when options are missing or columns are misaligned, StudyOS v1.8.0 brings <strong>In-Interface Error Resolution</strong>. Students can review malformed rows in real time, 1-tap convert them to short answers, or repair options and answers directly on-screen with tactile chips. Coupled with 5 deep system-hardening improvements across App Blocker, PDF pagination, database write atomicity, spaced repetition calendar scheduling, and audio walk focus hygiene.
+        </p>
+
+        <!-- Feature Planning & Architecture -->
+        <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:18px; margin-bottom:20px;">
+          <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+            <span>📐</span> Architectural Logic &amp; In-Interface Issue Resolution Flow
+          </h4>
+          <p style="font-size:0.92rem; color:var(--text-secondary); margin-bottom:12px;">
+            In traditional educational software, CSV imports are brittle: one missing column or unexpected quote aborts the entire file, forcing the student out to an external spreadsheet. In StudyOS v1.8.0, the pipeline never loses data:
+          </p>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">1. Stem Option Extraction</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">When options are embedded inside question stems (e.g., <code>(A) ... (B) ...</code>), the engine extracts them automatically into individual options without error.</div>
+            </div>
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">2. Interactive Error Cards</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">Malformed rows are preserved in <code>activeErrors</code> and rendered as interactive cards inside the import modal with row number, error diagnosis, and prompt snippet.</div>
+            </div>
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">3. 1-Tap &amp; Bulk Rescue</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;"><strong>⚡ Convert to Short</strong> (and <strong>⚡ Convert All</strong>) instantly rescues questions missing options, converting them to standard Short Answer format with zero typing.</div>
+            </div>
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">4. In-App Option Editor</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;"><strong>✏️ Fix Options</strong> launches <code>FixQuestionRowDialog</code>: type Option A/B/C/D and tap <code>[A]</code>, <code>[B]</code>, <code>[C]</code>, or <code>[D]</code> chips to validate and rescue on-device.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Blueprint Section -->
+        <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:18px; margin-bottom:20px;">
+          <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <span>👁️</span> Visual Blueprint: How Rescued Questions &amp; Error Cards Look
+          </h4>
+          
+          <!-- Interactive Error Card Mockup -->
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.85rem; font-weight:700; color:#EF5350; margin-bottom:6px;">1. Interactive Issue Resolution Card (In-Dialog)</div>
+            <div style="background:#12151D; border:1px solid rgba(239,83,80,0.35); border-radius:12px; padding:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11px; font-weight:700; color:#EF5350;">⚠️ Row 4: MCQ requires at least OptionA and OptionB</span>
+                <span style="font-size:10px; color:#9BA3AF; background:#181C27; padding:2px 8px; border-radius:4px; cursor:pointer;">✕ Skip</span>
+              </div>
+              <div style="font-size:12.5px; color:#F0F2F5; margin-bottom:10px; font-style:italic;">
+                "Which vector quantity represents the rate of change of angular momentum?"
+              </div>
+              <div style="display:flex; gap:8px;">
+                <div style="background:rgba(211,154,58,0.15); border:1px solid rgba(211,154,58,0.5); padding:6px 12px; border-radius:6px; font-size:10.5px; font-weight:700; color:#F0F2F5;">
+                  ⚡ Convert to Short
+                </div>
+                <div style="background:var(--accent); color:#101216; padding:6px 12px; border-radius:6px; font-size:10.5px; font-weight:800;">
+                  ✏️ Fix Options
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MCQ Visual Card Mockup -->
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.85rem; font-weight:700; color:var(--accent); margin-bottom:6px;">2. Multiple Choice Question (MCQ) Card Layout</div>
+            <div style="background:#12151D; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <span style="background:rgba(99,102,241,0.2); color:#818CF8; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">MCQ</span>
+                  <span style="background:#181C27; border:0.5px solid rgba(255,255,255,0.1); padding:3px 8px; border-radius:6px; font-size:10px; color:#10B981; font-weight:600;">● Easy</span>
+                  <span style="background:#181C27; border:0.5px solid rgba(255,255,255,0.1); padding:3px 6px; border-radius:6px; font-size:9px; color:#9BA3AF;">🎯 2x tested</span>
+                </div>
+                <span style="background:rgba(211,154,58,0.15); color:#D39A3A; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700;">★ 1 Mark</span>
+              </div>
+              <div style="font-weight:600; font-size:13.5px; color:#F0F2F5; margin-bottom:10px;">
+                Which particle is the primary carrier of electric current in metallic conductors?
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:7px 10px; border-radius:8px;">
+                  <span style="background:#222736; color:#9BA3AF; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:700; margin-right:10px;">A</span>
+                  <span style="color:#9BA3AF; font-size:12.5px;">Protons</span>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.12); border:1.2px solid #10B981; padding:7px 10px; border-radius:8px;">
+                  <div style="display:flex; align-items:center;">
+                    <span style="background:#10B981; color:#0A0B0E; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:800; margin-right:10px;">B</span>
+                    <span style="color:#F0F2F5; font-size:12.5px; font-weight:600;">Free Electrons</span>
+                  </div>
+                  <span style="background:rgba(16,185,129,0.25); color:#34D399; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px;">✓ Correct</span>
+                </div>
+                <div style="display:flex; align-items:center; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:7px 10px; border-radius:8px;">
+                  <span style="background:#222736; color:#9BA3AF; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:700; margin-right:10px;">C</span>
+                  <span style="color:#9BA3AF; font-size:12.5px;">Neutrons</span>
+                </div>
+                <div style="display:flex; align-items:center; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:7px 10px; border-radius:8px;">
+                  <span style="background:#222736; color:#9BA3AF; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:700; margin-right:10px;">D</span>
+                  <span style="color:#9BA3AF; font-size:12.5px;">Positrons</span>
+                </div>
+              </div>
+              <div style="margin-top:10px; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:8px 12px; border-radius:8px;">
+                <div style="font-size:10px; font-weight:700; color:#D39A3A; margin-bottom:2px;">💡 Solution Key &amp; Rationale</div>
+                <div style="font-size:11.5px; color:#9BA3AF; line-height:1.45;">In metallic conductors, valence electrons are delocalized and drift under an applied electric field.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FIB & True/False -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
+            <div style="background:#12151D; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:14px;">
+              <div style="font-size:10px; font-weight:700; color:#34D399; margin-bottom:6px;">FILL IN THE BLANK (FIB)</div>
+              <div style="font-size:12px; color:#F0F2F5; margin-bottom:8px;">
+                The light-absorbing green pigment found inside chloroplasts is called <span style="background:rgba(211,154,58,0.15); border:1px dashed #D39A3A; padding:1px 6px; border-radius:4px; color:#D39A3A; font-family:monospace;">[ ________ ]</span>.
+              </div>
+              <div style="font-size:11px; color:#10B981; font-weight:700;">Target: Chlorophyll</div>
+            </div>
+            <div style="background:#12151D; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:14px;">
+              <div style="font-size:10px; font-weight:700; color:#38BDF8; margin-bottom:6px;">TRUE / FALSE</div>
+              <div style="font-size:12px; color:#F0F2F5; margin-bottom:8px;">
+                An exothermic reaction absorbs thermal energy from its surroundings.
+              </div>
+              <div style="display:flex; gap:6px;">
+                <span style="font-size:10.5px; padding:3px 8px; border-radius:4px; background:#181C27; color:#9BA3AF;">TRUE</span>
+                <span style="font-size:10.5px; padding:3px 8px; border-radius:4px; background:rgba(244,63,94,0.2); border:1px solid #F43F5E; color:#FB7185; font-weight:800;">✓ FALSE (Correct)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 Hardening Improvements -->
+        <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:18px; margin-bottom:20px;">
+          <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+            <span>🛡️</span> 5 Subsystem Production Hardening Upgrades
+          </h4>
+          <ul class="timer-checklist" style="gap:10px;">
+            <li><strong>App Blocker Resilience &amp; Instant Kickout:</strong> Added cold boot and <code>onServiceConnected()</code> preference sync, 1000ms debounce per package, and immediate <code>performGlobalAction(GLOBAL_ACTION_HOME)</code> dispatch before launching the lock screen.</li>
+            <li><strong>Intra-Question PDF Continuation Pagination:</strong> Generates multi-page exams with line-by-line bounds checking, <code>— Q&lt;Num&gt; (Continued) —</code> headers, and unbreakable formula character-level word wrapping.</li>
+            <li><strong>Room Database Transaction Atomicity:</strong> Wrapped all multi-table insertions across <code>QuizRepositoryImpl</code>, <code>QuestionPaperGenerator</code>, and <code>UniversalCsvProcessor</code> in <code>database.withTransaction</code> with 250-row batch chunking.</li>
+            <li><strong>Spaced Repetition 04:00 AM Alignment:</strong> Next review timestamps align deterministically to 04:00 AM on the target calendar day, eliminating time-of-day creep.</li>
+            <li><strong>Feynman Audio Walk Focus Hygiene:</strong> Releases audio focus immediately upon speech recognition error and composable disposal.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="spotlight-card reveal" style="margin-bottom:28px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="font-size:1.5rem; font-weight:800; color:var(--text-primary);">Objective Question Bank &amp; Dynamic Formation Engine (v1.7.0)</h3>
+            <div style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">Prior Production Release • Complete Feature Planning, Design &amp; Logic</div>
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-muted);">v1.7.0</span>
         </div>
 
         <p style="color:var(--text-secondary); margin-bottom:18px; line-height:1.65;">
