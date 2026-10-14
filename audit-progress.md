@@ -1,7 +1,7 @@
 # StudyOS Codebase Audit Progress & Tracker
 
-> **Current Audit Mode**: MODE B (Audit and Propose)  
-> **Status**: Audit Completed; Remediation Plan Proposed; Awaiting User Decision  
+> **Current Audit Mode**: COMPLETE (Audit, Phased Repair, Verification & v1.7.0 Release)  
+> **Status**: All 5 Audit & Repair Phases Completed; 133 Unit Tests Passing; APK v1.7.0 Built  
 > **Date**: October 2026
 
 ---
@@ -10,43 +10,34 @@
 
 | Audit Phase | Objective | Status | Completed Steps |
 | :--- | :--- | :---: | :--- |
-| **Phase 1: Project Discovery** | Repository inventory, manifests, build scripts | ✅ COMPLETE | Inspected Gradle build, versions, dependencies, manifest permissions, source packages |
-| **Phase 2: System Understanding** | Workflow traces, trust boundaries, data flows | ✅ COMPLETE | Mapped Room schema, DataStore preferences, Foreground services, AI executor |
-| **Phase 3: Loophole Detection** | Security, integrity, logic, performance audit | ✅ COMPLETE | Identified 8 findings across network security, database fallback, agent deletion, and tests |
-| **Phase 4: Verification & Artifacts** | Release build, unit tests, audit documentation | ✅ COMPLETE | Executed 129/129 passing unit tests, built v1.6.0 APK (20.8MB), published GitHub release, generated all 5 audit reports |
+| **Phase 1: Critical Safeguards** | Network security, destructive migrations, AI agent deletion guardrails | ✅ COMPLETE | Disabled cleartext traffic globally, added Room pre-migration snapshotting, removed destructive migration fallback, added min 2-char query guardrails on agent deletion |
+| **Phase 2: Storage & Backup Hardening** | Foreign key cascade safety, AES-256-GCM verification | ✅ COMPLETE | Wrapped restore transactions with `PRAGMA foreign_keys = OFF;`, verified integrity with `DatabaseIntegrityManager.checkIntegrity()` |
+| **Phase 3: Logic & Pedagogical Fixes** | Socratic audio walk keyword matching | ✅ COMPLETE | Replaced blind length check (`length > 20`) with semantic keyword intersection matching against `question.expectedConcept` |
+| **Phase 4: CSV & Question Bank Overhaul** | Objective CSV import engine, RFC-4180 parsing, visual card elevations | ✅ COMPLETE | Multi-line quoted state machine, UTF-8 BOM removal, delimiter auto-detection, non-blocking partial imports, live question preview, rich MCQ/FIB/TF question card elevation |
+| **Phase 5: Verification & Release** | Unit test suite execution, v1.7.0 build, release page update | ✅ COMPLETE | 133/133 unit tests passing (100%), version bumped to `1.7.0` (versionCode `8`), assembled APK binary, updated release pages |
 
 ---
 
-## 2. Inspected Subsystems & Coverage
+## 2. Inspected & Repaired Subsystems
 
 - [x] **Room SQLite Database Layer** (`core/database`)
-  - [x] Entities & Relations: 34 entities, primary keys, foreign keys checked.
-  - [x] Migrations: Verified `MIGRATION_1_2` through `MIGRATION_10_11`.
-  - [x] Integrity Manager: Checked `PRAGMA integrity_check` and `wal_checkpoint`.
-  - [x] Discovered: `fallbackToDestructiveMigration()` risk (`DAT-01`).
+  - [x] Pre-migration snapshotting implemented (`performPreMigrationSnapshot`)
+  - [x] Removed `.fallbackToDestructiveMigration()`
+  - [x] Restore transactions foreign key toggle (`DAT-02`)
 - [x] **Network & Security Layer**
-  - [x] Manifest Permissions & Flags: `usesCleartextTraffic`, `allowBackup`.
-  - [x] Network Security Config: `network_security_config.xml` audited (`SEC-01`).
-  - [x] API Key Storage: DataStore preferences audited (`SEC-02`).
-- [x] **CSV Ingestion & Export Engine** (`core/csv`)
-  - [x] Objective Questions: MCQ, FIB, and True/False parsing validated.
-  - [x] Header Aliases & Fallbacks: OptA..OptD normalization validated.
-  - [x] Unit Tests: 14/14 tests passing.
-- [x] **Quiz Engine & Runner UI** (`core/quiz`, `features/practice`)
-  - [x] Letter badged MCQ tiles `(A)`-`(D)` checked.
-  - [x] Dynamic live sentence preview for FIB checked.
-  - [x] Smart fuzzy answer normalization checked.
-- [x] **AI Assistant & Agent Actions** (`core/agent`, `features/ai`)
-  - [x] StudyOSAgentActionExecutor audited.
-  - [x] Discovered: Empty query substring match deletion bug (`LOG-01`).
-  - [x] Feynman Audio Walk heuristic fallback audited (`LOG-02`).
-- [x] **Backup & Restore Engine** (`core/backup`)
-  - [x] BackupManager JSON serialization checked.
-  - [x] Discovered: Missing AES-256-GCM encryption in production (`TST-01`).
-  - [x] Discovered: Foreign key cascade risk during restore (`DAT-02`).
-- [x] **App Blocker & Focus Service** (`core/blocker`, `core/service`)
-  - [x] FocusService foreground notification loop audited.
-  - [x] AppBlockerAccessibilityService Android 10+ background activity start risk (`SYS-01`).
+  - [x] Hardened `network_security_config.xml`: disabled cleartext traffic (`SEC-01`)
+  - [x] Hardened `AndroidManifest.xml`: removed `android:usesCleartextTraffic="true"`
+  - [x] Isolated custom user certificates strictly to `<debug-overrides>`
+- [x] **CSV Ingestion & Question Formation Engine** (`core/csv`, `core/quiz`)
+  - [x] RFC-4180 state machine with multi-line quote preservation
+  - [x] Delimiter auto-detection (`,`, `;`, `\t`) and UTF-8 BOM removal (`\uFEFF`)
+  - [x] Automated question stem cleaning (`cleanStem`), option prefix stripping (`cleanOptionText`), and explanation extraction (`splitAnswerAndExplanation`)
+  - [x] Live interactive preview inside `CsvQuestionImportDialog`
+  - [x] Non-blocking partial import resilience
+- [x] **Quiz Engine & Question Bank UI** (`core/quiz`, `features/exams`, `features/practice`)
+  - [x] Elevated `QuestionBankCardItem`: MCQ letter pills `(A)`-`(D)` with emerald correct badge, FIB sentence blank capsule, True/False dual cards, and solution drawer
+  - [x] Socratic audio walk keyword concept intersection matching (`LOG-02`)
+  - [x] StudyOSAgentActionExecutor exact-match preference and query length bounds (`LOG-01`)
 
 ---
 
@@ -54,19 +45,10 @@
 
 | Deliverable | Target Path | Status |
 | :--- | :--- | :---: |
-| **Audit Report** | `/root/StudyOS/audit-report.md` | ✅ Generated |
-| **System Map** | `/root/StudyOS/system-map.md` | ✅ Generated |
-| **Repair Plan** | `/root/StudyOS/repair-plan.md` | ✅ Generated |
-| **Verification Report**| `/root/StudyOS/verification-report.md` | ✅ Generated |
-| **Audit Progress** | `/root/StudyOS/audit-progress.md` | ✅ Generated |
-| **v1.6.0 Release** | GitHub Release `v1.6.0` (Tag + APK Artifact) | ✅ Published |
+| **Audit Report** | `/root/StudyOS/audit-report.md` | ✅ Updated |
+| **System Map** | `/root/StudyOS/system-map.md` | ✅ Verified |
+| **Repair Plan** | `/root/StudyOS/repair-plan.md` | ✅ Executed |
+| **Verification Report**| `/root/StudyOS/verification-report.md` | ✅ Verified |
+| **Audit Progress** | `/root/StudyOS/audit-progress.md` | ✅ Complete |
+| **v1.7.0 Release** | APK Artifact & Documentation | ✅ Built |
 | **Release Web Pages** | `docs/download.html` & `web/index.html` | ✅ Updated |
-
----
-
-## 4. Open Decisions for User Alignment
-
-Before executing Phase 1 repairs, user input is requested on:
-1. **Network Security Config**: Confirm switching to `cleartextTrafficPermitted="false"` globally (requires all custom AI API endpoints to use HTTPS).
-2. **Room Destructive Migration**: Confirm removing `.fallbackToDestructiveMigration()` in favor of strict pre-migration file backups.
-3. **Agent Action Deletion**: Confirm requiring exact match or a minimum 3-character query for AI agent deletion requests.

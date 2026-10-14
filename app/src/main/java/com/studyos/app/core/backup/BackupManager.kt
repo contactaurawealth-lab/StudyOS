@@ -137,6 +137,7 @@ object BackupManager {
             var tablesRestored = 0
             var rowsRestored = 0
 
+            sdb.execSQL("PRAGMA foreign_keys = OFF;")
             sdb.beginTransaction()
             try {
                 // Restore in dependency order using REPLACE
@@ -173,6 +174,10 @@ object BackupManager {
                 sdb.setTransactionSuccessful()
             } finally {
                 sdb.endTransaction()
+                sdb.execSQL("PRAGMA foreign_keys = ON;")
+                try {
+                    com.studyos.app.core.database.DatabaseIntegrityManager.checkIntegrity(sdb)
+                } catch (_: Exception) {}
             }
 
             BackupResult(

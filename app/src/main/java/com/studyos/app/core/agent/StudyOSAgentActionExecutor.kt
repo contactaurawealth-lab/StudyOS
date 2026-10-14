@@ -248,9 +248,14 @@ class StudyOSAgentActionExecutor(
     }
 
     private suspend fun deleteNote(titleQuery: String): AgentExecutionResult {
+        val clean = titleQuery.trim()
+        if (clean.length < 2) {
+            return AgentExecutionResult(false, "DELETE_NOTE", "Deletion query is too short or empty (\"$titleQuery\"). Aborted for safety.")
+        }
         val allNotes = noteDao.observeAllNotes().firstOrNull() ?: emptyList()
-        val target = allNotes.firstOrNull { it.title.contains(titleQuery, ignoreCase = true) || it.id == titleQuery }
-            ?: return AgentExecutionResult(false, "DELETE_NOTE", "Could not find note \"$titleQuery\" to delete.")
+        val target = allNotes.firstOrNull { it.id == clean || it.title.equals(clean, ignoreCase = true) }
+            ?: allNotes.firstOrNull { it.title.contains(clean, ignoreCase = true) }
+            ?: return AgentExecutionResult(false, "DELETE_NOTE", "Could not find note matching \"$clean\" to delete.")
 
         noteDao.deleteById(target.id)
         return AgentExecutionResult(
@@ -293,9 +298,14 @@ class StudyOSAgentActionExecutor(
     }
 
     private suspend fun deleteFlashcard(questionQuery: String): AgentExecutionResult {
+        val clean = questionQuery.trim()
+        if (clean.length < 2) {
+            return AgentExecutionResult(false, "DELETE_FLASHCARD", "Flashcard query is too short or empty (\"$questionQuery\"). Aborted for safety.")
+        }
         val allCards = flashcardDao.observeAllFlashcards().firstOrNull() ?: emptyList()
-        val target = allCards.firstOrNull { it.question.contains(questionQuery, ignoreCase = true) || it.id == questionQuery }
-            ?: return AgentExecutionResult(false, "DELETE_FLASHCARD", "Could not find flashcard matching \"$questionQuery\"")
+        val target = allCards.firstOrNull { it.id == clean || it.question.equals(clean, ignoreCase = true) }
+            ?: allCards.firstOrNull { it.question.contains(clean, ignoreCase = true) }
+            ?: return AgentExecutionResult(false, "DELETE_FLASHCARD", "Could not find flashcard matching \"$clean\"")
 
         flashcardDao.deleteById(target.id)
         return AgentExecutionResult(
@@ -337,9 +347,14 @@ class StudyOSAgentActionExecutor(
     }
 
     private suspend fun completeTask(titleQuery: String): AgentExecutionResult {
+        val clean = titleQuery.trim()
+        if (clean.length < 2) {
+            return AgentExecutionResult(false, "COMPLETE_TASK", "Task query is too short or empty (\"$titleQuery\"). Aborted.")
+        }
         val allTasks = taskDao.observeTasks().firstOrNull() ?: emptyList()
-        val target = allTasks.firstOrNull { it.title.contains(titleQuery, ignoreCase = true) || it.id == titleQuery }
-            ?: return AgentExecutionResult(false, "COMPLETE_TASK", "Could not find task matching \"$titleQuery\"")
+        val target = allTasks.firstOrNull { it.id == clean || it.title.equals(clean, ignoreCase = true) }
+            ?: allTasks.firstOrNull { it.title.contains(clean, ignoreCase = true) }
+            ?: return AgentExecutionResult(false, "COMPLETE_TASK", "Could not find task matching \"$clean\"")
 
         taskDao.updateStatus(target.id, TaskStatus.COMPLETED.name)
         return AgentExecutionResult(
@@ -351,9 +366,14 @@ class StudyOSAgentActionExecutor(
     }
 
     private suspend fun deleteTask(titleQuery: String): AgentExecutionResult {
+        val clean = titleQuery.trim()
+        if (clean.length < 2) {
+            return AgentExecutionResult(false, "DELETE_TASK", "Deletion query is too short or empty (\"$titleQuery\"). Aborted for safety.")
+        }
         val allTasks = taskDao.observeTasks().firstOrNull() ?: emptyList()
-        val target = allTasks.firstOrNull { it.title.contains(titleQuery, ignoreCase = true) || it.id == titleQuery }
-            ?: return AgentExecutionResult(false, "DELETE_TASK", "Could not find task \"$titleQuery\" to delete.")
+        val target = allTasks.firstOrNull { it.id == clean || it.title.equals(clean, ignoreCase = true) }
+            ?: allTasks.firstOrNull { it.title.contains(clean, ignoreCase = true) }
+            ?: return AgentExecutionResult(false, "DELETE_TASK", "Could not find task \"$clean\" to delete.")
 
         taskDao.deleteById(target.id)
         return AgentExecutionResult(
@@ -390,9 +410,14 @@ class StudyOSAgentActionExecutor(
     }
 
     private suspend fun deleteExam(nameQuery: String): AgentExecutionResult {
+        val clean = nameQuery.trim()
+        if (clean.length < 2) {
+            return AgentExecutionResult(false, "DELETE_EXAM", "Exam query is too short or empty (\"$nameQuery\"). Aborted for safety.")
+        }
         val exams = examDao.observeAllExams().firstOrNull() ?: emptyList()
-        val target = exams.firstOrNull { it.name.contains(nameQuery, ignoreCase = true) || it.id == nameQuery }
-            ?: return AgentExecutionResult(false, "DELETE_EXAM", "Could not find exam \"$nameQuery\" to delete.")
+        val target = exams.firstOrNull { it.id == clean || it.name.equals(clean, ignoreCase = true) }
+            ?: exams.firstOrNull { it.name.contains(clean, ignoreCase = true) }
+            ?: return AgentExecutionResult(false, "DELETE_EXAM", "Could not find exam \"$clean\" to delete.")
 
         examDao.deleteExamById(target.id)
         return AgentExecutionResult(

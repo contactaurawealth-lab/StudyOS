@@ -397,10 +397,21 @@ class FeynmanAudioWalkViewModel(
         }
 
         if (feedback.isBlank()) {
-            feedback = if (studentAnswer.length > 20) {
-                "Spot on! Great articulation of the core principles. That's a solid explanation."
-            } else {
-                "Good start! Remember to connect this directly back to the underlying mechanism and why it matters."
+            val conceptKeywords = question.expectedConcept.lowercase()
+                .split(Regex("[^a-zA-Z0-9]+"))
+                .filter { it.length > 3 && it !in setOf("that", "this", "with", "from", "have", "what", "which", "when", "where", "because", "their", "there") }
+            val answerWords = studentAnswer.lowercase().split(Regex("[^a-zA-Z0-9]+")).toSet()
+            val matchCount = conceptKeywords.count { it in answerWords }
+
+            feedback = when {
+                conceptKeywords.isNotEmpty() && matchCount >= (conceptKeywords.size / 2).coerceAtLeast(1) ->
+                    "Spot on! Great articulation of the core principles. That's a solid explanation."
+                studentAnswer.length >= 25 && matchCount > 0 ->
+                    "Good thoughtful explanation! Make sure to also touch on ${question.expectedConcept.take(40)}."
+                studentAnswer.isNotBlank() ->
+                    "Good effort! The key concept here revolves around: ${question.expectedConcept}."
+                else ->
+                    "No response detected. Take a moment to review this core principle: ${question.expectedConcept}."
             }
         }
 

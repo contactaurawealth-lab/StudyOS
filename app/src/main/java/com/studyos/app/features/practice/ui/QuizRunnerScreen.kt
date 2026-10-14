@@ -441,12 +441,14 @@ fun QuizRunnerScreen(
                             val optionLetters = listOf("A", "B", "C", "D", "E", "F")
                             question.options.forEachIndexed { optIndex, option ->
                                 val letter = optionLetters.getOrElse(optIndex) { "${optIndex + 1}" }
+                                val cleanText = com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanOptionText(option)
                                 val isSelected = currentAnswer == option ||
                                     currentAnswer.equals("Option $letter", ignoreCase = true) ||
-                                    currentAnswer.equals(letter, ignoreCase = true)
+                                    currentAnswer.equals(letter, ignoreCase = true) ||
+                                    currentAnswer.equals(cleanText, ignoreCase = true)
                                 McqOptionTile(
                                     letter = letter,
-                                    text = option,
+                                    text = cleanText,
                                     isSelected = isSelected,
                                     onClick = { viewModel.selectAnswer(question.id, option) }
                                 )

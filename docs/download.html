@@ -133,8 +133,8 @@
             Verified SHA-256 Checksum
           </div>
           <div class="checksum-box">
-            <span style="user-select:all;">0bed106e9ad075d8be74f0c27bbd085d442d7ca011acfb2fd096fa5668f9cb3d</span>
-            <button class="copy-btn" data-copy-text="0bed106e9ad075d8be74f0c27bbd085d442d7ca011acfb2fd096fa5668f9cb3d">
+            <span style="user-select:all;">95929e0b5ab1f21f184b8ac0de36f6057a2392626a01c39b153b1ea58ae5ee91</span>
+            <button class="copy-btn" data-copy-text="95929e0b5ab1f21f184b8ac0de36f6057a2392626a01c39b153b1ea58ae5ee91">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <span>Copy SHA-256</span>
             </button>
@@ -145,7 +145,7 @@
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px; max-width:700px; margin:0 auto; text-align:left;">
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Status</div>
-            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">Stable Build (v1.6.0)</div>
+            <div style="font-size:1rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">Stable Build (v1.7.0)</div>
           </div>
           <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
             <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Package Size</div>
@@ -220,13 +220,235 @@
         <h2 class="section-title">Release History</h2>
       </div>
 
-      <div class="spotlight-card reveal" style="margin-bottom:24px; border-color:var(--border-accent);">
+      <div class="spotlight-card reveal" style="margin-bottom:28px; border-color:var(--border-accent); background:linear-gradient(180deg, rgba(211,154,58,0.06) 0%, rgba(18,21,29,0.85) 100%);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="font-size:1.5rem; font-weight:800; color:var(--text-primary);">Objective Question Bank &amp; Dynamic Formation Engine (v1.7.0)</h3>
+            <div style="font-size:0.85rem; color:var(--accent); font-weight:600;">Latest Production Release • Complete Feature Planning, Design &amp; Logic</div>
+          </div>
+          <span class="announcement-badge">Latest Release</span>
+        </div>
+
+        <p style="color:var(--text-secondary); margin-bottom:18px; line-height:1.65;">
+          A major architectural leap introducing the <strong>Universal Objective CSV Engine</strong>, deterministic <strong>Question Formation Normalization</strong>, and interactive <strong>Live Question Previews</strong>. Import hundreds of Multiple Choice Questions (MCQs), Fill in the Blanks (FIBs), and True/False questions in seconds with zero data loss and automated syntax repair.
+        </p>
+
+        <!-- Feature Planning & Architecture -->
+        <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:18px; margin-bottom:20px;">
+          <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+            <span>📐</span> Feature Planning &amp; Architectural Logic
+          </h4>
+          <p style="font-size:0.92rem; color:var(--text-secondary); margin-bottom:12px;">
+            Standard question banks frequently struggle when importing CSVs due to Excel UTF-8 BOM byte order marks (<code>\uFEFF</code>), embedded multi-line cells containing line breaks inside quotes, inconsistent delimiter conventions (semicolons, commas, tabs), and accidental question numbering or option prefixes. The v1.7.0 engine implements a multi-stage offline pipeline:
+          </p>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">1. Ingestion &amp; BOM Stripping</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">Strips UTF-8 BOM headers (<code>\uFEFF</code>, <code>\uEFBBBF</code>) and auto-detects delimiters (<code>,</code> vs <code>;</code> vs <code>\t</code>).</div>
+            </div>
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">2. RFC-4180 State Machine</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">Character-by-character tokenizer perfectly preserves line breaks inside multi-line quoted questions and explanations.</div>
+            </div>
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">3. Question Formation Logic</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">Strips redundant prefixes (<code>Q1.</code>, <code>A)</code>) and separates explanations from correct answers (<code>splitAnswerAndExplanation</code>).</div>
+            </div>
+            <div style="background:var(--surface-2); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--accent); text-transform:uppercase;">4. Dual Room Routing &amp; Resiliency</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">Non-blocking partial imports populate <code>question_bank</code> and <code>flashcards</code>; invalid rows are skipped without halting valid items.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- How Each Question Looks Section -->
+        <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:18px; margin-bottom:20px;">
+          <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <span>👁️</span> Visual Blueprint: How Each Question Looks
+          </h4>
+          
+          <!-- MCQ Visual Card Mockup -->
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.85rem; font-weight:700; color:var(--accent); margin-bottom:6px;">1. Multiple Choice Question (MCQ) Card Layout</div>
+            <div style="background:#12151D; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px;">
+              <!-- Header -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <span style="background:rgba(99,102,241,0.2); color:#818CF8; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">MCQ</span>
+                  <span style="background:#181C27; border:0.5px solid rgba(255,255,255,0.1); padding:3px 8px; border-radius:6px; font-size:10px; color:#10B981; font-weight:600;">● Easy</span>
+                  <span style="background:#181C27; border:0.5px solid rgba(255,255,255,0.1); padding:3px 6px; border-radius:6px; font-size:9px; color:#9BA3AF;">🎯 2x tested</span>
+                </div>
+                <span style="background:rgba(211,154,58,0.15); color:#D39A3A; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700;">★ 1 Mark</span>
+              </div>
+              <!-- Stem -->
+              <div style="font-weight:600; font-size:13.5px; color:#F0F2F5; margin-bottom:10px;">
+                Which particle is the primary carrier of electric current in metallic conductors?
+              </div>
+              <!-- Options Grid -->
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:7px 10px; border-radius:8px;">
+                  <span style="background:#222736; color:#9BA3AF; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:700; margin-right:10px;">A</span>
+                  <span style="color:#9BA3AF; font-size:12.5px;">Protons</span>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.12); border:1.2px solid #10B981; padding:7px 10px; border-radius:8px;">
+                  <div style="display:flex; align-items:center;">
+                    <span style="background:#10B981; color:#0A0B0E; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:800; margin-right:10px;">B</span>
+                    <span style="color:#F0F2F5; font-size:12.5px; font-weight:600;">Free Electrons</span>
+                  </div>
+                  <span style="background:rgba(16,185,129,0.25); color:#34D399; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px;">✓ Correct</span>
+                </div>
+                <div style="display:flex; align-items:center; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:7px 10px; border-radius:8px;">
+                  <span style="background:#222736; color:#9BA3AF; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:700; margin-right:10px;">C</span>
+                  <span style="color:#9BA3AF; font-size:12.5px;">Neutrons</span>
+                </div>
+                <div style="display:flex; align-items:center; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:7px 10px; border-radius:8px;">
+                  <span style="background:#222736; color:#9BA3AF; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:700; margin-right:10px;">D</span>
+                  <span style="color:#9BA3AF; font-size:12.5px;">Positrons</span>
+                </div>
+              </div>
+              <!-- Explanation Drawer -->
+              <div style="margin-top:10px; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); padding:8px 12px; border-radius:8px;">
+                <div style="font-size:10px; font-weight:700; color:#D39A3A; margin-bottom:2px;">💡 Solution Key &amp; Rationale</div>
+                <div style="font-size:11.5px; color:#9BA3AF; line-height:1.45;">In metallic conductors, valence electrons are delocalized and drift under an applied electric field.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FIB Visual Card Mockup -->
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.85rem; font-weight:700; color:var(--accent); margin-bottom:6px;">2. Fill-in-the-Blank (FIB) Card Layout</div>
+            <div style="background:#12151D; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="background:rgba(16,185,129,0.2); color:#34D399; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">FILL BLANK</span>
+                <span style="background:rgba(211,154,58,0.15); color:#D39A3A; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700;">★ 1 Mark</span>
+              </div>
+              <div style="font-weight:600; font-size:13.5px; color:#F0F2F5; margin-bottom:10px;">
+                The light-absorbing green pigment found inside chloroplasts is called <span style="background:rgba(211,154,58,0.15); border:1px dashed #D39A3A; padding:1px 8px; border-radius:4px; color:#D39A3A; font-family:monospace;">[ ________ ]</span>.
+              </div>
+              <div style="display:flex; align-items:center; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.35); padding:8px 12px; border-radius:8px;">
+                <span style="color:#10B981; font-size:11.5px; font-weight:700; margin-right:8px;">🎯 Target Blank Answer:</span>
+                <span style="color:#34D399; font-weight:800; font-size:13px;">[ Chlorophyll ]</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- True/False Visual Card Mockup -->
+          <div>
+            <div style="font-size:0.85rem; font-weight:700; color:var(--accent); margin-bottom:6px;">3. True / False Card Layout</div>
+            <div style="background:#12151D; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="background:rgba(56,189,248,0.2); color:#38BDF8; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">TRUE / FALSE</span>
+                <span style="background:rgba(211,154,58,0.15); color:#D39A3A; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700;">★ 1 Mark</span>
+              </div>
+              <div style="font-weight:600; font-size:13.5px; color:#F0F2F5; margin-bottom:10px;">
+                An exothermic reaction absorbs thermal energy from its surroundings.
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div style="text-align:center; padding:8px; background:#181C27; border:0.5px solid rgba(255,255,255,0.08); border-radius:8px; color:#9BA3AF; font-size:11.5px; font-weight:600;">
+                  TRUE
+                </div>
+                <div style="text-align:center; padding:8px; background:rgba(244,63,94,0.15); border:1.5px solid #F43F5E; border-radius:8px; color:#FB7185; font-size:11.5px; font-weight:800;">
+                  ✓ FALSE (Correct)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CSV Blueprint Specification Table -->
+        <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:18px; margin-bottom:20px;">
+          <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <span>📋</span> CSV Import Blueprint &amp; Column Specifications
+          </h4>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:left;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border); color:var(--accent);">
+                  <th style="padding:8px 6px;">Column Name</th>
+                  <th style="padding:8px 6px;">Accepted Aliases</th>
+                  <th style="padding:8px 6px;">Required?</th>
+                  <th style="padding:8px 6px;">Default Fallback</th>
+                  <th style="padding:8px 6px;">Purpose &amp; Description</th>
+                </tr>
+              </thead>
+              <tbody style="color:var(--text-secondary);">
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">SubjectName</td>
+                  <td style="padding:8px 6px;">subject, sub, course</td>
+                  <td style="padding:8px 6px; color:#10B981;">Optional</td>
+                  <td style="padding:8px 6px;">"General"</td>
+                  <td style="padding:8px 6px;">Course or subject category hierarchy</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">ChapterName</td>
+                  <td style="padding:8px 6px;">chapter, chap, unit, module</td>
+                  <td style="padding:8px 6px; color:#10B981;">Optional</td>
+                  <td style="padding:8px 6px;">"General Practice"</td>
+                  <td style="padding:8px 6px;">Chapter grouping for practice hub</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">QuestionType</td>
+                  <td style="padding:8px 6px;">type, qtype, category</td>
+                  <td style="padding:8px 6px; color:#10B981;">Optional</td>
+                  <td style="padding:8px 6px;">Auto-detected</td>
+                  <td style="padding:8px 6px;">MCQ, FIB, TRUE_FALSE, or SHORT_ANSWER</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">Question</td>
+                  <td style="padding:8px 6px;">questiontext, prompt, stem, q</td>
+                  <td style="padding:8px 6px; color:#F43F5E; font-weight:700;">Mandatory</td>
+                  <td style="padding:8px 6px;">—</td>
+                  <td style="padding:8px 6px;">The core question prompt or sentence</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">OptionA..D</td>
+                  <td style="padding:8px 6px;">opta..d, a..d, choicea..d</td>
+                  <td style="padding:8px 6px;">Conditional</td>
+                  <td style="padding:8px 6px;">Blank</td>
+                  <td style="padding:8px 6px;">MCQ options (OptionA &amp; B required for MCQ)</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">CorrectAnswer</td>
+                  <td style="padding:8px 6px;">answer, key, correct, ans</td>
+                  <td style="padding:8px 6px; color:#F43F5E; font-weight:700;">Mandatory</td>
+                  <td style="padding:8px 6px;">—</td>
+                  <td style="padding:8px 6px;">Matching option letter, boolean, or exact text</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">Explanation</td>
+                  <td style="padding:8px 6px;">solution, markingscheme, rationale</td>
+                  <td style="padding:8px 6px; color:#10B981;">Optional</td>
+                  <td style="padding:8px 6px;">Blank</td>
+                  <td style="padding:8px 6px;">Pedagogical step-by-step reasoning</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 6px; font-family:var(--font-mono); color:#F0F2F5; font-weight:600;">Difficulty / Marks</td>
+                  <td style="padding:8px 6px;">diff, level, marks, score</td>
+                  <td style="padding:8px 6px; color:#10B981;">Optional</td>
+                  <td style="padding:8px 6px;">"MEDIUM" / 1</td>
+                  <td style="padding:8px 6px;">EASY | MEDIUM | HARD; Marks weight</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <ul class="timer-checklist" style="gap:10px;">
+          <li><strong>Universal CSV Auto-Detection:</strong> Auto-detects whether the user is pasting Objective questions (MCQs, FIBs, True/False) or Standard numerical/theory questions with seamless 3-way toggle.</li>
+          <li><strong>Live In-Dialog Preview:</strong> Immediate real-time rendering of the first recognized question card inside the modal before committing the import.</li>
+          <li><strong>Non-Blocking Isolation:</strong> Isolated syntax mistakes in specific rows are gracefully reported while all valid rows are instantly imported into Room SQLite.</li>
+          <li><strong>Phase 1–5 Hardened Security &amp; Data Safeguards:</strong> Fully enforced network security cleartext prohibitions, pre-migration database snapshotting, and air-gapped AES-256-GCM backup integrity verification.</li>
+          <li><strong>133 Unit Tests Passing:</strong> Comprehensive unit test suite covering BOM removal, delimiter auto-detection, multi-line quoted fields, fuzzy header normalization, and question cleaning logic.</li>
+        </ul>
+      </div>
+
+      <div class="spotlight-card reveal" style="margin-bottom:24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <div>
-            <h3 style="font-size:1.4rem;">Objective Questions CSV Engine &amp; Quiz Overhaul (v1.6.0)</h3>
-            <div style="font-size:0.85rem; color:var(--text-muted);">Current Stable Production Build</div>
+            <h3 style="font-size:1.4rem;">Objective Questions CSV Engine (v1.6.0)</h3>
+            <div style="font-size:0.85rem; color:var(--text-muted);">Prior Release Build</div>
           </div>
-          <span class="announcement-badge">Latest</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);">v1.6.0</span>
         </div>
 
         <ul class="timer-checklist" style="gap:10px;">

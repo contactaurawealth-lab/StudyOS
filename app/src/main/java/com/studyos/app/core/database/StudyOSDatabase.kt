@@ -733,8 +733,20 @@ abstract class StudyOSDatabase : RoomDatabase() {
             }
         }
 
+        private fun performPreMigrationSnapshot(context: Context) {
+            try {
+                val dbFile = context.getDatabasePath("studyos_database.db")
+                if (dbFile.exists() && dbFile.length() > 0) {
+                    val snapshotDir = java.io.File(context.filesDir, "db_snapshots").apply { if (!exists()) mkdirs() }
+                    val snapshotFile = java.io.File(snapshotDir, "pre_migration_backup.db")
+                    dbFile.copyTo(snapshotFile, overwrite = true)
+                }
+            } catch (_: Exception) {}
+        }
+
         fun getDatabase(context: Context): StudyOSDatabase {
             return INSTANCE ?: synchronized(this) {
+                performPreMigrationSnapshot(context.applicationContext)
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     StudyOSDatabase::class.java,
@@ -753,7 +765,6 @@ abstract class StudyOSDatabase : RoomDatabase() {
                             } catch (_: Exception) {}
                         }
                     })
-                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

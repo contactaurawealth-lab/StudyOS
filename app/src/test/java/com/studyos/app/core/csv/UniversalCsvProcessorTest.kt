@@ -128,4 +128,97 @@ class UniversalCsvProcessorTest {
         assertTrue(result.errors[1].errorMessage.contains("True/False answer must be True or False"))
         assertTrue(result.errors[2].errorMessage.contains("Question cannot be blank"))
     }
+
+    @Test
+    fun testMultilineQuotedFieldsParsing() {
+        val multilineCsv = "SubjectName,ChapterName,Question,CorrectAnswer\n" +
+            "Physics,Thermodynamics,\"What is the definition of entropy?\n" +
+            "Include thermodynamic units and reference to Carnot cycles.\",\"Entropy S = dQ/T with units J/K.\"\n"
+
+        val result = processor.parseAndValidateObjectiveQuestions(multilineCsv)
+        assertEquals("Should parse 1 multi-line row with 0 errors", 0, result.errors.size)
+        assertEquals(1, result.validRowsCount)
+        assertTrue(result.parsedData[0]["question"]!!.contains("\n"))
+        assertTrue(result.parsedData[0]["question"]!!.contains("Include thermodynamic units"))
+    }
+
+    @Test
+    fun testBomRemovalAndSpacedHeaders() {
+        val bomCsv = "\uFEFFSubject Name, Chapter Name, Question Text, Option A, Option B, Correct Answer\n" +
+            "Chemistry, Atomic Structure, \"Which particle resides in the nucleus?\", Electron, Proton, Proton\n"
+
+        val result = processor.parseAndValidateObjectiveQuestions(bomCsv)
+        assertEquals(0, result.errors.size)
+        assertEquals(1, result.validRowsCount)
+        assertEquals("Chemistry", result.parsedData[0]["subjectname"])
+        assertEquals("Atomic Structure", result.parsedData[0]["chaptername"])
+        assertEquals("Proton", result.parsedData[0]["optionb"])
+        assertEquals("MCQ", result.parsedData[0]["questiontype"])
+    }
+
+    @Test
+    fun testSemicolonDelimiterAutoDetection() {
+        val semiCsv = "SubjectName;ChapterName;Question;CorrectAnswer\n" +
+            "Biology;Cell Biology;\"What is the powerhouse of the cell?\";Mitochondria\n"
+
+        val result = processor.parseAndValidateObjectiveQuestions(semiCsv)
+        assertEquals(0, result.errors.size)
+        assertEquals(1, result.validRowsCount)
+        assertEquals("Mitochondria", result.parsedData[0]["correctanswer"])
+        assertEquals("SHORT_ANSWER", result.parsedData[0]["questiontype"])
+    }
+
+    @Test
+    fun testMissingSubjectAndChapterDefaults() {
+        val minimalCsv = "Question,CorrectAnswer\n" +
+            "\"What is 2 + 2?\",\"4\"\n"
+
+        val result = processor.parseAndValidateObjectiveQuestions(minimalCsv)
+        assertEquals(0, result.errors.size)
+        assertEquals(1, result.validRowsCount)
+        assertEquals("General", result.parsedData[0]["subjectname"])
+        assertEquals("General Practice", result.parsedData[0]["chaptername"])
+        assertEquals("4", result.parsedData[0]["correctanswer"])
+    }
+
+    @Test
+    fun testQuestionFormationAndCleaning() {
+        val rawStem1 = "Q1. What is the fundamental unit of heredity? Ans: (A)"
+        val clean1 = com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanStem(rawStem1)
+        assertEquals("What is the fundamental unit of heredity?", clean1)
+
+        val rawStem2 = "Question 12: Which organelle produces ATP? \nAnswer: Mitochondria"
+        val clean2 = com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanStem(rawStem2)
+        assertEquals("Which organelle produces ATP?", clean2)
+
+        val rawOptA = "A) Mitochondria"
+        val cleanOptA = com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanOptionText(rawOptA)
+        assertEquals("Mitochondria", cleanOptA)
+
+        val rawOptB = "(B) Ribosome;"
+        val cleanOptB = com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanOptionText(rawOptB)
+        assertEquals("Ribosome", cleanOptB)
+
+        val rawOptC = "Option C: Chloroplast"
+        val cleanOptC = com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanOptionText(rawOptC)
+        assertEquals("Chloroplast", cleanOptC)
+
+        val scheme = "B • Explanation: Mitochondria generates cellular energy via ATP synthesis."
+        val (ans, exp) = com.studyos.app.core.quiz.QuestionBankQuizEngine.splitAnswerAndExplanation(scheme)
+        assertEquals("B", ans)
+        assertEquals("Mitochondria generates cellular energy via ATP synthesis.", exp)
+
+        val parsedMcq = com.studyos.app.core.quiz.QuestionBankQuizEngine.parseQuestionContent(
+            questionText = "What is the powerhouse of the cell?\n(A) Nucleus\n(B) Mitochondria\n(C) Ribosome\n(D) Golgi",
+            markingScheme = "B • Explanation: ATP generator",
+            questionTypeHint = "MCQ"
+        )
+        assertEquals(com.studyos.app.domain.model.QuestionType.MCQ, parsedMcq.type)
+        assertEquals("Mitochondria", parsedMcq.correctAnswer)
+        assertEquals("What is the powerhouse of the cell?", parsedMcq.questionStem)
+        assertEquals(4, parsedMcq.options.size)
+        assertEquals("Nucleus", parsedMcq.options[0])
+        assertEquals("Mitochondria", parsedMcq.options[1])
+        assertEquals("ATP generator", parsedMcq.explanation)
+    }
 }
