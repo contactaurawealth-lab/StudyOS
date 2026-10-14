@@ -274,6 +274,7 @@ fun FeynmanAudioWalkScreen(
                         }
                         override fun onError(error: Int) {
                             isSpeechRecognizerListening = false
+                            releaseAudioFocus()
                             try {
                                 cancel()
                             } catch (_: Exception) {}
@@ -299,6 +300,7 @@ fun FeynmanAudioWalkScreen(
             try {
                 recognizer?.cancel()
                 recognizer?.destroy()
+                releaseAudioFocus()
             } catch (_: Exception) {}
         }
     }

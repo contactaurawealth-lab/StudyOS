@@ -1,5 +1,6 @@
 package com.studyos.app.core.csv
 
+import androidx.room.withTransaction
 import com.studyos.app.core.database.StudyOSDatabase
 import com.studyos.app.core.database.entity.ChapterEntity
 import com.studyos.app.core.database.entity.MistakeEntity
@@ -36,7 +37,9 @@ enum class QuestionImportTarget(val displayName: String) {
 data class CsvRowError(
     val lineNumber: Int,
     val rowContent: String,
-    val errorMessage: String
+    val errorMessage: String,
+    val rowData: Map<String, String>? = null,
+    val canFixInUi: Boolean = false
 )
 
 data class CsvValidationResult(
@@ -121,7 +124,7 @@ class UniversalCsvProcessor(
 
         for (i in 1 until lines.size) {
             val line = lines[i]
-            if (line.isEmpty() || (line.size == 1 && line[0].isBlank())) continue
+            if (line.isEmpty() || line.all { it.isBlank() }) continue
 
             val rowMap = mutableMapOf<String, String>()
             for (colIdx in 0 until minOf(header.size, line.size)) {
@@ -388,7 +391,7 @@ class UniversalCsvProcessor(
 
         for (i in 1 until lines.size) {
             val line = lines[i]
-            if (line.isEmpty() || (line.size == 1 && line[0].isBlank())) continue
+            if (line.isEmpty() || line.all { it.isBlank() }) continue
 
             fun getVal(idx: Int): String = if (idx in line.indices) line[idx].trim() else ""
 
@@ -404,18 +407,19 @@ class UniversalCsvProcessor(
             if (q.isBlank()) err = "Question cannot be blank"
             else if (ans.isBlank()) err = "Answer cannot be blank"
 
+            val rowMap = mapOf(
+                "subjectname" to sub,
+                "chaptername" to chap,
+                "topicname" to top,
+                "question" to q,
+                "answer" to ans,
+                "marks" to (marksStr.toIntOrNull()?.coerceAtLeast(1)?.toString() ?: "1"),
+                "difficulty" to (if (diffStr.isNotBlank()) diffStr.uppercase() else "MEDIUM")
+            )
+
             if (err != null) {
-                errors.add(CsvRowError(i + 1, line.joinToString(","), err))
+                errors.add(CsvRowError(i + 1, line.joinToString(","), err, rowData = rowMap, canFixInUi = true))
             } else {
-                val rowMap = mapOf(
-                    "subjectname" to sub,
-                    "chaptername" to chap,
-                    "topicname" to top,
-                    "question" to q,
-                    "answer" to ans,
-                    "marks" to (marksStr.toIntOrNull()?.coerceAtLeast(1)?.toString() ?: "1"),
-                    "difficulty" to (if (diffStr.isNotBlank()) diffStr.uppercase() else "MEDIUM")
-                )
                 parsed.add(rowMap)
             }
         }
@@ -570,14 +574,16 @@ class UniversalCsvProcessor(
         val subjectIdx = header.indexOfFirst { it in listOf("subjectname", "subject", "sub", "course", "subjecttitle") }
         val chapterIdx = header.indexOfFirst { it in listOf("chaptername", "chapter", "chap", "unit", "module", "section") }
         val topicIdx = header.indexOfFirst { it in listOf("topicname", "topic", "subtopic", "concept") }
-        val typeIdx = header.indexOfFirst { it in listOf("questiontype", "type", "qtype", "category", "format") }
-        val questionIdx = header.indexOfFirst { it in listOf("question", "questiontext", "prompt", "stem", "problem", "q", "item") }
-        val optAIdx = header.indexOfFirst { it in listOf("optiona", "opta", "a", "opt1", "option1", "choicea", "choice1", "(a)") }
-        val optBIdx = header.indexOfFirst { it in listOf("optionb", "optb", "b", "opt2", "option2", "choiceb", "choice2", "(b)") }
-        val optCIdx = header.indexOfFirst { it in listOf("optionc", "optc", "c", "opt3", "option3", "choicec", "choice3", "(c)") }
-        val optDIdx = header.indexOfFirst { it in listOf("optiond", "optd", "d", "opt4", "option4", "choiced", "choice4", "(d)") }
-        val answerIdx = header.indexOfFirst { it in listOf("correctanswer", "answer", "key", "correct", "expectedanswer", "expected", "solution", "ans", "markingscheme") }
-        val explanationIdx = header.indexOfFirst { it in listOf("explanation", "markingscheme", "solution", "rationale", "notes", "hint") }
+        val typeIdx = header.indexOfFirst { it in listOf("questiontype", "type", "qtype", "category", "format", "tf", "truefalse") }
+        val questionIdx = header.indexOfFirst { it in listOf("question", "questiontext", "prompt", "stem", "problem", "q", "item", "questiondescription", "questionstem") }
+        val optAIdx = header.indexOfFirst { it in listOf("optiona", "opta", "a", "opt1", "option1", "choicea", "choice1", "(a)", "a)") }
+        val optBIdx = header.indexOfFirst { it in listOf("optionb", "optb", "b", "opt2", "option2", "choiceb", "choice2", "(b)", "b)") }
+        val optCIdx = header.indexOfFirst { it in listOf("optionc", "optc", "c", "opt3", "option3", "choicec", "choice3", "(c)", "c)") }
+        val optDIdx = header.indexOfFirst { it in listOf("optiond", "optd", "d", "opt4", "option4", "choiced", "choice4", "(d)", "d)") }
+        val answerIdx = header.indexOfFirst { it in listOf("correctanswer", "answer", "key", "correct", "expectedanswer", "expected", "solution", "ans", "markingscheme", "correctoption", "answerkey", "rightanswer", "correctchoice", "correctans", "optanswer") }
+        val explanationIdx = header.indices.firstOrNull { idx ->
+            idx != answerIdx && header[idx] in listOf("explanation", "markingscheme", "solution", "rationale", "notes", "hint", "reason", "detail")
+        } ?: -1
         val diffIdx = header.indexOfFirst { it in listOf("difficulty", "diff", "level", "tier") }
         val marksIdx = header.indexOfFirst { it in listOf("marks", "mark", "score", "points") }
 
@@ -596,7 +602,7 @@ class UniversalCsvProcessor(
 
         for (i in 1 until lines.size) {
             val line = lines[i]
-            if (line.isEmpty() || (line.size == 1 && line[0].isBlank())) continue
+            if (line.isEmpty() || line.all { it.isBlank() }) continue
 
             fun getVal(idx: Int): String = if (idx in line.indices) line[idx].trim() else ""
 
@@ -614,57 +620,70 @@ class UniversalCsvProcessor(
             val diffStr = if (diffIdx != -1) getVal(diffIdx) else "MEDIUM"
             val marksStr = if (marksIdx != -1) getVal(marksIdx) else "1"
 
-            var err: String? = null
-            if (q.isBlank()) {
-                err = "Question cannot be blank"
-            } else if (ans.isBlank()) {
-                err = "CorrectAnswer cannot be blank"
-            } else {
-                val inferredType = when {
-                    rawType.equals("FIB", ignoreCase = true) || rawType.contains("fill", ignoreCase = true) || rawType.contains("blank", ignoreCase = true) -> "FIB"
-                    rawType.equals("TRUE_FALSE", ignoreCase = true) || rawType.equals("TF", ignoreCase = true) || rawType.equals("T/F", ignoreCase = true) || rawType.contains("true", ignoreCase = true) -> "TRUE_FALSE"
-                    rawType.equals("MCQ", ignoreCase = true) || rawType.contains("choice", ignoreCase = true) || rawType.contains("multiple", ignoreCase = true) -> "MCQ"
-                    optA.isNotBlank() && optB.isNotBlank() -> "MCQ"
-                    q.contains("____") || q.contains("[blank]", ignoreCase = true) -> "FIB"
-                    ans.equals("true", ignoreCase = true) || ans.equals("false", ignoreCase = true) -> "TRUE_FALSE"
-                    else -> "SHORT_ANSWER"
-                }
+            var cleanQ = q
+            var curOptA = optA
+            var curOptB = optB
+            var curOptC = optC
+            var curOptD = optD
+            var curAns = ans
 
-                if (rawType.equals("MCQ", ignoreCase = true) && (optA.isBlank() || optB.isBlank())) {
-                    err = "MCQ question requires at least OptionA and OptionB"
-                } else if (inferredType == "TRUE_FALSE" && ans.lowercase() !in listOf("true", "false", "t", "f", "yes", "no", "1", "0")) {
-                    err = "True/False answer must be True or False (got: '$ans')"
+            // If options are missing in separate columns, check if options are embedded inside the question stem!
+            if ((curOptA.isBlank() || curOptB.isBlank()) &&
+                (rawType.equals("MCQ", ignoreCase = true) || cleanQ.contains("(A)") || cleanQ.contains("A)") || cleanQ.contains("[A]"))
+            ) {
+                val parsed = com.studyos.app.core.quiz.QuestionBankQuizEngine.parseQuestionContent(cleanQ, curAns, "MCQ")
+                if (parsed.options.size >= 2) {
+                    cleanQ = parsed.questionStem
+                    curOptA = parsed.options.getOrNull(0) ?: curOptA
+                    curOptB = parsed.options.getOrNull(1) ?: curOptB
+                    curOptC = parsed.options.getOrNull(2) ?: curOptC
+                    curOptD = parsed.options.getOrNull(3) ?: curOptD
+                    if (curAns.isBlank() && parsed.correctAnswer.isNotBlank()) {
+                        curAns = parsed.correctAnswer
+                    }
                 }
             }
 
-            if (err != null) {
-                errors.add(CsvRowError(i + 1, line.joinToString(","), err))
-            } else {
-                val inferredType = when {
-                    rawType.equals("FIB", ignoreCase = true) || rawType.contains("fill", ignoreCase = true) || rawType.contains("blank", ignoreCase = true) -> "FIB"
-                    rawType.equals("TRUE_FALSE", ignoreCase = true) || rawType.equals("TF", ignoreCase = true) || rawType.equals("T/F", ignoreCase = true) || rawType.contains("true", ignoreCase = true) -> "TRUE_FALSE"
-                    rawType.equals("MCQ", ignoreCase = true) || rawType.contains("choice", ignoreCase = true) || rawType.contains("multiple", ignoreCase = true) -> "MCQ"
-                    optA.isNotBlank() && optB.isNotBlank() -> "MCQ"
-                    q.contains("____") || q.contains("[blank]", ignoreCase = true) -> "FIB"
-                    ans.equals("true", ignoreCase = true) || ans.equals("false", ignoreCase = true) -> "TRUE_FALSE"
-                    else -> "SHORT_ANSWER"
-                }
+            val inferredType = when {
+                rawType.equals("FIB", ignoreCase = true) || rawType.contains("fill", ignoreCase = true) || rawType.contains("blank", ignoreCase = true) -> "FIB"
+                rawType.equals("TRUE_FALSE", ignoreCase = true) || rawType.equals("TF", ignoreCase = true) || rawType.equals("T/F", ignoreCase = true) || rawType.contains("true", ignoreCase = true) -> "TRUE_FALSE"
+                rawType.equals("MCQ", ignoreCase = true) || rawType.contains("choice", ignoreCase = true) || rawType.contains("multiple", ignoreCase = true) -> "MCQ"
+                curOptA.isNotBlank() && curOptB.isNotBlank() -> "MCQ"
+                cleanQ.contains("____") || cleanQ.contains("[blank]", ignoreCase = true) -> "FIB"
+                curAns.equals("true", ignoreCase = true) || curAns.equals("false", ignoreCase = true) -> "TRUE_FALSE"
+                else -> "SHORT_ANSWER"
+            }
 
-                val rowMap = mapOf(
-                    "subjectname" to sub,
-                    "chaptername" to chap,
-                    "topicname" to top,
-                    "questiontype" to inferredType,
-                    "question" to q,
-                    "optiona" to optA,
-                    "optionb" to optB,
-                    "optionc" to optC,
-                    "optiond" to optD,
-                    "correctanswer" to ans,
-                    "explanation" to explanation,
-                    "difficulty" to (if (diffStr.isNotBlank()) diffStr.uppercase() else "MEDIUM"),
-                    "marks" to (marksStr.toIntOrNull()?.coerceAtLeast(1)?.toString() ?: "1")
-                )
+            var err: String? = null
+            if (cleanQ.isBlank()) {
+                err = "Question cannot be blank"
+            } else if (curAns.isBlank()) {
+                err = "Correct answer is missing"
+            } else if (inferredType == "MCQ" && (curOptA.isBlank() || curOptB.isBlank())) {
+                err = "MCQ requires at least OptionA and OptionB"
+            } else if (inferredType == "TRUE_FALSE" && curAns.lowercase() !in listOf("true", "false", "t", "f", "yes", "no", "1", "0")) {
+                err = "True/False answer must be True or False (got: '$curAns')"
+            }
+
+            val rowMap = mapOf(
+                "subjectname" to sub,
+                "chaptername" to chap,
+                "topicname" to top,
+                "questiontype" to inferredType,
+                "question" to cleanQ,
+                "optiona" to curOptA,
+                "optionb" to curOptB,
+                "optionc" to curOptC,
+                "optiond" to curOptD,
+                "correctanswer" to curAns,
+                "explanation" to explanation,
+                "difficulty" to (if (diffStr.isNotBlank()) diffStr.uppercase() else "MEDIUM"),
+                "marks" to (marksStr.toIntOrNull()?.coerceAtLeast(1)?.toString() ?: "1")
+            )
+
+            if (err != null) {
+                errors.add(CsvRowError(i + 1, line.joinToString(","), err, rowData = rowMap, canFixInUi = true))
+            } else {
                 parsed.add(rowMap)
             }
         }
@@ -712,6 +731,26 @@ class UniversalCsvProcessor(
             val id = UUID.randomUUID().toString()
             topicDao.insertTopic(TopicEntity(id = id, chapterId = chapterId, name = name, examRelevance = "HIGH"))
             return id
+        }
+
+        val qbBatch = mutableListOf<QuestionBankEntity>()
+        val fcBatch = mutableListOf<FlashcardEntity>()
+
+        suspend fun flushBatches() {
+            if (qbBatch.isNotEmpty() || fcBatch.isNotEmpty()) {
+                val qbToInsert = qbBatch.toList()
+                val fcToInsert = fcBatch.toList()
+                qbBatch.clear()
+                fcBatch.clear()
+                db.withTransaction {
+                    if (qbToInsert.isNotEmpty()) {
+                        questionBankDao.insertQuestions(qbToInsert)
+                    }
+                    if (fcToInsert.isNotEmpty()) {
+                        flashcardDao.insertAll(fcToInsert)
+                    }
+                }
+            }
         }
 
         for ((index, row) in parsedData.withIndex()) {
@@ -816,9 +855,9 @@ class UniversalCsvProcessor(
                     }
                 }
 
-                // 1. Insert into Question Bank
+                // 1. Accumulate into Question Bank batch
                 if (target == QuestionImportTarget.BOTH || target == QuestionImportTarget.QUESTION_BANK_ONLY) {
-                    questionBankDao.insertQuestion(
+                    qbBatch.add(
                         QuestionBankEntity(
                             subjectId = subId,
                             chapterId = chapId,
@@ -832,7 +871,7 @@ class UniversalCsvProcessor(
                     )
                 }
 
-                // 2. Insert into Flashcards
+                // 2. Accumulate into Flashcards batch
                 if (target == QuestionImportTarget.BOTH || target == QuestionImportTarget.FLASHCARDS_ONLY) {
                     val flashcardQuestion = when (effectiveQType) {
                         ExamQuestionType.TRUE_FALSE -> "$rawQuestion (True or False?)"
@@ -845,7 +884,7 @@ class UniversalCsvProcessor(
                         else -> resolvedMarkingScheme
                     }
 
-                    flashcardDao.insert(
+                    fcBatch.add(
                         FlashcardEntity(
                             subjectId = subId,
                             chapterId = chapId,
@@ -857,6 +896,11 @@ class UniversalCsvProcessor(
                 }
 
                 importedCount++
+
+                // Periodically flush batches every 250 items to keep memory bounded and leverage fast SQLite bulk writes
+                if (qbBatch.size >= 250 || fcBatch.size >= 250) {
+                    flushBatches()
+                }
             } catch (e: Exception) {
                 errors.add(
                     CsvRowError(
@@ -867,6 +911,9 @@ class UniversalCsvProcessor(
                 )
             }
         }
+
+        // Flush any remaining batched entities
+        flushBatches()
 
         CsvImportResult(
             success = errors.isEmpty(),
@@ -992,6 +1039,11 @@ class UniversalCsvProcessor(
             .replace("_", "")
             .replace("-", "")
             .replace(".", "")
+            .replace("/", "")
+            .replace("(", "")
+            .replace(")", "")
+            .replace("[", "")
+            .replace("]", "")
             .trim()
             .lowercase()
     }

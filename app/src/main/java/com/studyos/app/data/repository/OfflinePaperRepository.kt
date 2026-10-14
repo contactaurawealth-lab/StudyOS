@@ -1,5 +1,7 @@
 package com.studyos.app.data.repository
 
+import androidx.room.withTransaction
+import com.studyos.app.core.database.StudyOSDatabase
 import com.studyos.app.core.database.dao.PaperDao
 import com.studyos.app.core.database.entity.PaperQuestionCrossRefEntity
 import com.studyos.app.core.database.entity.toDomain
@@ -12,7 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class OfflinePaperRepository(
-    private val paperDao: PaperDao
+    private val paperDao: PaperDao,
+    private val database: StudyOSDatabase? = null
 ) : PaperRepository {
 
     override fun getPapersForSubject(subjectId: String): Flow<List<Paper>> =
@@ -28,8 +31,6 @@ class OfflinePaperRepository(
         paperDao.observePaperById(id).map { it?.toDomain() }
 
     override suspend fun savePaper(paper: Paper, questions: List<PaperQuestionItem>) {
-        paperDao.insertPaper(paper.toEntity())
-        paperDao.deletePaperQuestions(paper.id)
         val crossRefs = questions.map { q ->
             PaperQuestionCrossRefEntity(
                 paperId = paper.id,
@@ -39,7 +40,17 @@ class OfflinePaperRepository(
                 marksAllocated = q.marksAllocated
             )
         }
-        paperDao.insertPaperQuestions(crossRefs)
+        if (database != null) {
+            database.withTransaction {
+                paperDao.insertPaper(paper.toEntity())
+                paperDao.deletePaperQuestions(paper.id)
+                paperDao.insertPaperQuestions(crossRefs)
+            }
+        } else {
+            paperDao.insertPaper(paper.toEntity())
+            paperDao.deletePaperQuestions(paper.id)
+            paperDao.insertPaperQuestions(crossRefs)
+        }
     }
 
     override suspend fun getQuestionsForPaper(paperId: String): List<PaperQuestionItem> =

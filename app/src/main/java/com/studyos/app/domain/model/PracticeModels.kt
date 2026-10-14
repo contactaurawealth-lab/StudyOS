@@ -71,6 +71,25 @@ object SpacedRepetitionAlgorithm {
     private const val ONE_DAY_MS = 86_400_000L
 
     /**
+     * Calculates review timestamp aligned to local calendar day boundary (04:00 AM cut-off)
+     * to eliminate the classic "time-of-day creep" bug where review times drift later into the night.
+     */
+    fun calculateNextReviewTimestamp(
+        reviewTimestamp: Long,
+        intervalDays: Int
+    ): Long {
+        if (intervalDays <= 0) return reviewTimestamp
+        val calendar = java.util.Calendar.getInstance().apply {
+            timeInMillis = reviewTimestamp + (intervalDays * ONE_DAY_MS)
+            set(java.util.Calendar.HOUR_OF_DAY, 4)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        return calendar.timeInMillis
+    }
+
+    /**
      * Calculates the next review parameters according to an SM-2 inspired algorithm:
      * - AGAIN: resets interval to 1 day, decreases easeFactor.
      * - HARD: interval grows slowly (1.2x), easeFactor slightly decreases.
@@ -112,7 +131,7 @@ object SpacedRepetitionAlgorithm {
             }
         }
 
-        val nextReviewTime = reviewTimestamp + (newInterval * ONE_DAY_MS)
+        val nextReviewTime = calculateNextReviewTimestamp(reviewTimestamp, newInterval)
 
         return card.copy(
             lastReviewed = reviewTimestamp,

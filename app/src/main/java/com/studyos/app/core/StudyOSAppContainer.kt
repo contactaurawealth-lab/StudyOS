@@ -142,7 +142,7 @@ class StudyOSAppContainer(private val context: Context) {
     }
 
     val paperRepository: PaperRepository by lazy {
-        OfflinePaperRepository(database.paperDao())
+        OfflinePaperRepository(database.paperDao(), database)
     }
 
     val examResultRepository: ExamResultRepository by lazy {
@@ -426,7 +426,7 @@ class StudyOSAppContainer(private val context: Context) {
     }
 
     val quizRepository: com.studyos.app.domain.repository.QuizRepository by lazy {
-        com.studyos.app.data.repository.QuizRepositoryImpl(database.quizDao())
+        com.studyos.app.data.repository.QuizRepositoryImpl(database.quizDao(), database)
     }
 
     val mistakeRepository: com.studyos.app.domain.repository.MistakeRepository by lazy {

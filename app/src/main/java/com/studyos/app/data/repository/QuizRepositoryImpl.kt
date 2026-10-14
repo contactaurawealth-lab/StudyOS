@@ -17,10 +17,13 @@ import com.studyos.app.domain.repository.QuizRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
+import androidx.room.withTransaction
+import com.studyos.app.core.database.StudyOSDatabase
 import org.json.JSONObject
 
 class QuizRepositoryImpl(
-    private val quizDao: QuizDao
+    private val quizDao: QuizDao,
+    private val database: StudyOSDatabase? = null
 ) : QuizRepository {
 
     override fun observeQuizzesForChapter(chapterId: String): Flow<List<Quiz>> =
@@ -36,8 +39,15 @@ class QuizRepositoryImpl(
         quizDao.getQuestionsForQuiz(quizId).map { it.toDomain() }
 
     override suspend fun saveQuiz(quiz: Quiz, questions: List<QuizQuestion>): Quiz {
-        quizDao.insertQuiz(quiz.toEntity())
-        quizDao.insertQuestions(questions.map { it.toEntity() })
+        if (database != null) {
+            database.withTransaction {
+                quizDao.insertQuiz(quiz.toEntity())
+                quizDao.insertQuestions(questions.map { it.toEntity() })
+            }
+        } else {
+            quizDao.insertQuiz(quiz.toEntity())
+            quizDao.insertQuestions(questions.map { it.toEntity() })
+        }
         return quiz
     }
 
@@ -85,8 +95,15 @@ class QuizRepositoryImpl(
     }
 
     override suspend fun recordAttempt(attempt: QuizAttempt, results: List<QuestionResult>): QuizAttempt {
-        quizDao.insertAttempt(attempt.toEntity())
-        quizDao.insertQuestionResults(results.map { it.toEntity() })
+        if (database != null) {
+            database.withTransaction {
+                quizDao.insertAttempt(attempt.toEntity())
+                quizDao.insertQuestionResults(results.map { it.toEntity() })
+            }
+        } else {
+            quizDao.insertAttempt(attempt.toEntity())
+            quizDao.insertQuestionResults(results.map { it.toEntity() })
+        }
         return attempt
     }
 

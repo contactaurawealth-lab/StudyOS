@@ -1,5 +1,6 @@
 package com.studyos.app.core.paper
 
+import androidx.room.withTransaction
 import com.studyos.app.core.database.StudyOSDatabase
 import com.studyos.app.core.database.entity.ChapterEntity
 import com.studyos.app.core.database.entity.ExamEntity
@@ -172,10 +173,6 @@ class QuestionPaperGenerator(
             status = PaperStatus.GENERATED.name,
             createdAt = System.currentTimeMillis()
         )
-        paperDao.insertPaper(paper)
-        paperDao.insertPaperQuestions(crossRefs)
-
-        // 5. Automatically create/link an ExamEntity so it appears in Exams and pins to the Home Screen!
         val exam = ExamEntity(
             id = UUID.randomUUID().toString(),
             name = title,
@@ -185,8 +182,13 @@ class QuestionPaperGenerator(
             isCompleted = false,
             notes = "[MOCK_TEST] [PAPER_ID:$paperId] MaxMarks:$targetTotal Duration:${examMarks.durationMinutes}m"
         )
-        examDao.insertExam(exam)
-        examDao.insertExamSubjects(listOf(ExamSubjectCrossRefEntity(exam.id, subjectId)))
+
+        database.withTransaction {
+            paperDao.insertPaper(paper)
+            paperDao.insertPaperQuestions(crossRefs)
+            examDao.insertExam(exam)
+            examDao.insertExamSubjects(listOf(ExamSubjectCrossRefEntity(exam.id, subjectId)))
+        }
 
         GeneratedPaperResult(
             paper = paper,

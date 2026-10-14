@@ -178,6 +178,25 @@ class PdfQuestionPaperGenerator {
                 val currentLine = StringBuilder()
 
                 for (word in words) {
+                    // Check if unbroken word/token exceeds maxWidth
+                    if (paint.measureText(word) > maxWidth) {
+                        if (currentLine.isNotEmpty()) {
+                            lines.add(currentLine.toString())
+                            currentLine.setLength(0)
+                        }
+                        var remaining = word
+                        while (remaining.isNotEmpty()) {
+                            var count = 1
+                            while (count <= remaining.length && paint.measureText(remaining.substring(0, count)) <= maxWidth) {
+                                count++
+                            }
+                            val splitIndex = (count - 1).coerceAtLeast(1)
+                            lines.add(remaining.substring(0, splitIndex))
+                            remaining = remaining.substring(splitIndex)
+                        }
+                        continue
+                    }
+
                     val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
                     if (paint.measureText(testLine) <= maxWidth) {
                         currentLine.setLength(0)
@@ -203,10 +222,8 @@ class PdfQuestionPaperGenerator {
 
         var qNum = 1
 
-        fun renderSection(title: String, sectionQuestions: List<QuestionBankEntity>) {
-            if (sectionQuestions.isEmpty()) return
-
-            if (y > pageHeight - margin - 80f) {
+        fun ensureVerticalSpace(needed: Float, isContinued: Boolean = false) {
+            if (y + needed > pageHeight - margin - 25f) {
                 drawPageFooter(canvas, pageNumber)
                 document.finishPage(page)
                 pageNumber++
@@ -214,7 +231,18 @@ class PdfQuestionPaperGenerator {
                 page = document.startPage(pageInfo)
                 canvas = page.canvas
                 drawRunningHeader(canvas)
+                if (isContinued) {
+                    val contText = "— Q$qNum (Continued) —"
+                    canvas.drawText(contText, margin, y, instructionPaint)
+                    y += 14f
+                }
             }
+        }
+
+        fun renderSection(title: String, sectionQuestions: List<QuestionBankEntity>) {
+            if (sectionQuestions.isEmpty()) return
+
+            ensureVerticalSpace(60f)
 
             canvas.drawText(title, margin, y, sectionPaint)
             y += 6f
@@ -237,22 +265,13 @@ class PdfQuestionPaperGenerator {
                     wrapText("💡 Solution / Marking Scheme: $schemeText", solutionPaint, contentWidth - prefixWidth - 10f)
                 } else emptyList()
 
-                val qHeight = (wrappedLines.size * 13f) + (schemeLines.size * 12f) + (if (includeMarkingScheme) 18f else 12f)
+                // Avoid starting a question orphaned at the very bottom edge of a page
+                ensureVerticalSpace(38f)
 
-                if (y + qHeight > pageHeight - margin - 25f) {
-                    drawPageFooter(canvas, pageNumber)
-                    document.finishPage(page)
-                    pageNumber++
-                    pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-                    page = document.startPage(pageInfo)
-                    canvas = page.canvas
-                    drawRunningHeader(canvas)
-                }
-
-                // Draw question number
+                // Draw question number and first line of question
+                ensureVerticalSpace(13f)
                 canvas.drawText(qPrefix, margin, y, metaPaint)
 
-                // Draw first line of text
                 if (wrappedLines.isNotEmpty()) {
                     canvas.drawText(wrappedLines[0], margin + prefixWidth, y, bodyPaint)
                 }
@@ -261,16 +280,18 @@ class PdfQuestionPaperGenerator {
                 canvas.drawText(marksText, pageWidth - margin - marksWidth, y, metaPaint)
                 y += 13f
 
-                // Draw subsequent lines of question text
+                // Draw subsequent lines of question text with intra-question pagination support
                 for (lineIdx in 1 until wrappedLines.size) {
+                    ensureVerticalSpace(13f, isContinued = true)
                     canvas.drawText(wrappedLines[lineIdx], margin + prefixWidth, y, bodyPaint)
                     y += 13f
                 }
 
-                // If marking scheme is enabled, render solution below question
+                // If marking scheme is enabled, render solution below question with pagination support
                 if (schemeLines.isNotEmpty()) {
                     y += 3f
                     for (sLine in schemeLines) {
+                        ensureVerticalSpace(12f, isContinued = true)
                         canvas.drawText(sLine, margin + prefixWidth, y, solutionPaint)
                         y += 12f
                     }

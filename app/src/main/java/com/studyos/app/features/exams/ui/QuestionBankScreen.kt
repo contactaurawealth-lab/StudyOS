@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.studyos.app.core.csv.CsvRowError
 import com.studyos.app.core.csv.QuestionImportTarget
 import com.studyos.app.core.csv.UniversalCsvProcessor
 import com.studyos.app.core.database.StudyOSDatabase
@@ -817,6 +818,309 @@ enum class QuestionImportMode {
 }
 
 @Composable
+fun FixQuestionRowDialog(
+    errorItem: CsvRowError,
+    onSave: (Map<String, String>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = StudyOSTheme.colors
+    val typography = StudyOSTheme.typography
+    val shapes = StudyOSTheme.shapes
+
+    val initialData = errorItem.rowData ?: emptyMap()
+    var questionText by remember { mutableStateOf(initialData["question"]?.ifBlank { errorItem.rowContent } ?: errorItem.rowContent) }
+    var selectedType by remember {
+        mutableStateOf(
+            initialData["questiontype"]?.takeIf { it.isNotBlank() } ?: "MCQ"
+        )
+    }
+    var optA by remember { mutableStateOf(initialData["optiona"] ?: "") }
+    var optB by remember { mutableStateOf(initialData["optionb"] ?: "") }
+    var optC by remember { mutableStateOf(initialData["optionc"] ?: "") }
+    var optD by remember { mutableStateOf(initialData["optiond"] ?: "") }
+    var answerText by remember { mutableStateOf(initialData["correctanswer"] ?: "") }
+    var explanation by remember { mutableStateOf(initialData["explanation"] ?: "") }
+    var marks by remember { mutableStateOf(initialData["marks"] ?: "1") }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text(
+                    text = "Fix Question (Line ${errorItem.lineNumber})",
+                    style = typography.sectionTitle,
+                    color = colors.primaryText
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = errorItem.errorMessage,
+                    style = typography.caption.copy(fontSize = 11.sp),
+                    color = Color(0xFFEF5350)
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Question Type Selector
+                Text(
+                    text = "Question Type:",
+                    style = typography.caption,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.primaryText
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("MCQ", "FIB", "TRUE_FALSE", "SHORT_ANSWER").forEach { type ->
+                        val isSelected = selectedType.equals(type, ignoreCase = true)
+                        val label = when (type) {
+                            "MCQ" -> "MCQ"
+                            "FIB" -> "Fill Blank"
+                            "TRUE_FALSE" -> "T / F"
+                            else -> "Short"
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(shapes.button)
+                                .background(if (isSelected) colors.accent else colors.cardBackground)
+                                .border(1.dp, if (isSelected) colors.accent else colors.border, shapes.button)
+                                .clickable {
+                                    selectedType = type
+                                    localError = null
+                                    if (type == "TRUE_FALSE" && answerText.lowercase() !in listOf("true", "false")) {
+                                        answerText = "True"
+                                    }
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                style = typography.caption.copy(fontSize = 10.sp),
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color(0xFF101216) else colors.primaryText
+                            )
+                        }
+                    }
+                }
+
+                // Question Text
+                StudyOSTextField(
+                    value = questionText,
+                    onValueChange = { questionText = it; localError = null },
+                    label = "Question Prompt",
+                    placeholder = "Enter question text...",
+                    singleLine = false,
+                    maxLines = 4,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Type Specific Fields
+                when (selectedType.uppercase()) {
+                    "MCQ" -> {
+                        Text(
+                            text = "Options (Option A & B required):",
+                            style = typography.caption,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryText
+                        )
+                        StudyOSTextField(
+                            value = optA,
+                            onValueChange = { optA = it; localError = null },
+                            label = "Option A",
+                            placeholder = "First option...",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        StudyOSTextField(
+                            value = optB,
+                            onValueChange = { optB = it; localError = null },
+                            label = "Option B",
+                            placeholder = "Second option...",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        StudyOSTextField(
+                            value = optC,
+                            onValueChange = { optC = it },
+                            label = "Option C (Optional)",
+                            placeholder = "Third option...",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        StudyOSTextField(
+                            value = optD,
+                            onValueChange = { optD = it },
+                            label = "Option D (Optional)",
+                            placeholder = "Fourth option...",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Text(
+                            text = "Select Correct Option:",
+                            style = typography.caption,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryText
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("A", "B", "C", "D").forEach { optKey ->
+                                val isChosen = answerText.equals(optKey, ignoreCase = true) ||
+                                        (optKey == "A" && optA.isNotBlank() && answerText.equals(optA, ignoreCase = true)) ||
+                                        (optKey == "B" && optB.isNotBlank() && answerText.equals(optB, ignoreCase = true)) ||
+                                        (optKey == "C" && optC.isNotBlank() && answerText.equals(optC, ignoreCase = true)) ||
+                                        (optKey == "D" && optD.isNotBlank() && answerText.equals(optD, ignoreCase = true))
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(shapes.button)
+                                        .background(if (isChosen) Color(0xFF10B981) else colors.cardBackground)
+                                        .border(1.dp, if (isChosen) Color(0xFF10B981) else colors.border, shapes.button)
+                                        .clickable {
+                                            answerText = optKey
+                                            localError = null
+                                        }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Option $optKey",
+                                        style = typography.caption,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isChosen) Color.White else colors.primaryText
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    "TRUE_FALSE" -> {
+                        Text(
+                            text = "Select Correct Value:",
+                            style = typography.caption,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryText
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("True", "False").forEach { boolVal ->
+                                val isChosen = answerText.equals(boolVal, ignoreCase = true)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(shapes.button)
+                                        .background(if (isChosen) Color(0xFF10B981) else colors.cardBackground)
+                                        .border(1.dp, if (isChosen) Color(0xFF10B981) else colors.border, shapes.button)
+                                        .clickable {
+                                            answerText = boolVal
+                                            localError = null
+                                        }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = boolVal,
+                                        style = typography.caption,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isChosen) Color.White else colors.primaryText
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        StudyOSTextField(
+                            value = answerText,
+                            onValueChange = { answerText = it; localError = null },
+                            label = "Correct Answer / Key",
+                            placeholder = "Enter correct answer...",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                // Explanation
+                StudyOSTextField(
+                    value = explanation,
+                    onValueChange = { explanation = it },
+                    label = "Explanation (Optional)",
+                    placeholder = "Why this is the answer...",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (localError != null) {
+                    Text(
+                        text = localError!!,
+                        style = typography.caption,
+                        color = Color(0xFFEF5350)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            StudyOSButton(
+                text = "Save Question",
+                onClick = {
+                    if (questionText.isBlank()) {
+                        localError = "Question prompt cannot be blank"
+                        return@StudyOSButton
+                    }
+                    if (selectedType.equals("MCQ", ignoreCase = true)) {
+                        if (optA.isBlank() || optB.isBlank()) {
+                            localError = "Both Option A and Option B are required for MCQ"
+                            return@StudyOSButton
+                        }
+                        if (answerText.isBlank()) {
+                            localError = "Please select the correct option (A, B, C, or D)"
+                            return@StudyOSButton
+                        }
+                    } else if (answerText.isBlank()) {
+                        localError = "Answer cannot be blank"
+                        return@StudyOSButton
+                    }
+
+                    val fixedMap = mutableMapOf<String, String>()
+                    fixedMap.putAll(initialData)
+                    fixedMap["subjectname"] = initialData["subjectname"]?.ifBlank { "General" } ?: "General"
+                    fixedMap["chaptername"] = initialData["chaptername"]?.ifBlank { "General Practice" } ?: "General Practice"
+                    fixedMap["topicname"] = initialData["topicname"] ?: ""
+                    fixedMap["questiontype"] = selectedType.uppercase()
+                    fixedMap["question"] = questionText.trim()
+                    fixedMap["optiona"] = optA.trim()
+                    fixedMap["optionb"] = optB.trim()
+                    fixedMap["optionc"] = optC.trim()
+                    fixedMap["optiond"] = optD.trim()
+                    fixedMap["correctanswer"] = answerText.trim()
+                    fixedMap["explanation"] = explanation.trim()
+                    fixedMap["marks"] = marks.trim().ifBlank { "1" }
+                    fixedMap["difficulty"] = initialData["difficulty"]?.ifBlank { "MEDIUM" } ?: "MEDIUM"
+
+                    onSave(fixedMap)
+                }
+            )
+        },
+        dismissButton = {
+            StudyOSOutlinedButton(
+                text = "Cancel",
+                onClick = onDismiss
+            )
+        },
+        containerColor = colors.surface
+    )
+}
+
+@Composable
 fun CsvQuestionImportDialog(
     database: StudyOSDatabase,
     onDismiss: () -> Unit,
@@ -834,6 +1138,10 @@ fun CsvQuestionImportDialog(
     var selectedTarget by remember { mutableStateOf(QuestionImportTarget.BOTH) }
     var isImporting by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    var fixedRows by remember(csvText, importMode) { mutableStateOf<Map<Int, Map<String, String>>>(emptyMap()) }
+    var dismissedErrorLineNumbers by remember(csvText, importMode) { mutableStateOf<Set<Int>>(emptySet()) }
+    var editingErrorItem by remember { mutableStateOf<CsvRowError?>(null) }
 
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -857,13 +1165,35 @@ fun CsvQuestionImportDialog(
             val res = when (importMode) {
                 QuestionImportMode.AUTO_DETECT -> {
                     val obj = processor.parseAndValidateObjectiveQuestions(csvText)
-                    if (obj.validRowsCount > 0) obj else processor.parseAndValidateQuestions(csvText)
+                    if (obj.validRowsCount > 0 || obj.errors.any { it.canFixInUi }) obj else processor.parseAndValidateQuestions(csvText)
                 }
                 QuestionImportMode.OBJECTIVE -> processor.parseAndValidateObjectiveQuestions(csvText)
                 QuestionImportMode.STANDARD -> processor.parseAndValidateQuestions(csvText)
             }
             res
         }
+    }
+
+    val activeErrors = remember(previewInfo, fixedRows, dismissedErrorLineNumbers) {
+        previewInfo?.errors?.filter { it.lineNumber !in dismissedErrorLineNumbers && it.lineNumber !in fixedRows.keys } ?: emptyList()
+    }
+
+    val combinedValidData = remember(previewInfo, fixedRows) {
+        val base = previewInfo?.parsedData ?: emptyList()
+        base + fixedRows.values.toList()
+    }
+
+    if (editingErrorItem != null) {
+        FixQuestionRowDialog(
+            errorItem = editingErrorItem!!,
+            onSave = { fixedMap ->
+                val line = editingErrorItem!!.lineNumber
+                fixedRows = fixedRows + (line to fixedMap)
+                editingErrorItem = null
+                Toast.makeText(context, "Row $line fixed and added to import!", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { editingErrorItem = null }
+        )
     }
 
     AlertDialog(
@@ -1069,61 +1399,230 @@ fun CsvQuestionImportDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (previewInfo != null && previewInfo.validRowsCount > 0) {
+                // Status Bar & Issue Resolver
+                val totalValidCount = combinedValidData.size
+                if (totalValidCount > 0 || activeErrors.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "✓ ${previewInfo.validRowsCount} valid question(s) recognized" +
-                                (if (previewInfo.errors.isNotEmpty()) " (${previewInfo.errors.size} invalid row(s) will be skipped)" else ""),
-                        style = typography.caption,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF10B981)
-                    )
-
-                    val firstRow = previewInfo.parsedData.firstOrNull()
-                    if (firstRow != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "PREVIEW: HOW QUESTION WILL LOOK",
-                            style = typography.caption.copy(fontSize = 10.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = colors.secondaryText
+                            text = "✓ $totalValidCount valid question(s)" +
+                                    (if (activeErrors.isNotEmpty()) " • ⚠️ ${activeErrors.size} issue(s)" else ""),
+                            style = typography.caption,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (totalValidCount > 0) Color(0xFF10B981) else Color(0xFFEF5350)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        val previewEntity = remember(firstRow) {
-                            val qText = firstRow["question"] ?: firstRow["questiontext"] ?: ""
-                            val qType = firstRow["questiontype"] ?: "MCQ"
-                            val ans = firstRow["correctanswer"] ?: firstRow["answer"] ?: ""
-                            val exp = firstRow["explanation"] ?: ""
-                            val fullScheme = if (exp.isNotBlank()) "$ans • Explanation: $exp" else ans
-                            val formattedQ = if (qType == "MCQ" && !qText.contains("\n(A)")) {
-                                val opts = listOfNotNull(
-                                    firstRow["optiona"]?.let { "A" to it },
-                                    firstRow["optionb"]?.let { "B" to it },
-                                    firstRow["optionc"]?.let { "C" to it },
-                                    firstRow["optiond"]?.let { "D" to it }
-                                ).filter { it.second.isNotBlank() }
-                                val sb = StringBuilder(com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanStem(qText))
-                                for ((letter, text) in opts) {
-                                    sb.append("\n($letter) ${com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanOptionText(text)}")
-                                }
-                                sb.toString()
-                            } else qText
-
-                            QuestionBankEntity(
-                                id = "preview",
-                                subjectId = "sub",
-                                chapterId = "chap",
-                                questionText = formattedQ,
-                                markingScheme = fullScheme,
-                                marks = firstRow["marks"]?.toIntOrNull() ?: 1,
-                                questionType = qType,
-                                difficulty = firstRow["difficulty"]?.uppercase() ?: "MEDIUM"
+                        if (activeErrors.size > 1) {
+                            Text(
+                                text = "⚡ Convert All to Short Answer",
+                                style = typography.caption.copy(fontSize = 11.sp),
+                                fontWeight = FontWeight.Bold,
+                                color = colors.accent,
+                                modifier = Modifier
+                                    .clip(shapes.button)
+                                    .clickable {
+                                        val newFixes = fixedRows.toMutableMap()
+                                        for (err in activeErrors) {
+                                            val data = err.rowData?.toMutableMap() ?: mutableMapOf(
+                                                "question" to err.rowContent,
+                                                "correctanswer" to "Answer",
+                                                "questiontype" to "SHORT_ANSWER",
+                                                "subjectname" to "General",
+                                                "chaptername" to "General Practice"
+                                            )
+                                            data["questiontype"] = "SHORT_ANSWER"
+                                            if (data["correctanswer"].isNullOrBlank()) {
+                                                data["correctanswer"] = "Answer"
+                                            }
+                                            newFixes[err.lineNumber] = data
+                                        }
+                                        fixedRows = newFixes
+                                        Toast.makeText(context, "Rescued all issues as Short Answer questions!", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
                             )
                         }
-
-                        QuestionBankCardItem(q = previewEntity)
                     }
+                }
+
+                // Issues list (cards with 1-tap rescue buttons)
+                if (activeErrors.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "ISSUES FOUND: FIX DIRECTLY OR RESCUE IN-APP",
+                        style = typography.caption.copy(fontSize = 10.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFEF5350)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    activeErrors.take(15).forEach { err ->
+                        val promptPreview = err.rowData?.get("question")?.ifBlank { null }
+                            ?: err.rowContent.take(70).ifBlank { "Empty row" }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clip(shapes.card)
+                                .background(colors.cardBackground)
+                                .border(1.dp, Color(0xFFEF5350).copy(alpha = 0.4f), shapes.card)
+                                .padding(10.dp)
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Row ${err.lineNumber}: ${err.errorMessage}",
+                                        style = typography.caption.copy(fontSize = 11.sp),
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFEF5350),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = "✕ Skip",
+                                        style = typography.caption.copy(fontSize = 10.sp),
+                                        color = colors.secondaryText,
+                                        modifier = Modifier
+                                            .clip(shapes.button)
+                                            .clickable {
+                                                dismissedErrorLineNumbers = dismissedErrorLineNumbers + err.lineNumber
+                                            }
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "\"$promptPreview\"",
+                                    style = typography.caption.copy(fontSize = 11.sp),
+                                    color = colors.primaryText,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // 1-tap Convert to Short Answer
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1.2f)
+                                            .clip(shapes.button)
+                                            .background(colors.accent.copy(alpha = 0.15f))
+                                            .border(1.dp, colors.accent.copy(alpha = 0.5f), shapes.button)
+                                        .clickable {
+                                            val data = err.rowData?.toMutableMap() ?: mutableMapOf(
+                                                "question" to promptPreview,
+                                                "correctanswer" to "Answer",
+                                                "questiontype" to "SHORT_ANSWER",
+                                                "subjectname" to "General",
+                                                "chaptername" to "General Practice"
+                                            )
+                                            data["questiontype"] = "SHORT_ANSWER"
+                                            if (data["correctanswer"].isNullOrBlank()) {
+                                                data["correctanswer"] = "Answer"
+                                            }
+                                            fixedRows = fixedRows + (err.lineNumber to data)
+                                            Toast.makeText(context, "Rescued Row ${err.lineNumber} as Short Answer!", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "⚡ Convert to Short",
+                                            style = typography.caption.copy(fontSize = 10.sp),
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.primaryText
+                                        )
+                                    }
+
+                                    // Fix & Add Options
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1.2f)
+                                            .clip(shapes.button)
+                                            .background(colors.accent)
+                                            .clickable {
+                                                editingErrorItem = err
+                                            }
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "✏️ Fix Options",
+                                            style = typography.caption.copy(fontSize = 10.sp),
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF101216)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (activeErrors.size > 15) {
+                        Text(
+                            text = "+ ${activeErrors.size - 15} more issue(s) will be skipped or can be fixed above",
+                            style = typography.caption.copy(fontSize = 10.sp),
+                            color = colors.secondaryText,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+
+                // Live Preview of Valid / Rescued Question
+                val previewRow = combinedValidData.firstOrNull()
+                if (previewRow != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "PREVIEW: HOW QUESTION WILL LOOK IN STUDYOS",
+                        style = typography.caption.copy(fontSize = 10.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = colors.secondaryText
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    val previewEntity = remember(previewRow) {
+                        val qText = previewRow["question"] ?: previewRow["questiontext"] ?: ""
+                        val qType = previewRow["questiontype"] ?: "MCQ"
+                        val ans = previewRow["correctanswer"] ?: previewRow["answer"] ?: ""
+                        val exp = previewRow["explanation"] ?: ""
+                        val fullScheme = if (exp.isNotBlank()) "$ans • Explanation: $exp" else ans
+                        val formattedQ = if (qType == "MCQ" && !qText.contains("\n(A)")) {
+                            val opts = listOfNotNull(
+                                previewRow["optiona"]?.let { "A" to it },
+                                previewRow["optionb"]?.let { "B" to it },
+                                previewRow["optionc"]?.let { "C" to it },
+                                previewRow["optiond"]?.let { "D" to it }
+                            ).filter { it.second.isNotBlank() }
+                            val sb = StringBuilder(com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanStem(qText))
+                            for ((letter, text) in opts) {
+                                sb.append("\n($letter) ${com.studyos.app.core.quiz.QuestionBankQuizEngine.cleanOptionText(text)}")
+                            }
+                            sb.toString()
+                        } else qText
+
+                        QuestionBankEntity(
+                            id = "preview",
+                            subjectId = "sub",
+                            chapterId = "chap",
+                            questionText = formattedQ,
+                            markingScheme = fullScheme,
+                            marks = previewRow["marks"]?.toIntOrNull() ?: 1,
+                            questionType = qType,
+                            difficulty = previewRow["difficulty"]?.uppercase() ?: "MEDIUM"
+                        )
+                    }
+
+                    QuestionBankCardItem(q = previewEntity)
                 }
 
                 if (errorMsg != null) {
@@ -1138,23 +1637,15 @@ fun CsvQuestionImportDialog(
         },
         confirmButton = {
             StudyOSButton(
-                text = if (isImporting) "Importing..." else "Import",
+                text = if (isImporting) "Importing..." else if (combinedValidData.isNotEmpty()) "Import (${combinedValidData.size})" else "Import",
                 onClick = {
                     if (csvText.isBlank()) {
                         errorMsg = "Please enter or select CSV content"
                         return@StudyOSButton
                     }
-                    val validation = when (importMode) {
-                        QuestionImportMode.AUTO_DETECT -> {
-                            val obj = processor.parseAndValidateObjectiveQuestions(csvText)
-                            if (obj.validRowsCount > 0) obj else processor.parseAndValidateQuestions(csvText)
-                        }
-                        QuestionImportMode.OBJECTIVE -> processor.parseAndValidateObjectiveQuestions(csvText)
-                        QuestionImportMode.STANDARD -> processor.parseAndValidateQuestions(csvText)
-                    }
-                    if (validation.validRowsCount == 0) {
-                        errorMsg = if (validation.errors.isNotEmpty()) {
-                            "Error on row ${validation.errors.first().lineNumber}: " + validation.errors.first().errorMessage
+                    if (combinedValidData.isEmpty()) {
+                        errorMsg = if (activeErrors.isNotEmpty()) {
+                            "Line ${activeErrors.first().lineNumber}: " + activeErrors.first().errorMessage + " — Please fix or convert above."
                         } else {
                             "No valid questions found in CSV content"
                         }
@@ -1163,17 +1654,17 @@ fun CsvQuestionImportDialog(
 
                     isImporting = true
                     coroutineScope.launch {
-                        val isObjectiveData = validation.parsedData.any {
+                        val isObjectiveData = combinedValidData.any {
                             it["questiontype"] in listOf("MCQ", "FIB", "TRUE_FALSE") || !it["optiona"].isNullOrBlank()
                         }
                         val result = if (isObjectiveData) {
-                            processor.importObjectiveQuestions(validation.parsedData, selectedTarget)
+                            processor.importObjectiveQuestions(combinedValidData, selectedTarget)
                         } else {
-                            processor.importQuestions(validation.parsedData, selectedTarget)
+                            processor.importQuestions(combinedValidData, selectedTarget)
                         }
                         isImporting = false
                         if (result.importedCount > 0) {
-                            val skipMsg = if (validation.errors.isNotEmpty()) " (${validation.errors.size} invalid row(s) skipped)" else ""
+                            val skipMsg = if (activeErrors.isNotEmpty()) " (${activeErrors.size} issue(s) skipped)" else ""
                             Toast.makeText(context, "Successfully imported ${result.importedCount} questions!$skipMsg", Toast.LENGTH_LONG).show()
                             onImportSuccess()
                         } else {

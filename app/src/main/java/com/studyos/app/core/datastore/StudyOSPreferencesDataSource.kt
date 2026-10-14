@@ -17,11 +17,14 @@ import com.studyos.app.core.model.AppState
 import com.studyos.app.core.model.AppTheme
 import com.studyos.app.domain.model.AiConfig
 import com.studyos.app.domain.model.NamedApiKey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -61,9 +64,16 @@ interface PreferencesDataSource {
     suspend fun setBlockedPackages(packages: Set<String>) {}
     suspend fun setAppBlockerPasscode(passcode: String) {}
     suspend fun updateAssistantCustomization(customization: AssistantCustomization) {}
+    suspend fun syncAppBlockerManager() {}
 }
 
 class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDataSource {
+
+    init {
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            syncAppBlockerManager()
+        }
+    }
 
     private object PreferencesKeys {
         val THEME_PREFERENCE = stringPreferencesKey("theme_preference")
@@ -494,7 +504,7 @@ class StudyOSPreferencesDataSource(private val context: Context) : PreferencesDa
         }
     }
 
-    private suspend fun syncAppBlockerManager() {
+    override suspend fun syncAppBlockerManager() {
         try {
             val prefs = context.dataStore.data.firstOrNull() ?: return
             val enabled = prefs[PreferencesKeys.APP_BLOCKER_ENABLED] ?: false
