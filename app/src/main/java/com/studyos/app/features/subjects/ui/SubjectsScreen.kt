@@ -385,18 +385,29 @@ private fun SubjectRowItem(
         backgroundColor = colors.glassSurface,
         padding = 16.dp
     ) {
-        // 1. Top row: Name + Exam Readiness Pill + More Menu
+        // 1. Top row: Name + Status Badge + More Menu
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = item.subject.name,
-                style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = colors.primaryText,
-                modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.subject.name,
+                    style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
+                    color = colors.primaryText
+                )
+                val chapterSummary = when (item.chapterCount) {
+                    0 -> "0 chapters"
+                    1 -> "1 chapter"
+                    else -> "${item.chapterCount} chapters"
+                }
+                Text(
+                    text = "$chapterSummary • ${item.progress}% completed",
+                    style = typography.caption,
+                    color = colors.secondaryText
+                )
+            }
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 // Exam Readiness Pill
@@ -404,29 +415,14 @@ private fun SubjectRowItem(
                     modifier = Modifier
                         .clip(shapes.surface)
                         .background(colors.accent.copy(alpha = 0.12f))
-                        .border(1.dp, colors.accent.copy(alpha = 0.3f), shapes.surface)
+                        .border(1.dp, colors.accent.copy(alpha = 0.25f), shapes.surface)
                         .clickable(onClick = onOpenDiagnostic)
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                        .padding(horizontal = 9.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "${item.readinessScore}% Ready",
-                        style = typography.caption.copy(fontSize = 11.sp),
-                        fontWeight = FontWeight.SemiBold,
+                        style = typography.caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
                         color = colors.accent
-                    )
-                }
-
-                // Diagnostic Analytics Icon
-                GlassIconButton(
-                    onClick = onOpenDiagnostic,
-                    contentDescription = "Subject Diagnostic",
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Insights,
-                        contentDescription = null,
-                        tint = colors.secondaryText,
-                        modifier = Modifier.size(16.dp)
                     )
                 }
 
@@ -450,21 +446,21 @@ private fun SubjectRowItem(
                         modifier = Modifier.background(colors.surface)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("View Intelligence", style = typography.body, color = colors.primaryText) },
+                            text = { Text("View Diagnostics", style = typography.body, color = colors.primaryText) },
                             onClick = {
                                 menuExpanded = false
                                 onOpenDiagnostic()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Edit subject", style = typography.body, color = colors.primaryText) },
+                            text = { Text("Edit Subject", style = typography.body, color = colors.primaryText) },
                             onClick = {
                                 menuExpanded = false
                                 onRename()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete subject", style = typography.body, color = colors.critical) },
+                            text = { Text("Delete Subject", style = typography.body, color = colors.critical) },
                             onClick = {
                                 menuExpanded = false
                                 onDelete()
@@ -475,37 +471,7 @@ private fun SubjectRowItem(
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // 2. Syllabus progress label
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val chapterCountText = when (item.chapterCount) {
-                0 -> "0 chapters"
-                1 -> "1 chapter"
-                else -> "${item.chapterCount} chapters"
-            }
-
-            Text(
-                text = "$chapterCountText • Syllabus ${item.progress}%",
-                style = typography.caption,
-                color = colors.secondaryText
-            )
-
-            if (!item.insight.isNullOrBlank()) {
-                Text(
-                    text = item.insight,
-                    style = typography.caption.copy(fontSize = 11.sp),
-                    color = colors.mutedText,
-                    maxLines = 1
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // 3. Progress bar
         StudyOSProgressBar(
@@ -516,64 +482,31 @@ private fun SubjectRowItem(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 4. Chapter Health Badges & 1-Tap Action Pills
+        // 4. Clean Status Summary & Action Pill
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (item.strongCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .clip(shapes.surface)
-                            .background(colors.success.copy(alpha = 0.12f))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "${item.strongCount} Strong",
-                            style = typography.caption.copy(fontSize = 11.sp),
-                            color = colors.success,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                if (item.weakCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .clip(shapes.surface)
-                            .background(colors.critical.copy(alpha = 0.12f))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "${item.weakCount} Weak",
-                            style = typography.caption.copy(fontSize = 11.sp),
-                            color = colors.critical,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                if (item.dueCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .clip(shapes.surface)
-                            .background(colors.warning.copy(alpha = 0.12f))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "${item.dueCount} Due",
-                            style = typography.caption.copy(fontSize = 11.sp),
-                            color = colors.warning,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
+            val statusSummary = when {
+                item.dueCount > 0 -> "⚡ ${item.dueCount} revision${if (item.dueCount > 1) "s" else ""} due"
+                item.weakCount > 0 -> "⚠️ ${item.weakCount} weak chapter${if (item.weakCount > 1) "s" else ""}"
+                item.progress >= 100 -> "✓ Completed"
+                item.completedChapterCount > 0 -> "${item.completedChapterCount}/${item.chapterCount} completed"
+                else -> "Ready to start"
             }
+            val statusColor = when {
+                item.dueCount > 0 -> colors.warning
+                item.weakCount > 0 -> colors.critical
+                item.progress >= 100 -> colors.success
+                else -> colors.secondaryText
+            }
+
+            Text(
+                text = statusSummary,
+                style = typography.caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                color = statusColor
+            )
 
             // Direct 1-Tap Action Pill
             when {
@@ -618,6 +551,14 @@ private fun SubjectRowItem(
                 !item.currentChapterName.isNullOrBlank() -> {
                     Text(
                         text = "${item.currentChapterName} →",
+                        style = typography.caption.copy(fontWeight = FontWeight.Medium),
+                        color = colors.accent,
+                        modifier = Modifier.clickable(onClick = onClick)
+                    )
+                }
+                else -> {
+                    Text(
+                        text = "View Chapters →",
                         style = typography.caption.copy(fontWeight = FontWeight.Medium),
                         color = colors.accent,
                         modifier = Modifier.clickable(onClick = onClick)

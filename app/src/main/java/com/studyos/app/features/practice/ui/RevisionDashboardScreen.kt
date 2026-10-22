@@ -167,11 +167,8 @@ fun RevisionDashboardScreen(
                                 RevisionTab.DUE_QUEUE -> {
                                     DueQueueTabContent(
                                         data = data,
-                                        leitnerBoxes = uiState.leitnerBoxes,
-                                        selectedBoxIndex = uiState.selectedBoxIndex,
                                         selectedFilter = uiState.selectedFilter,
                                         priorityQueue = uiState.priorityQueue,
-                                        onSelectBox = viewModel::selectLeitnerBox,
                                         onSelectFilter = viewModel::selectFilter,
                                         onStartRecallSession = onStartRecallSession,
                                         onOpenChapter = onOpenChapter
@@ -180,6 +177,9 @@ fun RevisionDashboardScreen(
                                 RevisionTab.PRACTICE_LAB -> {
                                     PracticeLabTabContent(
                                         data = data,
+                                        leitnerBoxes = uiState.leitnerBoxes,
+                                        selectedBoxIndex = uiState.selectedBoxIndex,
+                                        onSelectBox = viewModel::selectLeitnerBox,
                                         onStartRecallSession = onStartRecallSession,
                                         onOpenMistakes = onOpenMistakes,
                                         onOpenChapter = onOpenChapter
@@ -287,11 +287,8 @@ private fun RevisionTabSelector(
 @Composable
 private fun DueQueueTabContent(
     data: com.studyos.app.domain.model.DueRevisionDashboardData,
-    leitnerBoxes: List<LeitnerBoxState>,
-    selectedBoxIndex: Int?,
     selectedFilter: RevisionFilter,
     priorityQueue: List<PriorityQueueItem>,
-    onSelectBox: (Int?) -> Unit,
     onSelectFilter: (RevisionFilter) -> Unit,
     onStartRecallSession: (ActiveRecallSessionType, String?) -> Unit,
     onOpenChapter: (String) -> Unit
@@ -317,18 +314,7 @@ private fun DueQueueTabContent(
             )
         }
 
-        // 2. Compact Leitner 5-Dot Pipeline Strip
-        if (leitnerBoxes.isNotEmpty()) {
-            item {
-                LeitnerPipelinePillStrip(
-                    boxes = leitnerBoxes,
-                    selectedBoxIndex = selectedBoxIndex,
-                    onSelectBox = onSelectBox
-                )
-            }
-        }
-
-        // 3. Filter Chips Row
+        // 2. Filter Chips Row
         item {
             Row(
                 modifier = Modifier
@@ -436,6 +422,9 @@ private fun DueQueueTabContent(
 @Composable
 private fun PracticeLabTabContent(
     data: com.studyos.app.domain.model.DueRevisionDashboardData,
+    leitnerBoxes: List<LeitnerBoxState> = emptyList(),
+    selectedBoxIndex: Int? = null,
+    onSelectBox: (Int?) -> Unit = {},
     onStartRecallSession: (ActiveRecallSessionType, String?) -> Unit,
     onOpenMistakes: () -> Unit,
     onOpenChapter: (String) -> Unit
@@ -573,7 +562,18 @@ private fun PracticeLabTabContent(
             }
         }
 
-        // 3. Quick Active Recall Sessions
+        // 3. Leitner 5-Box Memory Pipeline
+        if (leitnerBoxes.isNotEmpty()) {
+            item {
+                LeitnerPipelinePillStrip(
+                    boxes = leitnerBoxes,
+                    selectedBoxIndex = selectedBoxIndex,
+                    onSelectBox = onSelectBox
+                )
+            }
+        }
+
+        // 4. Quick Active Recall Sessions
         item {
             Text(
                 text = "Rapid Recall Timers",
@@ -606,7 +606,7 @@ private fun PracticeLabTabContent(
             }
         }
 
-        // 4. AI Recommendations (if any)
+        // 5. AI Recommendations (if any)
         if (data.recommendations.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -707,7 +707,7 @@ private fun OneTapReviseHeroCard(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 StudyOSButton(
-                    text = "Start Daily Revision →",
+                    text = "Start Revision Blitz →",
                     onClick = onStartRevision,
                     modifier = Modifier.fillMaxWidth()
                 )

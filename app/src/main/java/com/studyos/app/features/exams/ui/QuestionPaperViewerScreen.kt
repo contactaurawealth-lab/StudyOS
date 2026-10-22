@@ -93,6 +93,7 @@ fun QuestionPaperViewerScreen(
     val expandedSolutions = remember { mutableStateMapOf<String, Boolean>() }
     var marksInputText by remember { mutableStateOf("") }
     var recordedScore by remember { mutableStateOf<Int?>(null) }
+    var showRecordDiagnosticDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(paperId) {
         withContext(Dispatchers.IO) {
@@ -272,6 +273,14 @@ fun QuestionPaperViewerScreen(
                                         }
                                     )
                                 }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                StudyOSOutlinedButton(
+                                    text = "📊 Record Detailed Diagnostics & Lost Marks",
+                                    onClick = { showRecordDiagnosticDialog = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
                     }
@@ -538,6 +547,39 @@ fun QuestionPaperViewerScreen(
                     }
                 }
             }
+        }
+
+        if (showRecordDiagnosticDialog && paper != null) {
+            val cur = paper!!
+            RecordExamResultDialog(
+                paperTitle = cur.title,
+                totalMarks = cur.totalMarks.toDouble(),
+                durationMinutes = cur.durationMinutes,
+                questions = questions,
+                subjectId = cur.subjectId,
+                onDismissRequest = { showRecordDiagnosticDialog = false },
+                onSaveResult = { marks, time, notes, lostMarks ->
+                    val app = context.applicationContext as? com.studyos.app.StudyOSApplication
+                    app?.container?.let { container ->
+                        coroutineScope.launch {
+                            withContext(Dispatchers.IO) {
+                                val output = container.recordExamResultUseCase(
+                                    paperId = paperId,
+                                    marksObtained = marks,
+                                    totalMarks = cur.totalMarks.toDouble(),
+                                    timeTakenMinutes = time,
+                                    notesOrFeedback = notes,
+                                    lostMarks = lostMarks
+                                )
+                                val scoreInt = kotlin.math.round(output.result.percentage).toInt()
+                                recordedScore = scoreInt
+                                marksInputText = scoreInt.toString()
+                            }
+                            Toast.makeText(context, "Recorded score: $recordedScore% • ${lostMarks.size} diagnostic lost mark(s) logged to Mistake Bank!", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            )
         }
     }
 }
