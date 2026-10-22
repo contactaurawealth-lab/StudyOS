@@ -153,6 +153,23 @@ class StudyOSAppContainer(private val context: Context) {
         OfflineLostMarksRepository(database.lostMarksDao())
     }
 
+    val recordExamResultUseCase: com.studyos.app.domain.usecase.RecordExamResultUseCase by lazy {
+        com.studyos.app.domain.usecase.RecordExamResultUseCase(
+            examResultRepository = examResultRepository,
+            lostMarksRepository = lostMarksRepository,
+            mistakeRepository = mistakeRepository,
+            examRepository = examRepository,
+            paperRepository = paperRepository
+        )
+    }
+
+    val getExamDiagnosticUseCase: com.studyos.app.domain.usecase.GetExamDiagnosticUseCase by lazy {
+        com.studyos.app.domain.usecase.GetExamDiagnosticUseCase(
+            examResultRepository = examResultRepository,
+            lostMarksRepository = lostMarksRepository
+        )
+    }
+
     val universalCsvProcessor: com.studyos.app.core.csv.UniversalCsvProcessor by lazy {
         com.studyos.app.core.csv.UniversalCsvProcessor(database)
     }

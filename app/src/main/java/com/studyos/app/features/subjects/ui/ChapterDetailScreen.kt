@@ -176,22 +176,11 @@ fun ChapterDetailScreen(
                                 onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier.background(colors.surface)
                             ) {
-                                val isCompleted = chapter.status == ChapterStatus.COMPLETED || chapter.progress == 100
                                 DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            if (isCompleted) "Mark in progress" else "Mark complete",
-                                            style = typography.body,
-                                            color = colors.primaryText
-                                        )
-                                    },
+                                    text = { Text("Edit chapter", style = typography.body, color = colors.primaryText) },
                                     onClick = {
                                         menuExpanded = false
-                                        if (isCompleted) {
-                                            viewModel.updateStatus(ChapterStatus.IN_PROGRESS)
-                                        } else {
-                                            viewModel.updateStatus(ChapterStatus.COMPLETED)
-                                        }
+                                        showEditSheet = true
                                     }
                                 )
                                 DropdownMenuItem(
@@ -200,27 +189,6 @@ fun ChapterDetailScreen(
                                         menuExpanded = false
                                         viewModel.updateProgress(0)
                                         viewModel.updateStatus(ChapterStatus.NOT_STARTED)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Practice & Revision", style = typography.body, color = colors.primaryText) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onOpenPractice(chapter.id)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Ask AI Assistant", style = typography.body, color = colors.primaryText) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onAskAi(chapter.id)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Edit chapter", style = typography.body, color = colors.primaryText) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        showEditSheet = true
                                     }
                                 )
                                 DropdownMenuItem(
@@ -290,7 +258,7 @@ fun ChapterDetailScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Progress Control Card
+                    // Chapter Status & Progress Card
                     GlassCard(
                         backgroundColor = colors.glassSurface,
                         padding = 18.dp
@@ -301,7 +269,7 @@ fun ChapterDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Progress",
+                                text = "Status & Progress",
                                 style = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 color = colors.primaryText
                             )
@@ -313,47 +281,9 @@ fun ChapterDetailScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        StudyOSProgressBar(
-                            progress = chapter.progress,
-                            height = 6.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        var sliderVal by remember(chapter.progress) {
-                            mutableFloatStateOf(chapter.progress.toFloat())
-                        }
-
-                        Slider(
-                            value = sliderVal,
-                            onValueChange = { sliderVal = it },
-                            onValueChangeFinished = {
-                                viewModel.updateProgress(sliderVal.roundToInt())
-                            },
-                            valueRange = 0f..100f,
-                            steps = 99,
-                            colors = SliderDefaults.colors(
-                                thumbColor = colors.accent,
-                                activeTrackColor = colors.accent,
-                                inactiveTrackColor = colors.border
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Text(
-                            text = "Status",
-                            style = typography.caption,
-                            color = colors.mutedText
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Quick Status Chips
+                        // Quick 3-chip Status Selector
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -367,7 +297,7 @@ fun ChapterDetailScreen(
 
                             GlassChip(
                                 text = "In progress",
-                                selected = chapter.status == ChapterStatus.IN_PROGRESS && chapter.progress in 1..99,
+                                selected = chapter.status == ChapterStatus.IN_PROGRESS || (chapter.progress in 1..99),
                                 onClick = { viewModel.updateStatus(ChapterStatus.IN_PROGRESS) },
                                 modifier = Modifier.weight(1f)
                             )
@@ -377,6 +307,39 @@ fun ChapterDetailScreen(
                                 selected = chapter.status == ChapterStatus.COMPLETED || chapter.progress == 100,
                                 onClick = { viewModel.updateStatus(ChapterStatus.COMPLETED) },
                                 modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        StudyOSProgressBar(
+                            progress = chapter.progress,
+                            height = 5.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Show slider for fine-tuning progress when in progress
+                        if (chapter.progress in 1..99 || chapter.status == ChapterStatus.IN_PROGRESS) {
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            var sliderVal by remember(chapter.progress) {
+                                mutableFloatStateOf(chapter.progress.toFloat())
+                            }
+
+                            Slider(
+                                value = sliderVal,
+                                onValueChange = { sliderVal = it },
+                                onValueChangeFinished = {
+                                    viewModel.updateProgress(sliderVal.roundToInt())
+                                },
+                                valueRange = 0f..100f,
+                                steps = 99,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = colors.accent,
+                                    activeTrackColor = colors.accent,
+                                    inactiveTrackColor = colors.border
+                                ),
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
