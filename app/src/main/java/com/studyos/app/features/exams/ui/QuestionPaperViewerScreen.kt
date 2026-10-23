@@ -203,6 +203,59 @@ fun QuestionPaperViewerScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // 0. Ghost Exam Remediation Banner
+                    if (curPaper.title.contains("Ghost Exam", ignoreCase = true)) {
+                        item {
+                            GlassCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, colors.accent.copy(alpha = 0.5f), shapes.card),
+                                padding = 16.dp,
+                                backgroundColor = colors.glassSurface
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text("👻", fontSize = 24.sp)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "GHOST EXAM • AUTO-REMEDIATION",
+                                                style = typography.caption.copy(fontWeight = FontWeight.Bold),
+                                                color = colors.accent,
+                                                letterSpacing = 1.sp
+                                            )
+                                            Text(
+                                                text = "Target: Verify recovery of ${curPaper.totalMarks} marks leaked in past tests.",
+                                                style = typography.caption,
+                                                color = colors.secondaryText
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    StudyOSButton(
+                                        text = "Verify Recovery & Close Mistake Loop",
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                withContext(Dispatchers.IO) {
+                                                    database.paperDao().updatePaperStatus(curPaper.id, "COMPLETED")
+                                                }
+                                                Toast.makeText(context, "Ghost Exam verified! Mistake Loop closed.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // 1. Direct Marks Input Box Card
                     item {
                         GlassCard(

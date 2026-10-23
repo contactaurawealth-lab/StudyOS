@@ -973,6 +973,21 @@ private fun MinimalPriorityQueueCard(
                         style = typography.caption.copy(fontSize = 11.sp),
                         color = colors.secondaryText
                     )
+                    if (item.isExamDayCompressed) {
+                        Box(
+                            modifier = Modifier
+                                .clip(shapes.statusPill)
+                                .background(colors.accent.copy(alpha = 0.15f))
+                                .border(0.5.dp, colors.accent, shapes.statusPill)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "⚡ EXAM COMPRESSED",
+                                style = typography.caption.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Bold),
+                                color = colors.accent
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(

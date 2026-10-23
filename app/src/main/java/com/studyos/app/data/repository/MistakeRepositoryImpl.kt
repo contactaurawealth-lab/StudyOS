@@ -61,6 +61,8 @@ class MistakeRepositoryImpl(
         lastMissedAt = lastMissedAt,
         isResolved = isResolved,
         photoUri = photoUri,
+        marksLost = marksLost,
+        lossCategory = lossCategory,
         createdAt = createdAt
     )
 
@@ -77,6 +79,8 @@ class MistakeRepositoryImpl(
         lastMissedAt = lastMissedAt,
         isResolved = isResolved,
         photoUri = photoUri,
+        marksLost = marksLost,
+        lossCategory = lossCategory,
         createdAt = createdAt
     )
 }

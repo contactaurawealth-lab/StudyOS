@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.Flow
 interface TopicRepository {
     fun getTopicsForChapter(chapterId: String): Flow<List<Topic>>
     suspend fun getTopicsForChapterOnce(chapterId: String): List<Topic>
+    fun getAllTopics(): Flow<List<Topic>>
+    suspend fun getAllTopicsOnce(): List<Topic>
     suspend fun getTopicById(id: String): Topic?
     fun observeTopicById(id: String): Flow<Topic?>
     fun getTopicsByMasteryState(state: TopicMasteryState): Flow<List<Topic>>

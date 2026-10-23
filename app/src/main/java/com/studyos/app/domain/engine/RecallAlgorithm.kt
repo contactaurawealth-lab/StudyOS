@@ -23,13 +23,25 @@ object RecallAlgorithm {
     private const val FOUR_HOURS_MILLIS = 14_400_000L
 
     /**
+     * Compresses the SM-2 interval when an exam is approaching so that reviews peak
+     * right before Exam Day (24-48 hours before), preventing reviews from skipping past the exam.
+     */
+    fun compressIntervalForExam(baseIntervalDays: Int, daysUntilExam: Long): Int {
+        if (daysUntilExam <= 0) return 1
+        if (daysUntilExam <= 3) return 1 // Daily consolidation in the final 72 hours
+        val maxFeasibleInterval = (daysUntilExam / 2).toInt().coerceAtLeast(1)
+        return minOf(baseIntervalDays, maxFeasibleInterval)
+    }
+
+    /**
      * Evaluates a student's answer against the expected answer, updates the recall metrics,
      * adjusts confidence and intervals, and returns the evaluation result.
      */
     fun evaluateRecallAttempt(
         item: RecallItem,
         userAnswer: String,
-        confidenceRating: Int = 3 // 1 (low) to 5 (high)
+        confidenceRating: Int = 3, // 1 (low) to 5 (high)
+        daysUntilExam: Long? = null
     ): RecallEvaluationResult {
         val now = System.currentTimeMillis()
         val isCorrect = checkAnswerMatch(userAnswer, item.expectedAnswer)
@@ -57,7 +69,14 @@ object RecallAlgorithm {
 
         if (isCorrect) {
             val tierIndex = (newConsecutiveCorrect - 1).coerceIn(0, INTERVAL_TIERS_DAYS.lastIndex)
-            nextIntervalDays = INTERVAL_TIERS_DAYS[tierIndex]
+            val baseIntervalDays = INTERVAL_TIERS_DAYS[tierIndex]
+
+            // Deadline Compression: if exam is within 30 days, compress interval so recall peaks prior to exam
+            nextIntervalDays = if (daysUntilExam != null && daysUntilExam > 0) {
+                compressIntervalForExam(baseIntervalDays, daysUntilExam)
+            } else {
+                baseIntervalDays
+            }
             nextReviewTime = now + (nextIntervalDays * ONE_DAY_MILLIS)
         } else {
             // Immediate review required: 4 hours or 1 day depending on failure severity

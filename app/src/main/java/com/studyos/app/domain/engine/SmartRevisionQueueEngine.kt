@@ -24,7 +24,8 @@ data class PriorityQueueItem(
     val reasonType: RevisionQueueReasonType,
     val priorityScore: Int,
     val subjectId: String,
-    val chapterId: String? = null
+    val chapterId: String? = null,
+    val isExamDayCompressed: Boolean = false
 )
 
 object SmartRevisionQueueEngine {
@@ -115,6 +116,8 @@ object SmartRevisionQueueEngine {
                     primary.second.second
                 }
 
+                val isCompressed = daysToExam != null && daysToExam in 0..14
+
                 items.add(
                     PriorityQueueItem(
                         id = "rev_${chapter.id}",
@@ -124,7 +127,8 @@ object SmartRevisionQueueEngine {
                         reasonType = primaryType,
                         priorityScore = compositeScore,
                         subjectId = subject.id,
-                        chapterId = chapter.id
+                        chapterId = chapter.id,
+                        isExamDayCompressed = isCompressed
                     )
                 )
             }
