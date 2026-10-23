@@ -18,6 +18,12 @@ interface TopicDao {
     @Query("SELECT * FROM topics WHERE chapterId = :chapterId ORDER BY orderIndex ASC, createdAt ASC")
     suspend fun getTopicsForChapterOnce(chapterId: String): List<TopicEntity>
 
+    @Query("SELECT * FROM topics ORDER BY createdAt DESC")
+    fun getAllTopics(): Flow<List<TopicEntity>>
+
+    @Query("SELECT * FROM topics ORDER BY createdAt DESC")
+    suspend fun getAllTopicsOnce(): List<TopicEntity>
+
     @Query("SELECT * FROM topics WHERE id = :id")
     suspend fun getTopicById(id: String): TopicEntity?
 

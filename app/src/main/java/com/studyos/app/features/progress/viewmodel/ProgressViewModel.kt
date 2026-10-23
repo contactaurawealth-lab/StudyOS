@@ -46,12 +46,23 @@ data class DiagnosedWeakSpot(
     val suggestedSessionType: String = "MICRO_SPRINT_10"
 )
 
+enum class ProgressTab(val label: String) {
+    OVERVIEW("Readiness"),
+    LEAKAGE_RADAR("Mark Leakage"),
+    LEVERAGE_MATRIX("95% Leverage")
+}
+
 data class ProgressUiState(
     val academicProgress: AcademicProgress = AcademicProgress(),
     val weeklyReport: WeeklyStudyReport? = null,
     val selectedTimeWindow: ProgressTimeWindow = ProgressTimeWindow.THIS_WEEK,
+    val selectedTab: ProgressTab = ProgressTab.OVERVIEW,
     val cognitiveReadiness: CognitiveReadiness = CognitiveReadiness(),
     val diagnosedWeakSpots: List<DiagnosedWeakSpot> = emptyList(),
+    val markLeakageReport: com.studyos.app.domain.model.MarkLeakageReport = com.studyos.app.domain.model.MarkLeakageReport(),
+    val leverageMatrix: com.studyos.app.domain.model.LeverageMatrixReport = com.studyos.app.domain.model.LeverageMatrixReport(),
+    val isGeneratingGhostExam: Boolean = false,
+    val generatedGhostPaperId: String? = null,
     val filteredStudyMinutes: Int = 0,
     val activeDaysCount: Int = 0,
     val isLoading: Boolean = true,
@@ -64,7 +75,10 @@ class ProgressViewModel(
     private val subjectRepository: SubjectRepository? = null,
     private val mistakeRepository: MistakeRepository? = null,
     private val recallRepository: RecallRepository? = null,
-    private val quizRepository: QuizRepository? = null
+    private val quizRepository: QuizRepository? = null,
+    private val calculateMarkLeakageUseCase: com.studyos.app.domain.usecase.CalculateMarkLeakageUseCase? = null,
+    private val calculateLeverageMatrixUseCase: com.studyos.app.domain.usecase.CalculateLeverageMatrixUseCase? = null,
+    private val generateGhostExamUseCase: com.studyos.app.domain.usecase.GenerateGhostExamUseCase? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProgressUiState())
@@ -75,6 +89,7 @@ class ProgressViewModel(
     init {
         loadProgress()
         loadAnalyticsAndReadiness()
+        loadLeakageAndLeverage()
     }
 
     fun setTimeWindowFilter(filter: ProgressTimeWindow) {
@@ -221,6 +236,55 @@ class ProgressViewModel(
                 }
             }.collect {}
         }
+    }
+
+    fun setProgressTab(tab: ProgressTab) {
+        _uiState.update { it.copy(selectedTab = tab) }
+    }
+
+    private fun loadLeakageAndLeverage() {
+        calculateMarkLeakageUseCase?.let { useCase ->
+            viewModelScope.launch {
+                useCase().collect { report ->
+                    _uiState.update { it.copy(markLeakageReport = report) }
+                }
+            }
+        }
+        calculateLeverageMatrixUseCase?.let { useCase ->
+            viewModelScope.launch {
+                useCase().collect { matrix ->
+                    _uiState.update { it.copy(leverageMatrix = matrix) }
+                }
+            }
+        }
+    }
+
+    fun generateGhostExam(targetSubjectId: String? = null, onComplete: (String) -> Unit = {}) {
+        val useCase = generateGhostExamUseCase ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isGeneratingGhostExam = true) }
+            try {
+                val paper = useCase(targetSubjectId)
+                _uiState.update {
+                    it.copy(
+                        isGeneratingGhostExam = false,
+                        generatedGhostPaperId = paper.id
+                    )
+                }
+                onComplete(paper.id)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isGeneratingGhostExam = false,
+                        errorMessage = "Ghost exam generation failed: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearGeneratedGhostPaper() {
+        _uiState.update { it.copy(generatedGhostPaperId = null) }
     }
 }
 

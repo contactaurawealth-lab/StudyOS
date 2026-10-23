@@ -631,6 +631,8 @@ private fun StudyOSNavGraph(
 
         composable(Screen.Progress.route) {
             val progressViewModel = rememberProgressViewModel(container)
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
             ProgressScreen(
                 viewModel = progressViewModel,
                 onSubjectClick = { subjectId ->
@@ -638,6 +640,19 @@ private fun StudyOSNavGraph(
                 },
                 onStartMicroSprint = { subjectId ->
                     navController.navigate(Screen.ActiveRecallRunner.createRoute(sessionType = "QUICK_5"))
+                },
+                onOpenPaper = { paperId ->
+                    navController.navigate(Screen.QuestionPaperViewer.createRoute(paperId))
+                },
+                onGeneratePreExamPrimer = { subjectId ->
+                    scope.launch {
+                        try {
+                            val file = container.generatePreExamPrimerUseCase(context, subjectId)
+                            com.studyos.app.core.util.DocumentOpener.openPdfInExternalApp(context, file.absolutePath, "Pre-Exam Primer")
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Primer: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             )
         }
@@ -1287,7 +1302,10 @@ private fun rememberProgressViewModel(container: StudyOSAppContainer): ProgressV
             subjectRepository = container.subjectRepository,
             mistakeRepository = container.mistakeRepository,
             recallRepository = container.recallRepository,
-            quizRepository = container.quizRepository
+            quizRepository = container.quizRepository,
+            calculateMarkLeakageUseCase = container.calculateMarkLeakageUseCase,
+            calculateLeverageMatrixUseCase = container.calculateLeverageMatrixUseCase,
+            generateGhostExamUseCase = container.generateGhostExamUseCase
         )
     }
 }

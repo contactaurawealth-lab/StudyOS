@@ -33,6 +33,10 @@ class FakeTopicRepository : TopicRepository {
     override suspend fun getTopicsForChapterOnce(chapterId: String): List<Topic> =
         items.filter { it.chapterId == chapterId }.sortedBy { it.orderIndex }
 
+    override fun getAllTopics(): Flow<List<Topic>> = topicsFlow
+
+    override suspend fun getAllTopicsOnce(): List<Topic> = items.toList()
+
     override suspend fun getTopicById(id: String): Topic? =
         items.find { it.id == id }
 

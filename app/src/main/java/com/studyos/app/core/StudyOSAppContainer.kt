@@ -182,6 +182,55 @@ class StudyOSAppContainer(private val context: Context) {
         com.studyos.app.core.paper.PdfQuestionPaperGenerator()
     }
 
+    val pdfPreExamPrimerGenerator: com.studyos.app.core.paper.PdfPreExamPrimerGenerator by lazy {
+        com.studyos.app.core.paper.PdfPreExamPrimerGenerator()
+    }
+
+    val calculateMarkLeakageUseCase: com.studyos.app.domain.usecase.CalculateMarkLeakageUseCase by lazy {
+        com.studyos.app.domain.usecase.CalculateMarkLeakageUseCase(
+            lostMarksRepository = lostMarksRepository,
+            examResultRepository = examResultRepository
+        )
+    }
+
+    val generateGhostExamUseCase: com.studyos.app.domain.usecase.GenerateGhostExamUseCase by lazy {
+        com.studyos.app.domain.usecase.GenerateGhostExamUseCase(
+            paperRepository = paperRepository,
+            lostMarksRepository = lostMarksRepository,
+            mistakeRepository = mistakeRepository,
+            questionBankRepository = questionBankRepository,
+            subjectRepository = subjectRepository,
+            chapterRepository = chapterRepository
+        )
+    }
+
+    val completeGhostExamUseCase: com.studyos.app.domain.usecase.CompleteGhostExamUseCase by lazy {
+        com.studyos.app.domain.usecase.CompleteGhostExamUseCase(
+            paperRepository = paperRepository,
+            lostMarksRepository = lostMarksRepository,
+            mistakeRepository = mistakeRepository
+        )
+    }
+
+    val calculateLeverageMatrixUseCase: com.studyos.app.domain.usecase.CalculateLeverageMatrixUseCase by lazy {
+        com.studyos.app.domain.usecase.CalculateLeverageMatrixUseCase(
+            topicRepository = topicRepository,
+            chapterRepository = chapterRepository,
+            subjectRepository = subjectRepository
+        )
+    }
+
+    val generatePreExamPrimerUseCase: com.studyos.app.domain.usecase.GeneratePreExamPrimerUseCase by lazy {
+        com.studyos.app.domain.usecase.GeneratePreExamPrimerUseCase(
+            subjectRepository = subjectRepository,
+            chapterRepository = chapterRepository,
+            recallRepository = recallRepository,
+            lostMarksRepository = lostMarksRepository,
+            mistakeRepository = mistakeRepository,
+            pdfGenerator = pdfPreExamPrimerGenerator
+        )
+    }
+
     val studyTimerViewModel: com.studyos.app.features.timer.viewmodel.StudyTimerViewModel by lazy {
         com.studyos.app.features.timer.viewmodel.StudyTimerViewModel(
             context = context.applicationContext,

@@ -96,4 +96,21 @@ class ProgressViewModelTest {
         assertEquals(1, sciBreakdown.completedChapters)
         assertEquals(2, sciBreakdown.totalChapters)
     }
+
+    @Test
+    fun testProgress_tabsAndNewFeatures() = runTest {
+        viewModel = ProgressViewModel(getAcademicProgressUseCase)
+        advanceUntilIdle()
+
+        assertEquals(com.studyos.app.features.progress.viewmodel.ProgressTab.OVERVIEW, viewModel.uiState.value.selectedTab)
+
+        viewModel.setProgressTab(com.studyos.app.features.progress.viewmodel.ProgressTab.LEAKAGE_RADAR)
+        assertEquals(com.studyos.app.features.progress.viewmodel.ProgressTab.LEAKAGE_RADAR, viewModel.uiState.value.selectedTab)
+
+        viewModel.setProgressTab(com.studyos.app.features.progress.viewmodel.ProgressTab.LEVERAGE_MATRIX)
+        assertEquals(com.studyos.app.features.progress.viewmodel.ProgressTab.LEVERAGE_MATRIX, viewModel.uiState.value.selectedTab)
+
+        org.junit.Assert.assertNotNull(viewModel.uiState.value.markLeakageReport)
+        org.junit.Assert.assertNotNull(viewModel.uiState.value.leverageMatrix)
+    }
 }

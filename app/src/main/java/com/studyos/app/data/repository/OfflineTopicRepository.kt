@@ -19,6 +19,12 @@ class OfflineTopicRepository(
     override suspend fun getTopicsForChapterOnce(chapterId: String): List<Topic> =
         topicDao.getTopicsForChapterOnce(chapterId).map { it.toDomain() }
 
+    override fun getAllTopics(): Flow<List<Topic>> =
+        topicDao.getAllTopics().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun getAllTopicsOnce(): List<Topic> =
+        topicDao.getAllTopicsOnce().map { it.toDomain() }
+
     override suspend fun getTopicById(id: String): Topic? =
         topicDao.getTopicById(id)?.toDomain()
 
