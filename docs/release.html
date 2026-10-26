@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>StudyOS v1.9.0 Release — Top 5 Exam Features & 10x UI Elevation</title>
+  <meta name="description" content="StudyOS v1.9.0 Release Notes: Mark-Leakage Radar & Bleed Rate Analytics, Ghost Exam Auto-Remediation, 95% Leverage Matrix, Deadline Spaced Repetition, and Printable Vector Pre-Exam Primers. 100% Offline.">
+  
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="StudyOS v1.9.0 — The 95% Offline Exam Operating System">
+  <meta property="og:description" content="Top 5 High-Leverage Exam Features & 10x UI Elevation. 100% offline, zero trackers, verified SHA-256 checksum.">
+  <meta property="og:image" content="https://studyos-workspace.vercel.app/og-image.png">
+  <meta property="og:url" content="https://studyos-workspace.vercel.app/release">
+  <meta name="theme-color" content="#0A0B0E">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="assets/css/style.css">
+
+  <style>
+    /* Release Page Custom Enhancements */
+    .feature-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-amber {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .badge-emerald {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .badge-rose {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .badge-cyan {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+    }
+    .badge-indigo {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818CF8;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+    }
+
+    /* Radar Chart Simulation */
+    .radar-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .radar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Interactive Spring Bounce Demonstration */
+    .bounce-interactive-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-accent);
+      color: var(--accent);
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease;
+    }
+    .bounce-interactive-btn:active {
+      transform: scale(0.94);
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--accent);
+    }
+
+    /* 2x2 Leverage Quadrant Grid */
+    .quadrant-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      position: relative;
+    }
+    @media (max-width: 640px) {
+      .quadrant-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .quadrant-cell {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      position: relative;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+    .quadrant-cell:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Cheat Sheet PDF Canvas Simulation */
+    .primer-pdf-mock {
+      background: #FFFFFF;
+      color: #111827;
+      border-radius: 6px;
+      padding: 24px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
+      font-family: var(--font-sans);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .primer-header {
+      border-bottom: 2px solid #111827;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .primer-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .primer-box {
+      border: 1px solid #E5E7EB;
+      background: #F9FAFB;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .primer-box-title {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      color: #B45309;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow Effects -->
+  <div class="ambient-mesh">
+    <div class="ambient-orb ambient-orb-1"></div>
+    <div class="ambient-orb ambient-orb-2"></div>
+    <div class="ambient-orb ambient-orb-3"></div>
+  </div>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-announcement">
+    <span class="announcement-badge">Major Release</span>
+    <span>StudyOS v1.9.0 is live with Top 5 High-Leverage Exam Features &amp; 10x UI Elevation.</span>
+    <a href="#download">Download APK v1.9.0 &darr;</a>
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="nav-wrapper">
+    <header class="navbar">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <span>StudyOS</span>
+        <span class="brand-tag">Android</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="release.html" class="nav-link active">Release v1.9.0 <span class="nav-badge-new">New</span></a></li>
+          <li><a href="features.html" class="nav-link">Features</a></li>
+          <li><a href="mock-tests.html" class="nav-link">Mock Tests</a></li>
+          <li><a href="download.html" class="nav-link">Download</a></li>
+          <li><a href="docs.html" class="nav-link">Guide</a></li>
+          <li><a href="privacy.html" class="nav-link">Privacy</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="downloads/StudyOS.apk" class="btn-nav-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Get APK v1.9.0</span>
+        </a>
+        <button class="mobile-toggle" aria-label="Open Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+  </div>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-drawer">
+    <div class="drawer-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <span>StudyOS</span>
+      </div>
+      <button class="drawer-close" style="background:transparent;border:none;color:#fff;cursor:pointer;padding:8px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <ul class="drawer-links">
+      <li><a href="index.html" class="drawer-link">Home <span>&rarr;</span></a></li>
+      <li><a href="release.html" class="drawer-link active">Release v1.9.0 <span>&rarr;</span></a></li>
+      <li><a href="features.html" class="drawer-link">Features <span>&rarr;</span></a></li>
+      <li><a href="mock-tests.html" class="drawer-link">Mock Tests <span>&rarr;</span></a></li>
+      <li><a href="download.html" class="drawer-link">Download APK <span>&rarr;</span></a></li>
+      <li><a href="docs.html" class="drawer-link">Student Guide <span>&rarr;</span></a></li>
+      <li><a href="privacy.html" class="drawer-link">100% Offline Manifesto <span>&rarr;</span></a></li>
+    </ul>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="section" style="padding-top:70px; padding-bottom:50px;">
+    <div class="container">
+      <div class="download-card-hero reveal" style="background:linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(19, 22, 31, 0.95) 100%); border-color:var(--border-accent);">
+        
+        <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:16px;">
+          <span class="feature-badge-pill badge-amber">✦ Production Release v1.9.0</span>
+          <span class="feature-badge-pill badge-emerald">100% Offline Verified</span>
+        </div>
+
+        <h1 style="font-size:3.2rem; font-weight:800; line-height:1.15; margin-bottom:16px; letter-spacing:-0.02em;">
+          The 95% Offline <span style="color:var(--accent);">Exam OS</span>
+        </h1>
+        
+        <p style="color:var(--text-secondary); max-width:740px; margin:0 auto 32px auto; font-size:1.15rem; line-height:1.65;">
+          A transformational upgrade delivering the <strong>Top 5 High-Leverage Exam Features</strong> and a <strong>10x tactile UI elevation</strong>. Eliminate mark-leakage, auto-remediate mistakes through Ghost Exams, maximize revision ROI with the 95% Leverage Matrix, compress spaced repetition before deadlines, and compile printable vector pre-exam primers.
+        </p>
+
+        <!-- Big Download Actions -->
+        <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap; margin-bottom:28px;" id="download">
+          <a href="downloads/StudyOS.apk" class="btn-primary-hero" style="font-size:1.15rem; padding:18px 36px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Download StudyOS v1.9.0 APK (14.1 MB)</span>
+          </a>
+
+          <a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" rel="noopener" class="btn-secondary-hero" style="font-size:1.05rem; padding:18px 28px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span>GitHub Repository</span>
+          </a>
+        </div>
+
+        <!-- Checksum Verification Box -->
+        <div style="text-align:left; max-width:720px; margin:0 auto 28px auto;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">
+              Verified SHA-256 Checksum
+            </div>
+            <span style="font-size:0.75rem; color:var(--success); font-weight:600;">✓ Automated Build Hash</span>
+          </div>
+          <div class="checksum-box">
+            <span style="user-select:all; font-family:var(--font-mono); font-size:0.82rem;">13b1e612d5753c7dad903fd22cc9a3882daf023ab5b7b9a6d9f214cee225674d</span>
+            <button class="copy-btn" data-copy-text="13b1e612d5753c7dad903fd22cc9a3882daf023ab5b7b9a6d9f214cee225674d">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy SHA-256</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Technical Specs Strip -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; max-width:720px; margin:0 auto; text-align:left;">
+          <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
+            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase;">Status</div>
+            <div style="font-size:0.95rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">Stable Build (v1.9.0)</div>
+          </div>
+          <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
+            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase;">Package Size</div>
+            <div style="font-size:0.95rem; font-weight:700; font-family:var(--font-mono); color:var(--text-primary);">14.1 MB</div>
+          </div>
+          <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
+            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase;">Architecture</div>
+            <div style="font-size:0.95rem; font-weight:700; color:var(--success);">100% Offline (Room)</div>
+          </div>
+          <div style="background:var(--surface-1); border:1px solid var(--border); padding:14px; border-radius:var(--radius-sm);">
+            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase;">Unit Tests</div>
+            <div style="font-size:0.95rem; font-weight:700; color:var(--text-primary);">134/134 Passed</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Deep Dive: The Top 5 Features -->
+  <section class="section" style="padding-top:20px; padding-bottom:50px;">
+    <div class="container">
+      
+      <div class="section-header reveal">
+        <span class="section-eyebrow">Academic Engineering</span>
+        <h2 class="section-title">The Top 5 High-Leverage Features</h2>
+        <p class="section-description">
+          Engineered to systematically advance students from baseline performance to the 95th percentile through deterministic feedback loops.
+        </p>
+      </div>
+
+      <!-- Feature 1: Mark-Leakage Radar & Bleed Rate Analytics -->
+      <div class="spotlight-card reveal" style="margin-bottom:32px; border-color:var(--border-accent); background:linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, rgba(19, 22, 31, 0.9) 100%);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="feature-badge-pill badge-rose">Feature #1 • Diagnostic Engine</span>
+              <span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">MarkLeakageAnalyticsEngine.kt</span>
+            </div>
+            <h3 style="font-size:1.6rem; font-weight:800; color:var(--text-primary);">Mark-Leakage Radar &amp; Bleed Rate Analytics</h3>
+          </div>
+          <div style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); padding:8px 16px; border-radius:var(--radius-sm); text-align:right;">
+            <div style="font-size:0.75rem; text-transform:uppercase; color:#EF4444; font-weight:700;">Bleed Rate Formula</div>
+            <div style="font-family:var(--font-mono); font-size:0.9rem; font-weight:700; color:#F0F2F5;">(Marks Lost / Total) &times; 100%</div>
+          </div>
+        </div>
+
+        <p style="color:var(--text-secondary); margin-bottom:24px; line-height:1.65; max-width:850px;">
+          Traditional revision fails because students don't know <em>why</em> they lose marks. StudyOS classifies every lost mark into 5 distinct diagnostic vectors and renders an animated multi-axis polar radar chart to expose root-cause leakages.
+        </p>
+
+        <!-- Feature Grid Breakdown -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px; align-items:center; margin-bottom:20px;">
+          
+          <!-- Visual Radar Diagram Mockup -->
+          <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px; text-align:center;">
+            <div style="font-size:0.85rem; font-weight:700; color:var(--accent); margin-bottom:12px; display:flex; justify-content:space-between;">
+              <span>5-Axis Cognitive Polar Radar</span>
+              <span style="color:#EF4444;">⚡ Bleed Rate: 18.4%</span>
+            </div>
+            
+            <div class="radar-wrapper">
+              <svg viewBox="0 0 300 300" class="radar-svg">
+                <!-- Background Web Polygons -->
+                <polygon points="150,30 264,112 220,247 80,247 36,112" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.2"/>
+                <polygon points="150,70 226,125 197,215 103,215 74,125" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+                <polygon points="150,110 188,137 173,182 127,182 112,137" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.8"/>
+                
+                <!-- Axis Lines -->
+                <line x1="150" y1="150" x2="150" y2="30" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                <line x1="150" y1="150" x2="264" y2="112" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                <line x1="150" y1="150" x2="220" y2="247" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                <line x1="150" y1="150" x2="80" y2="247" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                <line x1="150" y1="150" x2="36" y2="112" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+                
+                <!-- Data Polygon (Calculation Error Heavy) -->
+                <polygon points="150,85 240,118 190,210 115,190 60,118" fill="rgba(245, 158, 11, 0.28)" stroke="#F59E0B" stroke-width="2.5"/>
+                
+                <!-- Vertex Dots -->
+                <circle cx="150" cy="85" r="4.5" fill="#F59E0B"/>
+                <circle cx="240" cy="118" r="5" fill="#EF4444"/>
+                <circle cx="190" cy="210" r="4" fill="#F59E0B"/>
+                <circle cx="115" cy="190" r="4" fill="#F59E0B"/>
+                <circle cx="60" cy="118" r="4" fill="#F59E0B"/>
+
+                <!-- Axis Labels -->
+                <text x="150" y="20" fill="#9CA3AF" font-size="10.5" font-weight="700" text-anchor="middle">CONCEPT VOID</text>
+                <text x="272" y="115" fill="#EF4444" font-size="10.5" font-weight="800" text-anchor="start">CALCULATION (42%)</text>
+                <text x="228" y="265" fill="#9CA3AF" font-size="10.5" font-weight="700" text-anchor="middle">FORMULA LAPSE</text>
+                <text x="70" y="265" fill="#9CA3AF" font-size="10.5" font-weight="700" text-anchor="middle">TIME PRESSURE</text>
+                <text x="28" y="115" fill="#9CA3AF" font-size="10.5" font-weight="700" text-anchor="end">MISREAD PROMPT</text>
+              </svg>
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">
+              Primary Root-Cause: <strong style="color:#EF4444;">Calculation Slips</strong> account for 8.5 marks lost.
+            </div>
+          </div>
+
+          <!-- 5 Vector Diagnostic Breakdown Cards -->
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="background:var(--surface-2); border-left:3px solid #EF4444; padding:12px 14px; border-radius:0 8px 8px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">1. Arithmetic &amp; Execution Slip</span>
+                <span style="font-size:0.75rem; color:#EF4444; font-weight:700; font-family:var(--font-mono);">42% of Losses</span>
+              </div>
+              <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:2px;">Sign errors, unit conversions, or mechanical arithmetic slips under exam stress.</div>
+            </div>
+
+            <div style="background:var(--surface-2); border-left:3px solid #F59E0B; padding:12px 14px; border-radius:0 8px 8px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">2. Conceptual Void</span>
+                <span style="font-size:0.75rem; color:var(--accent); font-weight:700; font-family:var(--font-mono);">24% of Losses</span>
+              </div>
+              <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:2px;">Theoretical misunderstandings requiring foundational re-study.</div>
+            </div>
+
+            <div style="background:var(--surface-2); border-left:3px solid #06B6D4; padding:12px 14px; border-radius:0 8px 8px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">3. Prompt Misinterpretation</span>
+                <span style="font-size:0.75rem; color:var(--cyan); font-weight:700; font-family:var(--font-mono);">16% of Losses</span>
+              </div>
+              <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:2px;">Overlooking negative qualifiers like "NOT" or "EXCEPT" in problem stems.</div>
+            </div>
+
+            <div style="background:var(--surface-2); border-left:3px solid #818CF8; padding:12px 14px; border-radius:0 8px 8px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">4. Formula &amp; Constant Lapse</span>
+                <span style="font-size:0.75rem; color:#818CF8; font-weight:700; font-family:var(--font-mono);">12% of Losses</span>
+              </div>
+              <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:2px;">Forgotten equations or misremembered dimensional constants.</div>
+            </div>
+
+            <div style="background:var(--surface-2); border-left:3px solid #10B981; padding:12px 14px; border-radius:0 8px 8px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">5. Pacing &amp; Time Pressure</span>
+                <span style="font-size:0.75rem; color:var(--success); font-weight:700; font-family:var(--font-mono);">6% of Losses</span>
+              </div>
+              <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:2px;">Unattempted or rushed questions due to poor time allocation.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Feature 2: Ghost Exam Auto-Remediation Engine -->
+      <div class="spotlight-card reveal" style="margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="feature-badge-pill badge-indigo">Feature #2 • Closed-Loop Mastery</span>
+              <span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">GhostExamEngine.kt</span>
+            </div>
+            <h3 style="font-size:1.6rem; font-weight:800; color:var(--text-primary);">Ghost Exam Auto-Remediation Engine</h3>
+          </div>
+          <span class="feature-badge-pill badge-emerald">✓ Verification Pass ≥ 85%</span>
+        </div>
+
+        <p style="color:var(--text-secondary); margin-bottom:20px; line-height:1.65; max-width:850px;">
+          Reviewing solutions on paper creates passive recognition rather than recall. The <strong>Ghost Exam Engine</strong> synthesizes targeted re-test papers consisting exclusively of previously failed questions under timed exam conditions. Once the student clears the paper with an 85%+ score, mistakes are verified as <strong>Mastered</strong>.
+        </p>
+
+        <!-- Ghost Exam Interface Simulation -->
+        <div style="background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="background:rgba(99,102,241,0.2); color:#818CF8; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:800;">👻 GHOST EXAM #04</span>
+              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">Physics Mock 2 Remediation</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:0.8rem; color:var(--text-muted);">Score: <strong>91.6%</strong></span>
+              <span class="feature-badge-pill badge-emerald">✓ MASTERED VERIFICATION EARNED</span>
+            </div>
+          </div>
+
+          <div style="background:var(--surface-2); border-radius:8px; padding:16px; border:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span style="font-size:0.8rem; font-weight:700; color:var(--accent);">Q3 of 12 • Re-Test Item</span>
+              <span style="font-size:0.75rem; color:#EF4444; background:rgba(239,68,68,0.12); padding:2px 8px; border-radius:4px;">Original Error: Calculation Slip (-3 Marks)</span>
+            </div>
+            <div style="font-size:0.95rem; font-weight:600; color:var(--text-primary); margin-bottom:10px;">
+              Calculate the root-mean-square speed of oxygen molecules at 300 K given molar mass M = 32 g/mol.
+            </div>
+            <div style="font-size:0.85rem; color:var(--success); background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); padding:10px; border-radius:6px;">
+              <strong>Student Retest Answer:</strong> 483.6 m/s (Correctly converted 32 g/mol to 0.032 kg/mol) &rarr; <span style="font-weight:700;">+3 Marks Recovered</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Feature 3: The 95% Leverage Matrix (Deterministic ROI Engine) -->
+      <div class="spotlight-card reveal" style="margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="feature-badge-pill badge-amber">Feature #3 • Revision ROI Engine</span>
+              <span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">LeverageMatrixEngine.kt</span>
+            </div>
+            <h3 style="font-size:1.6rem; font-weight:800; color:var(--text-primary);">The 95% Leverage Matrix</h3>
+          </div>
+          <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); padding:8px 16px; border-radius:var(--radius-sm); text-align:right;">
+            <div style="font-size:0.75rem; text-transform:uppercase; color:var(--accent); font-weight:700;">ROI Algorithm</div>
+            <div style="font-family:var(--font-mono); font-size:0.9rem; font-weight:700; color:#F0F2F5;">Weightage &times; (1 - Mastery) / Diff</div>
+          </div>
+        </div>
+
+        <p style="color:var(--text-secondary); margin-bottom:20px; line-height:1.65; max-width:850px;">
+          Studying familiar topics yields minimal marginal gain. The <strong>Leverage Matrix</strong> classifies your entire syllabus into a 2x2 coordinate space of Exam Weightage vs Current Mastery to pinpoint the single highest return-on-time chapters.
+        </p>
+
+        <!-- 2x2 Leverage Quadrant -->
+        <div class="quadrant-grid">
+          
+          <!-- Quadrant 1: Goldmine -->
+          <div class="quadrant-cell" style="border-top:3px solid var(--accent); background:rgba(245,158,11,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="feature-badge-pill badge-amber">Quadrant I • Priority #1</span>
+              <span style="font-size:0.75rem; font-weight:700; color:var(--accent);">URGENT STUDY</span>
+            </div>
+            <h4 style="font-size:1.15rem; font-weight:800; color:var(--text-primary); margin-bottom:6px;">Goldmine (High Yield, High Deficit)</h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">High exam representation with substantial knowledge gaps. Every hour invested recovers maximum marks.</p>
+            <div style="font-size:0.8rem; font-family:var(--font-mono); color:var(--accent); background:var(--surface-2); padding:8px 10px; border-radius:6px;">
+              &bull; Wave Optics (8 Marks, 42% Mastery)<br>
+              &bull; Chemical Thermodynamics (12 Marks, 38% Mastery)
+            </div>
+          </div>
+
+          <!-- Quadrant 2: Lock-In -->
+          <div class="quadrant-cell" style="border-top:3px solid var(--success); background:rgba(16,185,129,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="feature-badge-pill badge-emerald">Quadrant II • Priority #2</span>
+              <span style="font-size:0.75rem; font-weight:700; color:var(--success);">LOCK-IN DEFENSE</span>
+            </div>
+            <h4 style="font-size:1.15rem; font-weight:800; color:var(--text-primary); margin-bottom:6px;">Lock-In (High Yield, Low Deficit)</h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Heavyweight chapters with strong mastery. Run periodic recall drills to safeguard against regression.</p>
+            <div style="font-size:0.8rem; font-family:var(--font-mono); color:var(--success); background:var(--surface-2); padding:8px 10px; border-radius:6px;">
+              &bull; Electrostatics &amp; Fields (14 Marks, 92% Mastery)<br>
+              &bull; Equilibrium (10 Marks, 88% Mastery)
+            </div>
+          </div>
+
+          <!-- Quadrant 3: Selective Fill -->
+          <div class="quadrant-cell" style="border-top:3px solid #EF4444; background:rgba(239,68,68,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="feature-badge-pill badge-rose">Quadrant III • Priority #3</span>
+              <span style="font-size:0.75rem; font-weight:700; color:#EF4444;">SELECTIVE SKIMMING</span>
+            </div>
+            <h4 style="font-size:1.15rem; font-weight:800; color:var(--text-primary); margin-bottom:6px;">Selective (Low Yield, High Deficit)</h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">High effort required for minimal exam score return. Focus only on high-probability past paper concepts.</p>
+            <div style="font-size:0.8rem; font-family:var(--font-mono); color:#EF4444; background:var(--surface-2); padding:8px 10px; border-radius:6px;">
+              &bull; Biomolecules (2 Marks, 30% Mastery)<br>
+              &bull; Communication Systems (2 Marks, 25% Mastery)
+            </div>
+          </div>
+
+          <!-- Quadrant 4: Maintenance -->
+          <div class="quadrant-cell" style="border-top:3px solid var(--cyan); background:rgba(6,182,212,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="feature-badge-pill badge-cyan">Quadrant IV • Priority #4</span>
+              <span style="font-size:0.75rem; font-weight:700; color:var(--cyan);">MINIMAL UPKEEP</span>
+            </div>
+            <h4 style="font-size:1.15rem; font-weight:800; color:var(--text-primary); margin-bottom:6px;">Maintenance (Low Yield, Low Deficit)</h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Already mastered chapters with low score impact. De-prioritize during crunch weeks.</p>
+            <div style="font-size:0.8rem; font-family:var(--font-mono); color:var(--cyan); background:var(--surface-2); padding:8px 10px; border-radius:6px;">
+              &bull; Environmental Chemistry (2 Marks, 95% Mastery)<br>
+              &bull; Units &amp; Dimensions (3 Marks, 96% Mastery)
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Feature 4: Deadline-Constrained Spaced Repetition -->
+      <div class="spotlight-card reveal" style="margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="feature-badge-pill badge-cyan">Feature #4 • Temporal SM-2 Engine</span>
+              <span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">SmartRevisionQueueEngine.kt</span>
+            </div>
+            <h3 style="font-size:1.6rem; font-weight:800; color:var(--text-primary);">Deadline-Constrained Spaced Repetition</h3>
+          </div>
+          <span class="feature-badge-pill badge-cyan">⚡ 1.4x to 2.5x Compression Factor</span>
+        </div>
+
+        <p style="color:var(--text-secondary); margin-bottom:20px; line-height:1.65; max-width:850px;">
+          Standard SM-2 algorithms assume learning over an infinite horizon, scheduling flashcards 45 to 90 days out. When your exam is in 10 days, those cards will not be reviewed in time. StudyOS v1.9.0 compresses intervals mathematically based on remaining exam days while synchronizing reviews to a fixed 04:00 AM calendar boundary.
+        </p>
+
+        <!-- Interval Comparison Diagram -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+          <div style="background:var(--surface-1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:16px;">
+            <div style="font-size:0.8rem; font-weight:700; color:#EF4444; margin-bottom:4px;">Standard SM-2 Interval (Indefinite Horizon)</div>
+            <div style="font-size:1.3rem; font-weight:800; color:#F0F2F5; font-family:var(--font-mono); margin-bottom:8px;">Interval: +28 Days</div>
+            <p style="font-size:0.82rem; color:var(--text-secondary);">Review falls 18 days AFTER exam date. Student enters exam hall without final retrieval reinforcement.</p>
+          </div>
+
+          <div style="background:var(--surface-1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:16px;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--success); margin-bottom:4px;">StudyOS Deadline-Constrained SM-2 (&kappa; = 2.14)</div>
+            <div style="font-size:1.3rem; font-weight:800; color:var(--accent); font-family:var(--font-mono); margin-bottom:8px;">Interval: +4 Days <span style="font-size:0.75rem; background:rgba(245,158,11,0.2); padding:2px 8px; border-radius:4px;">⚡ EXAM COMPRESSED</span></div>
+            <p style="font-size:0.82rem; color:var(--text-secondary);">Cycles cards through active retrieval 3 additional times prior to exam day at 04:00 AM.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Feature 5: Vector Pre-Exam "Cheat Sheet" / Primer PDF Compiler -->
+      <div class="spotlight-card reveal" style="margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="feature-badge-pill badge-emerald">Feature #5 • On-Device Vector PDF</span>
+              <span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">PdfPreExamPrimerGenerator.kt</span>
+            </div>
+            <h3 style="font-size:1.6rem; font-weight:800; color:var(--text-primary);">Vector Pre-Exam Primer PDF Compiler</h3>
+          </div>
+          <span class="feature-badge-pill badge-amber">A4 / Letter 600 DPI Vector</span>
+        </div>
+
+        <p style="color:var(--text-secondary); margin-bottom:20px; line-height:1.65; max-width:850px;">
+          In the final 24 hours before entering the testing center, screens cause cognitive fatigue and distraction. StudyOS compiles an ultra-dense, 2-column printable PDF containing only your verified high-yield formulas, mistake traps, and an unmastered checklist for physical pen revision.
+        </p>
+
+        <!-- Simulated Vector Cheat Sheet -->
+        <div class="primer-pdf-mock">
+          <div class="primer-header">
+            <div>
+              <div style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;">StudyOS Pre-Exam Tactical Primer &bull; Physics</div>
+              <div style="font-size:9.5px; color:#6B7280;">Autonomous On-Device Synthesis &bull; Candidate: Self &bull; Target: 95%+</div>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:9.5px; font-weight:700; background:#F3F4F6; padding:2px 6px; border-radius:3px;">2-Column Condensed</span>
+            </div>
+          </div>
+
+          <div class="primer-columns">
+            <div>
+              <div class="primer-box">
+                <div class="primer-box-title">&sect; 1. Core High-Yield Formulas</div>
+                <div>&bull; <strong>Gauss's Law:</strong> &Phi; = &oint; E &middot; dA = Q<sub>encl</sub> / &epsilon;<sub>0</sub></div>
+                <div>&bull; <strong>Drift Velocity:</strong> v<sub>d</sub> = eE&tau; / m</div>
+                <div>&bull; <strong>RLC Resonance:</strong> &omega;<sub>0</sub> = 1 / &radic;(LC)</div>
+              </div>
+              <div class="primer-box">
+                <div class="primer-box-title">&sect; 2. Dimensional Constants</div>
+                <div>&bull; &epsilon;<sub>0</sub> = 8.854 &times; 10<sup>-12</sup> C<sup>2</sup>/N&middot;m<sup>2</sup></div>
+                <div>&bull; &mu;<sub>0</sub> = 4&pi; &times; 10<sup>-7</sup> T&middot;m/A</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="primer-box" style="border-color:#FCA5A5; background:#FEF2F2;">
+                <div class="primer-box-title" style="color:#B91C1C;">&sect; 3. Personal Mistake Traps (Past 5 Mocks)</div>
+                <div>&bull; <strong>Sign Error in Lenz's Law:</strong> &epsilon; = -d&Phi;/dt (Never omit minus sign!)</div>
+                <div>&bull; <strong>Dielectric Insertion:</strong> C' = &kappa;C, but charge Q is conserved only when battery is disconnected.</div>
+              </div>
+              <div class="primer-box">
+                <div class="primer-box-title">&sect; 4. Final Pen Checklist</div>
+                <div>[&nbsp;&nbsp;] Biot-Savart Law vector direction (Right-hand rule)</div>
+                <div>[&nbsp;&nbsp;] Displacement current term: I<sub>D</sub> = &epsilon;<sub>0</sub> (d&Phi;<sub>E</sub>/dt)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section: 10x UI Elevation -->
+  <section class="section" style="padding-top:20px; padding-bottom:60px;">
+    <div class="container">
+      
+      <div class="section-header reveal">
+        <span class="section-eyebrow">Design Craft &amp; Haptics</span>
+        <h2 class="section-title">The 10x UI Elevation</h2>
+        <p class="section-description">
+          A luxury academic design system built with custom Compose micro-interactions, haptic feedback, and zero cognitive clutter.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        
+        <!-- UI Card 1 -->
+        <div class="spotlight-card reveal">
+          <div style="font-size:2rem; margin-bottom:12px;">⚡</div>
+          <h3 class="card-title">Tactile Spring Physics</h3>
+          <p class="card-description">
+            Every interactive button and card implements custom <code>bounceClick</code> spring physics, contracting to <code>0.96f</code> scale on tap with synchronous haptic feedback.
+          </p>
+          <div style="margin-top:20px;">
+            <button class="bounce-interactive-btn">
+              <span>Try Tactile Bounce</span>
+              <span>&rarr;</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- UI Card 2 -->
+        <div class="spotlight-card reveal">
+          <div style="font-size:2rem; margin-bottom:12px;">🎛️</div>
+          <h3 class="card-title">Segmented Pill Navigation</h3>
+          <p class="card-description">
+            Replaced flat list tabs with responsive segmented pill controls. Easily glide between Exam Readiness, Mark-Leakage Telemetry, and the 95% Leverage Matrix with fluid transitions.
+          </p>
+          <div style="margin-top:20px; display:inline-flex; background:var(--surface-1); padding:4px; border-radius:var(--radius-pill); border:1px solid var(--border);">
+            <span style="background:var(--accent); color:#0A0B0E; padding:4px 12px; border-radius:var(--radius-pill); font-size:0.75rem; font-weight:800;">Readiness</span>
+            <span style="color:var(--text-secondary); padding:4px 12px; font-size:0.75rem; font-weight:600;">Leakage</span>
+            <span style="color:var(--text-secondary); padding:4px 12px; font-size:0.75rem; font-weight:600;">Leverage</span>
+          </div>
+        </div>
+
+        <!-- UI Card 3 -->
+        <div class="spotlight-card reveal">
+          <div style="font-size:2rem; margin-bottom:12px;">🛡️</div>
+          <h3 class="card-title">100% Offline Manifesto</h3>
+          <p class="card-description">
+            StudyOS requires zero network permissions, zero cloud synchronization, zero user login, and zero tracking. When you flip Airplane Mode ON, the app operates with 100% functionality.
+          </p>
+          <div style="margin-top:20px;">
+            <span class="feature-badge-pill badge-emerald">Airplane Mode Certified</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Step-by-Step Installation Guide -->
+  <section class="section" id="install-guide" style="padding-top:20px; padding-bottom:60px;">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-eyebrow">Quick Setup</span>
+        <h2 class="section-title">Install StudyOS v1.9.0 on Android</h2>
+        <p class="section-description">
+          StudyOS is distributed directly as an unbloated, standalone APK. Follow these 3 easy steps to install:
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <!-- Step 1 -->
+        <div class="spotlight-card reveal">
+          <div style="font-size:1.8rem; font-weight:800; color:var(--accent); font-family:var(--font-mono); margin-bottom:10px;">01</div>
+          <h3 class="card-title">Download APK</h3>
+          <p class="card-description">
+            Tap the download button to save <code>StudyOS.apk</code> (14.1 MB) to your Android device storage.
+          </p>
+          <div style="margin-top:16px;">
+            <a href="downloads/StudyOS.apk" class="btn-primary" style="padding:8px 18px; font-size:0.85rem;">Download APK</a>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="spotlight-card reveal">
+          <div style="font-size:1.8rem; font-weight:800; color:var(--accent); font-family:var(--font-mono); margin-bottom:10px;">02</div>
+          <h3 class="card-title">Allow Unknown Apps</h3>
+          <p class="card-description">
+            When prompted by Android, enable <em>"Allow from this source"</em> for your browser or file manager to permit direct APK installation.
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="spotlight-card reveal">
+          <div style="font-size:1.8rem; font-weight:800; color:var(--accent); font-family:var(--font-mono); margin-bottom:10px;">03</div>
+          <h3 class="card-title">Launch StudyOS</h3>
+          <p class="card-description">
+            Open StudyOS from your app drawer. Grant optional notification and accessibility permissions for Real Exam Mode, and begin your 95% target run.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            </div>
+            <span>StudyOS</span>
+          </div>
+          <p>The distraction-free Android study workspace for top scorers. 100% offline.</p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="release.html">Release v1.9.0</a></li>
+            <li><a href="features.html">Features</a></li>
+            <li><a href="mock-tests.html">Mock Tests</a></li>
+            <li><a href="download.html">Download</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="docs.html">User Guide</a></li>
+            <li><a href="docs.html#algorithms">Algorithms</a></li>
+            <li><a href="privacy.html">Privacy Manifesto</a></li>
+            <li><a href="#install-guide">Installation</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Open Source</h5>
+          <ul>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS" target="_blank" rel="noopener">GitHub Repo</a></li>
+            <li><a href="https://github.com/contactaurawealth-lab/StudyOS/releases" target="_blank" rel="noopener">Releases</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 StudyOS. Free, open source, and offline-first.</div>
+        <div><a href="privacy.html" style="color:var(--text-muted); text-decoration:none;">100% Offline</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
